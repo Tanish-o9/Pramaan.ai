@@ -1,6 +1,6 @@
 import streamlit as st
 from src.components.header import header_home
-from src.ui.base_layout import style_base_layout,style_background_home
+from src.ui.base_layout import style_base_layout
 from src.components.footer import footer
 from src.ui.home_page_layout import apply_premium_dark_theme
 

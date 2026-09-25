@@ -1,108 +1,103 @@
 import streamlit as st
 
-def style_background_home():
-    st.markdown("""
-        <style>
-            /* Main background color */
-            .stAppViewContainer {
-                background: #5865F2 !important;
-            }
-            
-            /* Target individual columns */
-            .stApp div[data-testid="stColumn"] {
-                background-color: #E0E3FF !important;
-                padding: 2.5rem !important;
-                border-radius: 15px !important; /* px gives a smoother curve than % */
-            }
-        </style>
-    """, unsafe_allow_html=True)
-
-
-def style_base_dashboard():
-    st.markdown("""
-        <style>
-
-            .stAppViewContainer{
-                background:#E0E3FF !important;
-            }
-            </style>
-
-
-    """,unsafe_allow_html=True)
 def style_base_layout():
     st.markdown("""
         <style>
-            @import url('https://fonts.googleapis.com/css2?family=Climate+Crisi');
-            @import url('https://fonts.googleapis.com/css2?family=Climate+Crisis:YEAR@1979&family=Outfit:wght@100..900&display=swap');
+            /* 1. Import Premium Outfit Font */
+            @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;500;700;800&display=swap');
             
-
-
-
-            # /*Hide Top bar of streamlit */
-            # #MainMenu,footer,header{
-            #     visibility:hidden ;
-            # }
-
-            .block-container{
-                padding-top:1.5rem ;
-            }
-
-
+            /* 2. Global Font & App Settings */
+            * { font-family: 'Outfit', sans-serif !important; }
+            # header, footer, #MainMenu { visibility: hidden; }
+            .block-container { padding-top: 2rem; padding-bottom: 2rem;margin-top: -3rem !important; }
             
+            /* 3. Deep Dark Tech Background */
+            .stAppViewContainer {
+                background-color: #0F172A !important;
+                background-image: radial-gradient(circle at 50% 0%, #1E293B 0%, #0F172A 80%) !important;
+            }
             
-            h1{
-                font-family:'Climate crisis',sans-serif ! important;
-                font-size:3.5rem ! important;
-                line-height:1.1 !important;
-                margin-bottom:0rem !important;
+            /* 4. Headings & Paragraphs */
+            h1, h2, h3 { color: #F8FAFC !important; font-weight: 700 !important; letter-spacing: -0.5px; }
+            p, label { color: #94A3B8 !important; font-weight: 300 !important; }
             
-            }
-            h2{
-                font-family:'Climate crisis',sans-serif ! important;
-                font-size:2rem ! important;
-                line-height:1 !important;
-                margin-bottom:0rem !important;
-                color:#1E1E1E !important;
-                }
-
-            h3,h4,p{
-                font-family:'outfit',sans-serif !important;
-            }
-            button[kind='secondary']{
-                border-radius:1.5rem !important;
-                background:#EB459E ! important;
-                color:white !important;
-                padding:10px 20px !important;
-                transition:transform 0.25s ease-in-out !important;
-                
-            }
-            button{
-                border-radius:1.5rem !important;
+            /* 5. Primary Buttons (Blue-Purple Gradient & Bold Text) */
+            div[data-testid="stButton"] > button[kind="primary"] {
+                background: linear-gradient(135deg, #3B82F6 0%, #8B5CF6 100%) !important;
                 border: none !important;
-                background:#5865F2 ! important;
-                color:white !important;
-                padding:10px 20px !important;
-                transition:transform 0.25s ease-in-out !important;
+                border-radius: 12px !important;
+                padding: 10px 24px !important;
+                transition: all 0.3s ease !important;
+                box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3) !important;
             }
-            button[kind='tertiary']{
-                border-radius:1.5rem !important;
-                background:black ! important;
-                color:white !important;
-                padding:10px 20px !important;
-                transition:transform 0.25s ease-in-out !important;
-            } 
-            button:hover{
-                tbackground-color: #4752C4 !important; /* Hover par thoda dark blue ho jayega */
-                box-shadow: 0px 6px 15px rgba(0, 0, 0, 0.2) !important; /* Niche ek soft shadow aayegi */
-                transform: translateY(-3px) !important; /* Button thoda sa upar uthega (Lift effect) */
-                border: none !important;
-                color: white !important;
-
-            }           
-
-
+            div[data-testid="stButton"] > button[kind="primary"] * {
+                color: #FFFFFF !important;
+                font-weight: 400 !important;
+                font-size: 1.1rem !important;
+                letter-spacing: 0.5px !important;
+                opacity: 1 !important;
+            }
+            div[data-testid="stButton"] > button[kind="primary"]:hover {
+                transform: translateY(-4px) !important; /* Ye sirf visual (dekhne mein) button uthayega, layout ko hilaaye bina */
+                box-shadow: 0 8px 25px rgba(139, 92, 246, 0.5) !important;
+                border: none !important; /* Make sure border change na ho */
+                margin: 0 !important;
+            }
             
-            </style>
+            /* 6. Secondary Buttons (Hollow outline for 'Back' buttons) */
+            div[data-testid="stButton"] > button[kind="secondary"] {
+                background-color: transparent !important;
+                border: 1px solid rgba(255, 255, 255, 0.2) !important;
+                border-radius: 12px !important;
+                padding: 8px 20px !important;
+                transition: all 0.3s ease !important;
+            }
+            div[data-testid="stButton"] > button[kind="secondary"] * {
+                color: #FFFFFF !important;
+                font-weight: 600 !important;
+                opacity: 1 !important;
+            }
+            div[data-testid="stButton"] > button[kind="secondary"]:hover {
+                border: 1px solid #38BDF8 !important;
+                box-shadow: 0 0 10px rgba(56, 189, 248, 0.2) !important;
+            }
+            div[data-testid="stButton"] > button[kind="secondary"]:hover * {
+                color: #38BDF8 !important; /* Text turns cyan on hover */
+            }
 
-
-    """,unsafe_allow_html=True)
+            /* 7. Form Input Fields (Dark Mode Glass Look) */
+            div[data-baseweb="input"] {
+                background-color: rgba(30, 41, 59, 0.6) !important;
+                border: 1px solid rgba(255, 255, 255, 0.1) !important;
+                border-radius: 10px !important;
+                transition: all 0.3s ease;
+            }
+            /* Remove white background from inner wrapper */
+            div[data-baseweb="input"] > div {
+                background-color: transparent !important;
+            }
+            /* Text inside input fields */
+            div[data-baseweb="input"] input {
+                color: #F8FAFC !important; 
+                -webkit-text-fill-color: #F8FAFC !important;
+            }
+            /* Glow effect when typing in the box */
+            div[data-baseweb="input"]:focus-within {
+                border-color: #38BDF8 !important;
+                box-shadow: 0 0 8px rgba(56, 189, 248, 0.3) !important;
+                background-color: rgba(30, 41, 59, 0.8) !important;
+            }
+            /* --- FIX FOR BUTTON ICONS --- */
+            div[data-testid="stButton"] button span.material-symbols-rounded {
+                font-family: 'Material Symbols Rounded', 'Material Icons' !important;
+                font-weight: 400 !important; /* Icon ko normal weight par lane ke liye */
+                font-size: 1.3rem !important; /* Icon ka size theek karne ke liye */
+                margin-right: 5px !important; /* Icon aur text ke beech thoda gap dene ke liye */
+            }
+            /* Ye force karega ki Streamlit ke icons par Outfit font apply na ho */
+            span[data-testid="stIconMaterial"] {
+                font-family: "Material Symbols Rounded" !important;
+                font-weight: 400 !important;
+            }
+        </style>
+    """, unsafe_allow_html=True)
