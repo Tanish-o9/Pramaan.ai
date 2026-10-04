@@ -16,6 +16,8 @@ supabase
 bcrypt
 
 
+
+
 # for qr
 segno
 
@@ -25,3 +27,8 @@ pillow
 
 # web pages
 streamlit
+
+
+# voice 
+librosa #edit voice file
+resemblyzer# convert voice file in to embedding'
