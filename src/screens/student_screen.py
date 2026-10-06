@@ -8,7 +8,7 @@ from PIL import Image # use for image
 from src.pipline.face_pipline import predict_attendance
 from src.pipline.face_pipline import get_all_student,train_classifier
 import time
-from src.database.db import get_all_student,create_student
+from src.database.db import get_all_student,create_student,check_roll_exists
 from src.pipline.face_pipline import get_face_embeddings
 from src.pipline.voice_pipline import get_voice_embedding
 def student_dashboard():
@@ -67,7 +67,7 @@ def student_screen():
         with st.container(border=True):
             st.header("Register new profile")
             new_name=st.text_input("Enter your name",placeholder='E.g. Hamza Rizvi')
-
+            new_roll = st.text_input("Enter your Roll Number", placeholder='E.g. 2025-CS-40')
             st.subheader("Optional:voice Enrollment")
             st.info("Enroll Your  for Voice only attendance")
 
@@ -78,30 +78,46 @@ def student_screen():
             except Exception:
                 st.error("Audio Data failed !")
 
-            if st.button("Create Account",type='primary'):
-                if new_name:
+            
+            if st.button("Create Account", type='primary'):
+    # Step 1: clean up whitespace
+                clean_name = new_name.strip() if new_name else ""
+                clean_roll = new_roll.strip().upper() if new_roll else ""
+
+    # Step 2: basic empty checks
+                if not clean_name:
+                    st.warning("Please enter your name!")
+                elif not clean_roll:
+                    st.warning("Please enter your roll number!")
+                elif check_roll_exists(clean_roll):
+                    st.error("This roll number is already registered! Please check again.")
+                else:
                     with st.spinner("Creating profile.."):
-                        img=np.array(Image.open(photo_source))
-                        encodings=get_face_embeddings(img)
+                        img = np.array(Image.open(photo_source))
+                        encodings = get_face_embeddings(img)
                         if encodings:
-                            face_emb=encodings[0].tolist()
-                            voice_emb=None
+                            face_emb = encodings[0].tolist()
+                            voice_emb = None
                             if audio_data:
-                                voice_emb=get_voice_embedding(audio_data.read())
-                            response_data=create_student(new_name,face_embedding=face_emb,voice_embedding=voice_emb)
-                            if response_data:
-                                train_classifier()
-                                st.session_state.is_logged_in=True
-                                st.session_state.user_role="student"
-                                st.session_state.student_data=response_data[0]
-                                st.toast(f"Profile Created Hi {new_name}")
-                                time.sleep(1)
-                                st.rerun()
+                                voice_emb = get_voice_embedding(audio_data.read())
+
+                            try:
+                                response_data = create_student(clean_name, clean_roll, face_embedding=face_emb, voice_embedding=voice_emb)
+                                if response_data:
+                                    train_classifier()
+                                    st.session_state.is_logged_in = True
+                                    st.session_state.user_role = "student"
+                                    st.session_state.student_data = response_data[0]
+                                    st.toast(f"Profile Created Hi {clean_name}")
+                                    time.sleep(1)
+                                    st.rerun()
+                            except Exception as e:
+                                if "duplicate" in str(e).lower() or "unique" in str(e).lower():
+                                    st.error("This roll number was just registered by someone else. Try a different one.")
+                                else:
+                                    st.error("Something went wrong while creating your profile.")
                         else:
                             st.error("Couldnt capture your facial features for registration")
-                else:
-                    st.warning("please Enter your name!")  
-
 
 
 

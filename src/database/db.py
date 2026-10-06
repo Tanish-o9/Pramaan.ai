@@ -34,7 +34,11 @@ def get_all_student():
     return response.data
 
 
-def create_student(new_name,face_embedding=None,voice_embedding=None):
-    data={'name':new_name,'face_embedding':face_embedding,"voice_embedding":voice_embedding}
+def create_student(new_name,roll_number,face_embedding=None,voice_embedding=None):
+    data={'name':new_name,'face_embedding':face_embedding,"voice_embedding":voice_embedding,"roll_number": roll_number,}
     response=supabase.table('students').insert(data).execute()
     return response.data
+
+def check_roll_exists(roll_number):
+    response = supabase.table("students").select("roll_number").eq("roll_number", roll_number).execute()
+    return len(response.data) > 0

@@ -113,5 +113,4 @@ def teacher_screen_register():
             if st.button("Login Instead",icon=":material/passkey:", type="primary", use_container_width=True,shortcut='control+Enter'):
                  st.session_state.teacher_login_type="login"
         st.space()
-        footer()
-     
+        footer() 
