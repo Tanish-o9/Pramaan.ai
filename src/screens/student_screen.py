@@ -80,11 +80,11 @@ def student_screen():
 
             
             if st.button("Create Account", type='primary'):
-    # Step 1: clean up whitespace
+                # Step 1: clean up whitespace
                 clean_name = new_name.strip() if new_name else ""
                 clean_roll = new_roll.strip().upper() if new_roll else ""
 
-    # Step 2: basic empty checks
+                # Step 2: basic empty checks
                 if not clean_name:
                     st.warning("Please enter your name!")
                 elif not clean_roll:
@@ -126,4 +126,3 @@ def student_screen():
     footer()
 
 
-        

@@ -8,7 +8,7 @@ def style_base_layout():
             
             /* 2. Global Font & App Settings */
             * { font-family: 'Outfit', sans-serif !important; }
-            # header, footer, #MainMenu { visibility: hidden; }
+            header, footer, #MainMenu { visibility: hidden; }
             .block-container { padding-top: 2rem; padding-bottom: 2rem;margin-top: -3rem !important; }
             
             /* 3. Deep Dark Tech Background */
