@@ -159,27 +159,40 @@ import streamlit as st
 from src.screens.home_screen import home_screen
 from src.screens.teacher_screen import teacher_screen
 from src.screens.student_screen import student_screen
+from src.components.dialog_auto_enroll import auto_enroll_dialog
 def main():
-
-
-# Check if 'key' already exists in session_state
-# If not, then initialize it
     if 'login_type' not in st.session_state:
         st.session_state['login_type'] = None
 
+    # join link se aaye ho to pehle student mode set karo
+    join_code = st.query_params.get('join-code')
+    if join_code and st.session_state['login_type'] != 'Student':
+        st.session_state['login_type'] = 'Student'     # ✅ capital S, match ke saath same
 
     match st.session_state['login_type']:
         case 'Teacher':
             teacher_screen()
         case 'Student':
             student_screen()
-        case None:
-            home_screen()    
+        case _:                                         # ✅ None ya koi aur value, sab home par
+            home_screen()
 
+    # student login ho chuka ho to enrollment popup kholo
+    if (join_code
+            and st.session_state.get('is_logged_in')
+            and st.session_state.get('user_role') == "student"):
+        auto_enroll_dialog(join_code)
+
+
+main()
         
     
 
 
 
 
-main()
+
+
+
+
+

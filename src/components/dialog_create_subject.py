@@ -4,7 +4,7 @@ from src.database.db import create_subjects
 @st.dialog("Create New Subject")
 def create_subject_dialog(teacher_id):
     st.write("Enter the details of new subject")
-    sub_id=st.text_input("Subject Code",placeholder="M001")
+    sub_id=st.text_input("Subject Code",placeholder="M001").strip().upper()
     sub_name=st.text_input("Subject Name",placeholder="Introduction to Computer Science").capitalize()
     sub_section=st.text_input("Branch",placeholder="CSE").upper()
 

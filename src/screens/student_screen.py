@@ -20,10 +20,10 @@ def student_dashboard():
     with col1:
         teacher_dashboard_header()
     with col2:
-        st.subheader(f"Welcome, {student_data['name']}👋")
+        st.subheader(f"Welcome, {student_data['name']}")
         if st.button("Logout", type="secondary", key='logoutbtn', shortcut="control+backspace"):
             st.session_state["is_logged_in"] = False
-            del st.session_state.teacher_data
+            del st.session_state.student_data
             st.rerun()
     
     st.space()
@@ -34,7 +34,7 @@ def student_dashboard():
     with c2:
         if st.button("Enroll in subject",type='primary',width='stretch'):
             enroll_dialog()
-
+    
 
     st.divider()
 
@@ -48,10 +48,10 @@ def student_dashboard():
         if sid not in stats_map:
             stats_map[sid]={'total':0,"attended":0}
 
-            stats_map[sid]["total"]+=1
+        stats_map[sid]["total"]+=1
 
-            if logs.get("is_present"):
-                stats_map[sid]['attended']+=1
+        if log.get("is_present"):
+            stats_map[sid]['attended']+=1
 
     cols=st.columns(2)
     for i ,sub_node in enumerate(subject):
@@ -66,17 +66,17 @@ def student_dashboard():
                 st.toast(f"Unenrolled from {sub['name']} successfully")
                 st.rerun()
 
-        with cols[i %2]:
-            subject_card(
-                name=sub["name"],
-                code=sub["subject_code"],
-                section=sub['section'],
-                stats=[
-                    ('','Total',stats['total']),
-                    ('',"Attended",stats["attended"]),
-                ],
-                footer_callback=unenroll_button
-            )
+        
+        subject_card(
+            name=sub["name"],
+            code=sub["subject_code"],
+            section=sub['section'],
+            stats=[
+                ('','Total',stats['total']),
+                ('',"Attended",stats["attended"]),
+            ],
+            footer_callback=unenroll_button
+        )
             
 
 

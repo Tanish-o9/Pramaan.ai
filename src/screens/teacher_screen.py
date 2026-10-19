@@ -1,4 +1,5 @@
 import streamlit as st
+from src.database.config import supabase
 from src.components.header import teacher_dashboard_header
 from src.ui.teacher_screen_layout import style_teacher_dashboard
 from src.ui.base_layout import style_base_layout
@@ -7,6 +8,13 @@ from src.components.dialog_create_subject import create_subject_dialog
 from src.database.db import get_teacher_subjects
 from src.components.subject_card import subject_card
 from src.components.dialog_share_subject import share_subject_dialog
+from src.components.dialog_add_photos import add_photos_dialog
+import numpy as np
+from src.components.dialog_delete_subject import delete_subject_dialog
+import pandas as pd
+from src.components.dialog_attendance_results import attendance_result_dialog
+from datetime import datetime
+from src.pipline.face_pipline import predict_attendance
 def teacher_screen():
     style_base_layout()
     style_teacher_dashboard()
@@ -86,9 +94,91 @@ def teacher_tab_take_attendance():
     with st.container(border=True):
         st.subheader("📸 Take Attendance")
         st.caption("Capture a class photo to automatically mark attendance using Face ID.")
-        st.info("This section is under construction — attendance capture logic coming soon.")
 
+        teacher_id=st.session_state.teacher_data["teachers_id"]
+        if 'attendance_images' not in st.session_state:
+            st.session_state.attendance_mages=[]
+        subjects=get_teacher_subjects(teacher_id)
 
+        if not subjects:
+            st.warning("You havent created any subjects yet! please create one to begin!")
+            return
+        subject_options={f"{s['name']}-{s['subject_code']}":s['subject_id'] for s in subjects}
+
+        col1,col2=st.columns([2,1])
+
+        with col1:
+            selected_subject_label=st.selectbox("Select Subject",options=list(subject_options.keys()))
+        with col2:
+            st.space()
+            if st.button("Add Photos",type='primary',width='stretch'):
+                add_photos_dialog()
+
+        selected_subject_id=subject_options[selected_subject_label]
+        st.divider()
+        
+
+        images = st.session_state.get('attendance_images', [])
+        if images:
+            st.write(f"{len(images)}. photo(s) ready to scan")
+           
+            cols = st.columns(4)
+            for i, img in enumerate(images):
+                cols[i % 4].image(img, width='stretch')
+            c1,c2,c3=st.columns(3)
+            with c1:
+                if st.button("🗑️ Clear all photos",type="primary",width='stretch'):
+                    st.session_state.attendance_images = []
+                    st.rerun()
+
+        
+            with c2:
+                has_photos=bool(st.session_state.attendance_images)
+                if st.button("Run Face Analysis",type='primary',width='stretch',icon=":material/analytics:"):
+                    with st.spinner('Deep scanning classroom photos....'):
+                        all_detected_id={}
+                        for idx,img,in enumerate(st.session_state.attendance_images):
+                            img_np=np.array(img.convert('RGB'))
+                                            
+                            detected,_,_=predict_attendance(img_np)
+                            if detected:
+                                for sid in detected.keys():
+                                    student_id=int(sid)
+                                    all_detected_id.setdefault(student_id,[]).append(f"Photo {idx+1}")
+                        enrolled_res=supabase.table("subject_students").select("*,students(*)").eq("subject_id",selected_subject_id).execute()
+                        enrolled_students=enrolled_res.data
+                        if not enrolled_students:
+                            st.warning("No students enrolled in this course")
+                        else:
+                            results,attendance_to_log=[],[]
+
+                            current_timestamp=datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
+
+                            for node in enrolled_students:
+                                student=node["students"]
+                                sources=all_detected_id.get(int(student["student_id"]),[])
+                                is_present=len(sources) >0
+                                results.append({
+                                    "Name":student["name"],
+                                    "Roll No":student.get("roll_number") or "-",
+                                    "Source":",".join(sources) if is_present else "-",
+                                    "Status":"✅Present" if is_present else "❌ Absent"
+                                })
+                                attendance_to_log.append({
+                                    'student_id':student["student_id"],
+                                    "subject_id":selected_subject_id,
+                                    "timestamp":current_timestamp,
+                                    "is_present":bool(is_present)
+                            
+                                })
+                        attendance_result_dialog(pd.DataFrame(results),attendance_to_log)
+            with c3:
+                if st.button("Use Voice Attendance",type='primary',width='stretch',icon=':material/mic:'):
+                    voice_attendace_dialog()
+    
+                        
+
+            
 def teacher_tab_manage_subjects():
     teacher_id = st.session_state.teacher_data["teachers_id"]
 
@@ -112,12 +202,24 @@ def teacher_tab_manage_subjects():
             ]
 
             def share_btn(sub=sub):   # ✅ har subject ka apna data bind
-                if st.button(
-                    f"Share Code: {sub['name']}",
-                    key=f"share_{sub['subject_code']}",
-                    icon=":material/share:"
-                ):
-                    share_subject_dialog(sub['name'], sub['subject_code'])
+                b1, b2 = st.columns([4, 1])
+                with b1:
+                    if st.button(
+                        f"Share Code: {sub['name']}",
+                        key=f"share_{sub['subject_id']}",
+                        icon=":material/share:",
+                        width='stretch',
+                    ):
+                        share_subject_dialog(sub['name'], sub['subject_code'])
+                with b2:
+                    if st.button(
+                        "",
+                        key=f"del_{sub['subject_id']}",
+                        icon=":material/delete:",
+                        help="Delete this subject",
+                        width='stretch',
+                    ):
+                        delete_subject_dialog(sub, teacher_id)
                 st.space()
 
             subject_card(                 # ✅ ab loop ke andar

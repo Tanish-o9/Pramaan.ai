@@ -75,11 +75,11 @@ def predict_attendance(class_image_np):
     all_student=sorted(list(set(y_train)))
     for encod in encoding:
         if len(all_student)>=2:
-            predicted_id=int(clf.predict([encoding])[0])
+            predicted_id=int(clf.predict([encod])[0])
         else:
             predicted_id=int(all_student[0])
         student_embedding=x_train[y_train.index(predicted_id)]
-        best_math_score=np.linalg.norm(student_embedding-encoding)
+        best_math_score=np.linalg.norm(student_embedding-encod)
         resemblance_threshold=0.6
 
         if best_math_score<=resemblance_threshold:
