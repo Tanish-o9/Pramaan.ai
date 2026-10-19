@@ -13,7 +13,7 @@ import numpy as np
 from src.components.dialog_delete_subject import delete_subject_dialog
 import pandas as pd
 from src.components.dialog_attendance_results import attendance_result_dialog
-from datetime import datetime
+from datetime import datetime,timezone
 from src.pipline.face_pipline import predict_attendance
 def teacher_screen():
     style_base_layout()
@@ -49,27 +49,27 @@ def teacher_dashboard():
     tab1, tab2, tab3 = st.columns(3)
     with tab1:
         if st.button(
-            'Take Attendance',
+            '📋 Take Attendance',
             width='stretch',
-            icon=':material/photo_camera:',
+            
             type='primary' if current_tab == 'take_attendance' else 'secondary'
         ):
             st.session_state.current_teacher_tab = 'take_attendance'
             st.rerun()
     with tab2:
         if st.button(
-            'Manage Subjects',
+            '📚  Manage Subjects',
             width='stretch',
-            icon=':material/book_ribbon:',
+            
             type='primary' if current_tab == 'manage_subjects' else 'secondary'
         ):
             st.session_state.current_teacher_tab = 'manage_subjects'
             st.rerun()
     with tab3:
         if st.button(
-            'Attendance Records',
+            '🗂️ Attendance Records',
             width='stretch',
-            icon=':material/fact_check:',
+            
             type='primary' if current_tab == 'attendance_records' else 'secondary'
         ):
             st.session_state.current_teacher_tab = 'attendance_records'
@@ -90,91 +90,176 @@ def teacher_dashboard():
     footer()
 
 
+def get_enrolled_students(subject_id):
+    res = (
+        supabase.table("subject_students")
+        .select("student_id, students(student_id, name, roll_number)")
+        .eq("subject_id", subject_id)
+        .execute()
+    )
+    return [n["students"] for n in res.data if n.get("students")]
+
+def roll_sort_key(roll_number):
+    """'2025-IT-40' -> (0, 2025, 'IT', 40). Missing or invalid roll numbers go last."""
+    parts = (roll_number or "").split("-")
+    if len(parts) >= 3 and parts[0].isdigit() and parts[-1].isdigit():
+        return (0, int(parts[0]), parts[1].upper(), int(parts[-1]))
+    return (1, 0, "", 0)
 def teacher_tab_take_attendance():
+    teacher_id = st.session_state.teacher_data["teachers_id"]
+
     with st.container(border=True):
-        st.subheader("📸 Take Attendance")
-        st.caption("Capture a class photo to automatically mark attendance using Face ID.")
+        st.subheader("📋 Take Attendance")        # camera emoji hata diya
+        st.caption("Choose a subject and a method to mark attendance.")
 
-        teacher_id=st.session_state.teacher_data["teachers_id"]
-        if 'attendance_images' not in st.session_state:
-            st.session_state.attendance_mages=[]
-        subjects=get_teacher_subjects(teacher_id)
-
+        subjects = get_teacher_subjects(teacher_id)
         if not subjects:
-            st.warning("You havent created any subjects yet! please create one to begin!")
+            st.warning("You haven't created any subjects yet! Please create one to begin.")
             return
-        subject_options={f"{s['name']}-{s['subject_code']}":s['subject_id'] for s in subjects}
 
-        col1,col2=st.columns([2,1])
+        subject_options = {f"{s['name']} - {s['subject_code']}": s['subject_id'] for s in subjects}
+        label = st.selectbox("Select Subject", options=list(subject_options.keys()))
+        subject_id = subject_options[label]
 
-        with col1:
-            selected_subject_label=st.selectbox("Select Subject",options=list(subject_options.keys()))
-        with col2:
-            st.space()
-            if st.button("Add Photos",type='primary',width='stretch'):
-                add_photos_dialog()
+        st.space()
 
-        selected_subject_id=subject_options[selected_subject_label]
+        # naya session key, purane "attendance_method" se takkar na ho
+        if st.session_state.get('att_method') not in ('photos', 'voice', 'manual'):
+            st.session_state.att_method = 'photos'
+        method = st.session_state.att_method
+
+        st.caption("Attendance method")
+        m1, m2, m3 = st.columns(3)
+        with m1:
+            if st.button("Photos", icon=":material/photo_library:", width='stretch',
+                         key="method_photos",
+                         type='primary' if method == 'photos' else 'secondary'):
+                st.session_state.att_method = 'photos'
+                st.rerun()
+        with m2:
+            if st.button("Voice", icon=":material/mic:", width='stretch',
+                         key="method_voice",
+                         type='primary' if method == 'voice' else 'secondary'):
+                st.session_state.att_method = 'voice'
+                st.rerun()
+        with m3:
+            if st.button("Manual", icon=":material/checklist:", width='stretch',
+                         key="method_manual",
+                         type='primary' if method == 'manual' else 'secondary'):
+                st.session_state.att_method = 'manual'
+                st.rerun()
+
         st.divider()
-        
 
-        images = st.session_state.get('attendance_images', [])
-        if images:
-            st.write(f"{len(images)}. photo(s) ready to scan")
-           
-            cols = st.columns(4)
-            for i, img in enumerate(images):
-                cols[i % 4].image(img, width='stretch')
-            c1,c2,c3=st.columns(3)
-            with c1:
-                if st.button("🗑️ Clear all photos",type="primary",width='stretch'):
-                    st.session_state.attendance_images = []
-                    st.rerun()
+        if method == 'voice':
+            attendance_voice_mode(subject_id)
+        elif method == 'manual':
+            attendance_manual_mode(subject_id)
+        else:
+            attendance_photo_mode(subject_id)
+def attendance_photo_mode(subject_id):
+    images = st.session_state.setdefault('attendance_images', [])
 
-        
-            with c2:
-                has_photos=bool(st.session_state.attendance_images)
-                if st.button("Run Face Analysis",type='primary',width='stretch',icon=":material/analytics:"):
-                    with st.spinner('Deep scanning classroom photos....'):
-                        all_detected_id={}
-                        for idx,img,in enumerate(st.session_state.attendance_images):
-                            img_np=np.array(img.convert('RGB'))
-                                            
-                            detected,_,_=predict_attendance(img_np)
-                            if detected:
-                                for sid in detected.keys():
-                                    student_id=int(sid)
-                                    all_detected_id.setdefault(student_id,[]).append(f"Photo {idx+1}")
-                        enrolled_res=supabase.table("subject_students").select("*,students(*)").eq("subject_id",selected_subject_id).execute()
-                        enrolled_students=enrolled_res.data
-                        if not enrolled_students:
-                            st.warning("No students enrolled in this course")
-                        else:
-                            results,attendance_to_log=[],[]
+    if st.button("➕ Add photos", width='stretch'):
+        add_photos_dialog()
 
-                            current_timestamp=datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
+    if not images:
+        st.info("No photos yet. Add classroom photos to begin.")
+        return
 
-                            for node in enrolled_students:
-                                student=node["students"]
-                                sources=all_detected_id.get(int(student["student_id"]),[])
-                                is_present=len(sources) >0
-                                results.append({
-                                    "Name":student["name"],
-                                    "Roll No":student.get("roll_number") or "-",
-                                    "Source":",".join(sources) if is_present else "-",
-                                    "Status":"✅Present" if is_present else "❌ Absent"
-                                })
-                                attendance_to_log.append({
-                                    'student_id':student["student_id"],
-                                    "subject_id":selected_subject_id,
-                                    "timestamp":current_timestamp,
-                                    "is_present":bool(is_present)
-                            
-                                })
-                        attendance_result_dialog(pd.DataFrame(results),attendance_to_log)
-            with c3:
-                if st.button("Use Voice Attendance",type='primary',width='stretch',icon=':material/mic:'):
-                    voice_attendace_dialog()
+    st.write(f"**{len(images)}** photo(s) ready to scan")
+    cols = st.columns(4)
+    for i, img in enumerate(images):
+        cols[i % 4].image(img, width='stretch')
+
+    c1, c2 = st.columns(2)
+    with c1:
+        if st.button("🗑️ Clear all photos", width='stretch'):
+            st.session_state.attendance_images = []
+            st.rerun()
+    with c2:
+        if st.button("Run Face Analysis", type='primary', width='stretch',
+                     icon=":material/analytics:"):
+            run_face_analysis(subject_id, images)
+
+
+def run_face_analysis(subject_id, images):
+    with st.spinner("Deep scanning classroom photos...."):
+        detected_map = {}
+        for idx, img in enumerate(images):
+            detected, _, _ = predict_attendance(np.array(img.convert('RGB')))
+            for sid in detected.keys():
+                detected_map.setdefault(int(sid), []).append(f"Photo {idx + 1}")
+        students = get_enrolled_students(subject_id)
+
+    if not students:
+        st.warning("No students enrolled in this course")
+        return
+
+    timestamp = datetime.now(timezone.utc).isoformat()
+    results, to_log = [], []
+    for s in students:
+        sources = detected_map.get(int(s["student_id"]), [])
+        present = len(sources) > 0
+        results.append({
+            "Roll No": s.get("roll_number") or "-",
+            "Name": s["name"],
+            "Source": ", ".join(sources) if present else "-",
+            "Status": "✅ Present" if present else "❌ Absent",
+        })
+        to_log.append({
+            "student_id": s["student_id"],
+            "subject_id": subject_id,
+            "timestamp": timestamp,
+            "is_present": present,
+        })
+
+    results.sort(key=lambda r: roll_sort_key(r["Roll No"]))
+    attendance_result_dialog(pd.DataFrame(results), to_log)
+
+
+def attendance_manual_mode(subject_id):
+    students = get_enrolled_students(subject_id)
+    if not students:
+        st.warning("No students enrolled in this course")
+        return
+
+    students.sort(key=lambda s: (roll_sort_key(s.get("roll_number")), s["name"].lower()))
+
+    all_present = st.toggle("Mark everyone present", value=False)
+    df = pd.DataFrame({
+        "Present": [all_present] * len(students),
+        "Roll No": [s.get("roll_number") or "-" for s in students],
+        "Name": [s["name"] for s in students],
+    })
+
+    edited = st.data_editor(
+        df,
+        key=f"manual_editor_{subject_id}_{all_present}",   # toggle badalne par table reset
+        hide_index=True,
+        disabled=["Roll No", "Name"],
+        width='stretch',
+    )
+
+    if st.button("Review & Save", type='primary', width='stretch'):
+        timestamp = datetime.now(timezone.utc).isoformat()
+        to_log = [
+            {
+                "student_id": s["student_id"],
+                "subject_id": subject_id,
+                "timestamp": timestamp,
+                "is_present": bool(p),
+            }
+            for s, p in zip(students, edited["Present"])
+        ]
+        view = edited[["Roll No", "Name"]].copy()
+        view["Status"] = ["✅ Present" if p else "❌ Absent" for p in edited["Present"]]
+        attendance_result_dialog(view, to_log)
+
+
+def attendance_voice_mode(subject_id):
+    # Yahan apna purana "Use Voice Attendance" wala code paste karo
+    st.info("Voice attendance panel")
     
                         
 
