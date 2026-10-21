@@ -167,6 +167,23 @@ def main():
     layout="wide",
     initial_sidebar_state="collapsed" # Agar aap chahte hain ki sidebar by-default band rahe
 )
+    st.markdown("""
+    <style>
+    /* Phone screens ke liye (width 768px se kam) */
+    @media (max-width: 768px) {
+        .stApp {
+            padding-top: 10px;
+        }
+        /* HTML cards ki styling mobile ke hisaab se adjust karein */
+        h3 {
+            font-size: 1.2rem !important;
+        }
+        p, span {
+            font-size: 0.85rem !important;
+        }
+    }
+    </style>
+    """, unsafe_allow_html=True)
     if 'login_type' not in st.session_state:
         st.session_state['login_type'] = None
 
