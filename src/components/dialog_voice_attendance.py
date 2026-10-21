@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 
 from src.database.config import supabase
 from src.pipline.voice_pipline import process_bulk_audio
-from src.components.dialog_attendance_results import attendance_result_dialog
+from src.components.dialog_attendance_results import show_attendance_result
 from src.utiils import roll_sort_key
 
 
@@ -16,7 +16,7 @@ def voice_attendance_dialog(selected_subject_id):
     # Step 2: analysis ho chuka hai, ab review dikhao
     if result_key in st.session_state:
         df, logs = st.session_state[result_key]
-        attendance_result_dialog(df, logs)
+        show_attendance_result(df, logs)        # ✅
         return
 
     # Step 1: record karo aur analyze karo

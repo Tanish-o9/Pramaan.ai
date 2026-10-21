@@ -100,3 +100,24 @@ def delete_subject(subject_id, teacher_id):
 def get_attendance_for_teacher(teacher_id):
     response=supabase.table("attendance_logs").select("*,subjects!inner(*)").eq('subjects.teacher_id',teacher_id).execute()
     return response.data
+def get_subject_attendance(subject_id):
+    """Ek subject ke saare attendance rows, students ki details ke saath."""
+    rows, start, size = [], 0, 1000
+    while True:
+        res = (
+            supabase.table("attendance_logs")
+            .select("timestamp, is_present, student_id, students(name, roll_number)")
+            .eq("subject_id", subject_id)
+            .order("id")
+            .range(start, start + size - 1)
+            .execute()
+        )
+        rows.extend(res.data)
+        if len(res.data) < size:
+            break
+        start += size
+    return rows
+
+def create_attendance(logs):
+    response = supabase.table('attendance_logs').insert(logs).execute()
+    return response.data

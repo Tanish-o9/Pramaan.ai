@@ -12,9 +12,9 @@ def apply_premium_dark_theme():
                 background-image: radial-gradient(circle at 50% 0%, #1E293B 0%, #0F172A 80%) !important;
             }
             
-            # /* Hide default Streamlit elements */
-            # header, footer, #MainMenu { visibility: hidden; }
-            # .block-container { padding-top: 2rem; padding-bottom: 2rem; }
+            /* Hide default Streamlit elements */
+            header, footer, #MainMenu { visibility: hidden; }
+            .block-container { padding-top: 2rem; padding-bottom: 2rem; }
             
             /* Global Font Setting */
             * { font-family: 'Outfit', sans-serif !important; }

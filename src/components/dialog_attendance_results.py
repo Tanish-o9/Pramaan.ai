@@ -3,8 +3,7 @@ import time
 from src.database.config import supabase
 
 
-@st.dialog("Attendance Result", width="large")
-def attendance_result_dialog(df, attendance_to_log):
+def show_attendance_result(df, attendance_to_log):          # ✅ @st.dialog hata diya
     total = len(df)
     present = sum(1 for row in attendance_to_log if row["is_present"])
     absent = total - present
@@ -34,3 +33,8 @@ def attendance_result_dialog(df, attendance_to_log):
             st.success("Attendance saved successfully!")
             time.sleep(1.5)
             st.rerun()                                  # popup band, main page refresh
+
+
+@st.dialog("Attendance Result", width="large")          # ✅ naya wrapper
+def attendance_result_dialog(df, attendance_to_log):
+    show_attendance_result(df, attendance_to_log)

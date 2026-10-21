@@ -22,23 +22,22 @@ def get_voice_embedding(audio_bytes):
         return None
 
 
+
 def identify_speaker(new_embedding, candidat_dict, threshold=0.65):
     if new_embedding is None or not candidat_dict:
         return None, 0.0
 
-    best_sid = None
-    best_score = -1.0
-    for sid, stored_embedding in candidat_dict.items():
-        if stored_embedding:
-            similarity = np.dot(new_embedding, stored_embedding)
-            if similarity > best_score:
-                best_score = similarity
-                best_sid = sid
-            if best_score >= threshold:
-                return best_sid, best_score
+    best_sid, best_score = None, -1.0
+    for sid, stored in candidat_dict.items():
+        if stored is None:
+            continue
+        similarity = float(np.dot(new_embedding, stored))
+        if similarity > best_score:
+            best_score, best_sid = similarity, sid
 
-    return best_sid, best_score
-
+    if best_score >= threshold:
+        return best_sid, best_score
+    return None, best_score
 
 def process_bulk_audio(audio_bytes, candidates_dict, threshold=0.65):
     try:

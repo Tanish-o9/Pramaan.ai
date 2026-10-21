@@ -161,6 +161,12 @@ from src.screens.teacher_screen import teacher_screen
 from src.screens.student_screen import student_screen
 from src.components.dialog_auto_enroll import auto_enroll_dialog
 def main():
+    st.set_page_config(
+    page_title="Presence.ai - Making Attendance Faster using AI",
+    page_icon="https://i.ibb.co/YTYGn5qV/logo.png",
+    layout="wide",
+    initial_sidebar_state="collapsed" # Agar aap chahte hain ki sidebar by-default band rahe
+)
     if 'login_type' not in st.session_state:
         st.session_state['login_type'] = None
 

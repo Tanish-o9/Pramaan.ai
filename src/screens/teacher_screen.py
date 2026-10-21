@@ -10,6 +10,16 @@ from src.components.subject_card import subject_card
 from src.components.dialog_share_subject import share_subject_dialog
 from src.components.dialog_add_photos import add_photos_dialog
 import numpy as np
+import calendar
+from io import BytesIO
+from datetime import date, datetime, timedelta, timezone
+import pandas as pd
+import streamlit as st
+
+from src.database.db import get_teacher_subjects, get_subject_attendance
+from src.utiils import roll_sort_key
+XLSX_MIME = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+IST = timezone(timedelta(hours=5, minutes=30))
 from src.components.dialog_voice_attendance import voice_attendance_dialog
 from src.components.dialog_delete_subject import delete_subject_dialog
 import pandas as pd
@@ -18,6 +28,19 @@ from src.components.dialog_attendance_results import attendance_result_dialog
 from datetime import datetime,timezone
 from src.pipline.face_pipline import predict_attendance
 from src.database.db import get_attendance_for_teacher
+DOWNLOAD_BTN_CSS = """<style>
+.st-key-dl_full.st-key-dl_full.st-key-dl_full button,
+[class*="st-key-dl_day_"][class*="st-key-dl_day_"] button {
+    background: linear-gradient(135deg, #3B82F6, #8B5CF6) !important;
+    border: none !important;
+    box-shadow: 0 4px 14px rgba(59,130,246,0.35) !important;
+}
+.st-key-dl_full button *,
+[class*="st-key-dl_day_"] button * {
+    color: #ffffff !important;
+    font-weight: 700 !important;
+}
+</style>"""
 def teacher_screen():
     style_base_layout()
     style_teacher_dashboard()
@@ -315,50 +338,251 @@ def teacher_tab_manage_subjects():
             )
     else:
         st.info("No subjects found. Create one above!")
-
+# for record code start from here
     
         
 
-def teacher_tab_attendance_records():
-    with st.container(border=True):
-        st.header("📊 Attendance Records")
 
-        teacher_id=st.session_state.teacher_data["teacher_id"]
 
-        records=get_attendance_for_teacher(teacher_id)
+def parse_logs(raw):
+    out = []
+    for r in raw:
+        ts = r.get("timestamp")
+        if not ts:
+            continue
+        stu = r.get("students") or {}
+        dt = datetime.fromisoformat(ts).astimezone(IST)        # UTC se India time
+        out.append({
+            "session_id": ts,                                  # ek class ki sab rows ka same
+            "dt": dt,
+            "date": dt.date(),
+            "label": dt.strftime("%I:%M %p"),
+            "Roll No": stu.get("roll_number") or "-",
+            "Name": stu.get("name", "Unknown"),
+            "present": bool(r.get("is_present")),
+        })
+    return pd.DataFrame(out)
 
-        if not records:
-            return
-        data=[]
-        for r in records:
-            ts=r.get("timestamp")
-            data.append({
-                "ts_group":ts.split(".")[0] if ts else None,
-                "Time":datetime.fromisoformat(ts).strftime("%Y-%m-%d %I:%M %p") if ts else "N'A",
-                "Subject":r["subjects"]["name"],
-                "Subject Code":r["subjects"]["subject_code"],
-                "is_present":bool(r.get("is_present",False))
-            })
-             
-        df=pd.DataFrame(data)
 
-        summary=(
-            df.groupby(["ts_group","Time","Subject","Subject Code"])
-            .agg(
-                Present_Count=('is_present','sum'),
-                Tital_Count=('is_present','count')
-            ).reset_index
+def build_sheet(df):
+    """Rows = students, columns = classes (P/A), aakhir mein total aur percentage."""
+    d = df.copy()
+    d["flag"] = d["present"].astype(int)
 
+    sessions = d[["session_id", "dt"]].drop_duplicates().sort_values("session_id")
+    labels = {r.session_id: r.dt.strftime("%d %b %Y %I:%M %p") for r in sessions.itertuples()}
+
+    num = d.pivot_table(index=["Roll No", "Name"], columns="session_id",
+                        values="flag", aggfunc="max")
+    num = num[sessions["session_id"].tolist()]                 # time ke order mein columns
+
+    total = num.notna().sum(axis=1)
+    attended = num.fillna(0).sum(axis=1)
+
+    sheet = num.apply(lambda col: col.map(
+        lambda v: "-" if pd.isna(v) else ("P" if v == 1 else "A")))
+    sheet.columns = [labels[c] for c in sheet.columns]
+    sheet["Classes"] = total
+    sheet["Attended"] = attended.astype(int)
+    sheet["Percentage"] = (attended / total * 100).round(1)
+
+    sheet = sheet.reset_index()
+    order = sorted(range(len(sheet)), key=lambda i: roll_sort_key(sheet.iloc[i]["Roll No"]))
+    return sheet.iloc[order].reset_index(drop=True)
+
+
+def to_excel_bytes(sheet):
+    buf = BytesIO()
+    with pd.ExcelWriter(buf, engine="openpyxl") as writer:
+        sheet.to_excel(writer, index=False, sheet_name="Attendance")
+    return buf.getvalue()
+
+
+def _shift_month(delta):
+    y, m = st.session_state.rec_month
+    m += delta
+    if m < 1:
+        y, m = y - 1, 12
+    elif m > 12:
+        y, m = y + 1, 1
+    st.session_state.rec_month = (y, m)
+
+
+def _pick_day(d):
+    st.session_state.rec_date = d
+def _pick_empty(d):
+    st.session_state.rec_date = None
+    st.session_state.rec_note = f"No attendance was recorded on {d.strftime('%d %B %Y')}."
+def calendar_css(y, m, class_days, selected):
+    today = datetime.now(IST).date()
+    first = min(class_days) if class_days else None
+
+    styles = {
+        "green": ("background:rgba(34,197,94,0.18) !important;background-image:none !important;"
+                  "border:1px solid #22C55E !important;color:#4ADE80 !important;"),
+        "green_sel": ("background:#22C55E !important;background-image:none !important;"
+                      "border:1px solid #22C55E !important;color:#052E16 !important;"
+                      "box-shadow:0 0 14px rgba(34,197,94,0.5) !important;"),
+        "red": ("background:rgba(239,68,68,0.15) !important;background-image:none !important;"
+                "border:1px solid rgba(239,68,68,0.6) !important;color:#F87171 !important;"),
+        "gray": ("background:rgba(148,163,184,0.08) !important;background-image:none !important;"
+                 "border:1px solid rgba(148,163,184,0.25) !important;color:#64748B !important;"),
+    }
+
+    rules = []
+    for day in range(1, calendar.monthrange(y, m)[1] + 1):
+        d = date(y, m, day)
+        if d in class_days:
+            kind = "green_sel" if d == selected else "green"
+        elif first and first <= d <= today:
+            kind = "red"
+        else:
+            kind = "gray"
+        k = f"st-key-rec_day_{d.isoformat()}"
+        rules.append(
+            f".{k}.{k}.{k} button, "
+            f".{k}.{k}.{k} [data-testid='stButton'] button{{{styles[kind]}}}"
         )
+    return "<style>" + "".join(rules) + "</style>"
+def render_calendar(class_days, selected):
+    y, m = st.session_state.rec_month
 
-        summary["Attendance Stats"]=(
-                "✅"+summary["Present_Count"].astype(str)+" /"+summary["Total_Count"].astype(str)+'Students'
+    n1, n2, n3 = st.columns([1, 4, 1], vertical_alignment='center')
+    n1.button("", icon=":material/chevron_left:", key="rec_prev",
+              on_click=_shift_month, args=(-1,), width='stretch')
+    n2.subheader(f"{calendar.month_name[m]} {y}", text_alignment="center")
+    n3.button("", icon=":material/chevron_right:", key="rec_next",
+              on_click=_shift_month, args=(1,), width='stretch')
+
+    st.markdown(calendar_css(y, m, class_days, selected), unsafe_allow_html=True)
+
+    for col, name in zip(st.columns(7), ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]):
+        col.caption(name)
+
+    for week in calendar.monthcalendar(y, m):
+        for col, day in zip(st.columns(7), week):
+            if day == 0:
+                continue
+            d = date(y, m, day)
+            col.button(
+                str(day),
+                key=f"rec_day_{d.isoformat()}",
+                on_click=_pick_day if d in class_days else _pick_empty,   # ✅ koi disabled nahi
+                args=(d,),
+                width='stretch',
             )
-        display_df=(summary.sort_values(groupby='ts_group',ascending=False)[["Time","Subject","Subject Code","Attendance Stats"]])
 
+    note = st.session_state.pop("rec_note", None)
+    if note:
+        st.caption(note)
 
+    st.caption(":green[■] Class held   :red[■] No class   :gray[■] Upcoming / before first class")
+def render_day_view(df, selected, subject_code):
+    day_df = df[df["date"] == selected]
+    sessions = day_df[["session_id", "label"]].drop_duplicates().sort_values("session_id")
 
+    if len(sessions) > 1:                                      # ek din mein 2 classes
+        chosen = st.selectbox("Class time", sessions["label"].tolist(), key=f"rec_time_{selected}")
+        session_id = sessions.loc[sessions["label"] == chosen, "session_id"].iloc[0]
+    else:
+        session_id = sessions["session_id"].iloc[0]
+        st.caption(f"Class at {sessions['label'].iloc[0]}")
 
+    sess = day_df[day_df["session_id"] == session_id]
+    present = int(sess["present"].sum())
+    total = len(sess)
+
+    c1, c2, c3 = st.columns(3)
+    c1.metric("Total", total)
+    c2.metric("Present", present)
+    c3.metric("Absent", total - present)
+
+    view = sess[["Roll No", "Name", "present"]].copy()
+    view["Status"] = view["present"].map({True: "Present", False: "Absent"})
+    view = view.drop(columns="present")
+    order = sorted(range(len(view)), key=lambda i: roll_sort_key(view.iloc[i]["Roll No"]))
+    view = view.iloc[order].reset_index(drop=True)             # ✅ sirf ek baar
+
+    st.dataframe(view, hide_index=True, width='stretch')
+
+    stamp = sess["dt"].iloc[0].strftime("%Y-%m-%d_%I%M%p")
+    safe_id = "".join(ch for ch in str(session_id) if ch.isalnum())    # ✅ saaf key
+
+    st.download_button(                                        # ✅ sirf ek button
+        "Download this day's attendance",
+        data=to_excel_bytes(view),
+        file_name=f"{subject_code}_{stamp}.xlsx",
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        icon=":material/download:",
+        key=f"dl_day_{safe_id}",
+        width='stretch',
+    )
+def teacher_tab_attendance_records():
+    teacher_id = st.session_state.teacher_data["teachers_id"]
+    st.markdown(DOWNLOAD_BTN_CSS, unsafe_allow_html=True)
+    with st.container(border=True):
+        st.subheader("📊 Attendance Records")
+        st.caption("Pick a subject, then a day to see that day's attendance.")
+
+        subjects = get_teacher_subjects(teacher_id)
+        if not subjects:
+            st.info("You haven't created any subjects yet.")
+            return
+
+        options = {f"{s['name']} - {s['subject_code']}": s for s in subjects}
+        label = st.selectbox("Subject", list(options.keys()), key="rec_subject_label")
+        subject = options[label]
+        sid = subject["subject_id"]
+
+        raw = get_subject_attendance(sid)
+        if not raw:
+            st.info("No attendance has been taken for this subject yet.")
+            return
+        df = parse_logs(raw)
+        class_days = set(df["date"])
+
+        # subject badla ho to calendar ko latest class wale mahine par le jao
+        if st.session_state.get("rec_subject_id") != sid:
+            st.session_state.rec_subject_id = sid
+            last = max(class_days)
+            st.session_state.rec_month = (last.year, last.month)
+            st.session_state.rec_date = None
+
+        st.divider()
+        selected = st.session_state.get("rec_date")
+        render_calendar(class_days, selected)
+
+        if selected and selected in class_days:
+            st.divider()
+            st.markdown(f"**{selected.strftime('%A, %d %B %Y')}**")
+            render_day_view(df, selected, subject['subject_code'])
+
+        # --- download ---
+        st.divider()
+        st.markdown("**Download attendance sheet**")
+        y, m = st.session_state.rec_month
+        month_df = df[df["date"].map(lambda d: (d.year, d.month) == (y, m))]
+        xlsx_mime = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+
+        d1, d2 = st.columns(2)
+        with d1:
+            if month_df.empty:
+                st.button(f"{calendar.month_name[m]} {y}", disabled=True, width='stretch',
+                          icon=":material/download:", key="dl_month_off")
+            else:
+                st.download_button(
+                    f"{calendar.month_name[m]} {y}",
+                    data=to_excel_bytes(build_sheet(month_df)),
+                    file_name=f"{subject['subject_code']}_{y}-{m:02d}.xlsx",
+                    mime=xlsx_mime, icon=":material/download:", width='stretch',
+                    key="dl_month")
+        with d2:
+            st.download_button(
+                "Full sheet (all classes)",
+                data=to_excel_bytes(build_sheet(df)),
+                file_name=f"{subject['subject_code']}_full.xlsx",
+                mime=xlsx_mime, icon=":material/download:", type='primary', width='stretch',
+                key="dl_full")
 
 
 
