@@ -97,3 +97,6 @@ def delete_subject(subject_id, teacher_id):
         .eq("subject_id", subject_id)
         .eq("teachers_id", teacher_id)     # sirf apna subject delete ho sake
         .execute())
+def get_attendance_for_teacher(teacher_id):
+    response=supabase.table("attendance_logs").select("*,subjects!inner(*)").eq('subjects.teacher_id',teacher_id).execute()
+    return response.data

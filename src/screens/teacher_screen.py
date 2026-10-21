@@ -10,11 +10,14 @@ from src.components.subject_card import subject_card
 from src.components.dialog_share_subject import share_subject_dialog
 from src.components.dialog_add_photos import add_photos_dialog
 import numpy as np
+from src.components.dialog_voice_attendance import voice_attendance_dialog
 from src.components.dialog_delete_subject import delete_subject_dialog
 import pandas as pd
+from src.utiils import roll_sort_key
 from src.components.dialog_attendance_results import attendance_result_dialog
 from datetime import datetime,timezone
 from src.pipline.face_pipline import predict_attendance
+from src.database.db import get_attendance_for_teacher
 def teacher_screen():
     style_base_layout()
     style_teacher_dashboard()
@@ -99,12 +102,7 @@ def get_enrolled_students(subject_id):
     )
     return [n["students"] for n in res.data if n.get("students")]
 
-def roll_sort_key(roll_number):
-    """'2025-IT-40' -> (0, 2025, 'IT', 40). Missing or invalid roll numbers go last."""
-    parts = (roll_number or "").split("-")
-    if len(parts) >= 3 and parts[0].isdigit() and parts[-1].isdigit():
-        return (0, int(parts[0]), parts[1].upper(), int(parts[-1]))
-    return (1, 0, "", 0)
+
 def teacher_tab_take_attendance():
     teacher_id = st.session_state.teacher_data["teachers_id"]
 
@@ -258,9 +256,10 @@ def attendance_manual_mode(subject_id):
 
 
 def attendance_voice_mode(subject_id):
-    # Yahan apna purana "Use Voice Attendance" wala code paste karo
-    st.info("Voice attendance panel")
-    
+    st.caption("Record the whole class. Each student says a short phrase one after another.")
+    if st.button("Start voice attendance", type='primary', width='stretch', icon=":material/mic:"):
+        st.session_state.pop(f"voice_result_{subject_id}", None)   # purana result saaf
+        voice_attendance_dialog(subject_id)
                         
 
             
@@ -322,11 +321,42 @@ def teacher_tab_manage_subjects():
 
 def teacher_tab_attendance_records():
     with st.container(border=True):
-        st.subheader("📊 Attendance Records")
-        st.caption("View attendance history and export reports.")
-        st.info("This section is under construction — records view coming soon.")
-        
+        st.header("📊 Attendance Records")
+
+        teacher_id=st.session_state.teacher_data["teacher_id"]
+
+        records=get_attendance_for_teacher(teacher_id)
+
+        if not records:
+            return
+        data=[]
+        for r in records:
+            ts=r.get("timestamp")
+            data.append({
+                "ts_group":ts.split(".")[0] if ts else None,
+                "Time":datetime.fromisoformat(ts).strftime("%Y-%m-%d %I:%M %p") if ts else "N'A",
+                "Subject":r["subjects"]["name"],
+                "Subject Code":r["subjects"]["subject_code"],
+                "is_present":bool(r.get("is_present",False))
+            })
              
+        df=pd.DataFrame(data)
+
+        summary=(
+            df.groupby(["ts_group","Time","Subject","Subject Code"])
+            .agg(
+                Present_Count=('is_present','sum'),
+                Tital_Count=('is_present','count')
+            ).reset_index
+
+        )
+
+        summary["Attendance Stats"]=(
+                "✅"+summary["Present_Count"].astype(str)+" /"+summary["Total_Count"].astype(str)+'Students'
+            )
+        display_df=(summary.sort_values(groupby='ts_group',ascending=False)[["Time","Subject","Subject Code","Attendance Stats"]])
+
+
 
 
 
