@@ -33,3 +33,4 @@ pillow
 # voice 
 librosa 
 resemblyzer
+openpyxl
