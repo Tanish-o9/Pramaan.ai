@@ -31,5 +31,5 @@ pillow
 
 
 # voice 
-librosa #edit voice file
-resemblyzer# convert voice file in to embedding'
+librosa 
+resemblyzer
