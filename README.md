@@ -1,109 +1,72 @@
 # Presence.ai
 
-**AI-powered attendance for classrooms.** Teachers take attendance from a class photo, a voice recording, or a manual checklist. Students sign in with their face and see their attendance on their own dashboard.
+**AI-powered next-generation attendance ecosystem for modern educational institutions.** Teachers take attendance seamlessly from classroom photos, multi-angle video sweeps, voice recordings, or manual review. Students sign in with **Anti-Spoofing Face ID** or Roll Number + Backup PIN, calculate their attendance targets, and track their records.
 
-[**Live demo**](https://your-app-name.streamlit.app) · Built with Python, Streamlit and Supabase
+[**Live Demo**](https://presence-ai-main.streamlit.app) · Built with Python, Streamlit, Supabase, and Dlib/ResNet
 
 ![Python](https://img.shields.io/badge/Python-3.10+-3776AB?logo=python&logoColor=white)
 ![Streamlit](https://img.shields.io/badge/Streamlit-FF4B4B?logo=streamlit&logoColor=white)
 ![Supabase](https://img.shields.io/badge/Supabase-3ECF8E?logo=supabase&logoColor=white)
 
-<!-- Add 3-4 screenshots here: teacher dashboard, attendance result popup, calendar view, student dashboard -->
+---
+
+## 🚀 Advanced Features (17 Enterprise Capabilities)
+
+### 👨‍🏫 For Teachers
+1. **Multi-Mode AI Attendance**:
+   - **Photo Analysis**: Deep face matching using HOG detector + 68-point shape alignment + 128-D ResNet embeddings.
+   - **Classroom Video Sweep**: Automatic keyframe extraction from short video sweeps.
+   - **Voice Biomarker Matching**: Speaker verification via Resemblyzer & librosa cosine similarity.
+   - **Manual Mode**: One-click "Mark everyone present" with interactive data editor.
+2. **AI Landmark Confidence Scores**: Real-time match percentage (%) per student in attendance review dialogs.
+3. **Interactive Calendar & Override**:
+   - Color-coded calendar (Green = Class Held, Red = Missed, Gray = Future).
+   - In-app **Edit & Override**: Teachers can toggle any past student's attendance and instantly persist it.
+4. **Automated Defaulter Analytics**: Real-time detection of students below statutory 75% threshold with automated WhatsApp / Notice alert drafts.
+5. **Dynamic Join Codes & QR**: Expiring 15-minute OTP join passcodes alongside permanent join links.
+6. **Triple-Format Export**: Single-click downloads for **Daily Excel**, **Monthly Roll**, **Full Master Sheet**, and **LMS CSV Sync** (Moodle/Google Classroom compatible).
+
+### 🎓 For Students
+7. **Anti-Spoofing & Liveness Verification**: Eye Aspect Ratio (EAR) geometry to reject photo-on-screen spoofing attempts.
+8. **Dual-Channel Authentication**: High-speed **Face ID login** or alternative **Roll Number + PIN** backup.
+9. **Smart Target / Bunk Calculator**:
+   - Tells students precisely how many classes they can bunk safely while staying ≥ 75%.
+   - Calculates exact number of consecutive classes required to recover from attendance shortage.
+10. **Biometric Re-Enrollment Portal**: Students can re-scan and update their Face or Voice vectors when appearance or audio setup changes.
+11. **Instant Self-Enrollment**: Join subjects via shared codes or direct URL links (`?join-code=...`).
 
 ---
 
-## Features
+## 🛠️ Architecture & Tech Stack
 
-### For teachers
-- Register and log in with a username and password (passwords are hashed with bcrypt)
-- Create and delete subjects, each with its own share code
-- Share a code or a join link so students can enroll themselves
-- Take attendance in three ways:
-  - **Photos**: upload or capture classroom photos, faces are matched automatically
-  - **Voice**: record the class while each student says a short phrase
-  - **Manual**: tick Present or Absent per student, with a "mark everyone present" toggle
-- Review the result in a popup before anything is saved
-- **Attendance Records** with a calendar: days with a class are green, days without a class are red
-- Click any day to see that day's attendance
-- Download Excel sheets for a single day, a month, or the full subject history, with an attendance percentage per student
-
-### For students
-- Sign in with **Face ID**, or register a new profile with name, roll number and an optional voice sample
-- Enroll in a subject by typing its code, or by opening a join link
-- Dashboard with every enrolled subject, total classes and classes attended
-- Unenroll from a subject
-
----
-
-## How it works
-
-### Face recognition
-1. dlib's HOG detector finds faces in the image
-2. A 68-point shape predictor aligns each face
-3. A ResNet model turns each face into a **128-dimensional embedding**
-4. An SVM classifier predicts which student the embedding belongs to
-5. The prediction is accepted only if the Euclidean distance to that student's saved embedding is within the threshold (0.6)
-
-### Voice recognition
-1. The recording is split into speech segments at silences
-2. Resemblyzer creates a voice embedding for each segment
-3. Each segment is compared with the enrolled students' voice embeddings using similarity (threshold 0.65)
-
-Only the numeric embeddings are stored. **Photos and audio recordings are not saved.**
-
----
-
-## Tech stack
-
-| Area | Tools |
+| Domain | Technologies |
 |---|---|
-| Frontend | Streamlit, custom CSS (dark, glassmorphic theme, Outfit font) |
-| Backend and database | Supabase (PostgreSQL) |
-| Face recognition | dlib, face_recognition_models, scikit-learn (SVM), OpenCV |
-| Voice recognition | Resemblyzer, librosa |
-| Data and export | pandas, NumPy, openpyxl |
-| Security | bcrypt, Supabase Row Level Security |
+| **Frontend & UI** | Streamlit, Outfit Font, Glassmorphic CSS Engine |
+| **Database & Cloud Storage** | Supabase (PostgreSQL), Row Level Security |
+| **Face Biometrics** | dlib, 68-point Shape Predictor, ResNet-128, Scikit-Learn SVM |
+| **Voice Recognition** | Resemblyzer, librosa, Preprocessed Utterance Encodings |
+| **Data & Reports** | pandas, NumPy, openpyxl, Segno (QR) |
+| **Security** | bcrypt salted hashing, Session state isolation |
 
 ---
 
-## Project structure
+## 🗄️ Database Setup (Supabase SQL)
 
-```
-project/
-├── app.py                      # entry point and routing
-├── requirements.txt
-├── .streamlit/
-│   └── secrets.toml            # local secrets (never commit this)
-└── src/
-    ├── components/             # header, footer, subject card, dialogs
-    ├── database/
-    │   ├── config.py           # Supabase client
-    │   └── db.py               # all database queries
-    ├── pipline/
-    │   ├── face_pipline.py     # face embeddings, SVM, matching
-    │   └── voice_pipline.py    # voice embeddings, speaker matching
-    ├── screens/                # home, teacher and student screens
-    └── ui/                     # shared CSS layouts
-```
-
----
-
-## Database schema
-
-Run this in the Supabase SQL Editor:
+Paste and run this schema in your **Supabase SQL Editor**:
 
 ```sql
 create table teachers (
   teachers_id bigint generated by default as identity primary key,
   username text unique not null,
-  password text not null,            -- bcrypt hash, never plain text
+  password text not null,
   name text
 );
 
 create table students (
   student_id bigint generated by default as identity primary key,
   name text not null,
-  roll_number text unique,           -- format: 2025-CSE-40
+  roll_number text unique,
+  pin text,
   face_embedding jsonb,
   voice_embedding jsonb
 );
@@ -131,90 +94,20 @@ create table attendance_logs (
 );
 ```
 
-All rows saved in one attendance session share the same timestamp, which is how classes are counted.
-
 ---
 
-## Getting started
-
-### Prerequisites
-- Python 3.10 or newer
-- A free [Supabase](https://supabase.com) project
-- **dlib needs a C++ compiler and CMake.** On Windows, install the Microsoft C++ Build Tools first. `webrtcvad` (used by Resemblyzer) may need them as well.
-
-### Installation
-
-```bash
-git clone https://github.com/<your-username>/<your-repo>.git
-cd <your-repo>
-
-python -m venv venv
-venv\Scripts\activate          # Windows
-# source venv/bin/activate     # macOS / Linux
-
-pip install -r requirements.txt
-```
-
-### Configure secrets
+## ⚙️ Configuration (.streamlit/secrets.toml)
 
 Create `.streamlit/secrets.toml`:
-
 ```toml
 SUPABASE_URL = "https://your-project-ref.supabase.co"
 SUPABASE_KEY = "your-supabase-key"
 ```
 
-Find the values in the Supabase dashboard under **Settings, then API Keys**. Make sure `.streamlit/secrets.toml` is listed in `.gitignore`.
-
-### Run
-
-```bash
-streamlit run app.py
-```
-
 ---
 
-## Deployment (Streamlit Community Cloud)
+## 👨‍💻 Author
 
-1. Push the repo to GitHub (without `secrets.toml`)
-2. Create the app on [share.streamlit.io](https://share.streamlit.io)
-3. Open the app's **Settings, then Secrets** and paste the same two lines as above
-4. If dlib fails to build, add a `packages.txt` file with `cmake` and `build-essential`
+**Tanish Rajput**, B.Tech CSE (2025-29)
 
----
-
-## Security and privacy
-
-- **Keys:** the app runs on the server, so it uses the Supabase **secret key**. This key bypasses Row Level Security and must never be committed to GitHub or shared.
-- **Row Level Security** is enabled on every table with no public policies, so the publishable key cannot read any data.
-- **Passwords** are stored as bcrypt hashes.
-- **Biometric data:** faces and voices are stored only as numeric embeddings. Get the consent of everyone you register, and do not use real students' data without permission from your institution.
-
----
-
-## Known limitations
-
-- Face and voice matching are not perfect. Always review the result popup before saving, and use Manual mode to correct mistakes.
-- Face login has no liveness check, so a printed photo may be accepted.
-- Subject codes are chosen by teachers and are not globally unique yet.
-- A class is identified by its timestamp, so saving the same session twice counts as two classes.
-- Supabase free projects pause after a period of inactivity, and the app shows a connection error until the project is resumed.
-
-## Roadmap
-
-- [ ] Video-based attendance (scan frames from a class video)
-- [ ] Class schedule with cancelled classes visible to students
-- [ ] Password reset for teachers
-- [ ] Class or year field on subjects
-- [ ] Globally unique join codes
-- [ ] Edit a past day's attendance
-- [ ] Liveness check for Face ID
-
----
-
-## Author
-
-**Tanish Kumarh**, B.Tech CSE (2025-29)
-
-[GitHub](https://github.com/Tanish-o9) · [LinkedIn](https://linkedin.com/in/your-profile)
-
+[GitHub: @Tanish-o9](https://github.com/Tanish-o9)
