@@ -597,7 +597,7 @@ def login_teacher(username,password):
     if teacher:
         st.session_state.user_role='teacher'
         st.session_state.teacher_data=teacher
-        st.session_state.is_logged_int=True
+        st.session_state.is_logged_in=True
         return True
 
 def teacher_screen_login():
@@ -612,7 +612,7 @@ def teacher_screen_login():
     
         st.header("Login using password", text_alignment="center")
         st.space()
-        teacher_username=st.text_input("Enter username",placeholder="sagar_yadav_96")
+        teacher_username=st.text_input("Enter username",placeholder="tanish_rajput")
         teacher_pass=st.text_input("Enter password",type="password",placeholder="Enter your password")
         st.divider()
         btn_col1, btn_col2 = st.columns(2)
@@ -650,7 +650,7 @@ def register_teacher(teacher_username,teacher_name,teacher_pass,teacher_pass_con
         return False,"Password doesn't match"
     try:
         create_teacher(teacher_username,teacher_pass,teacher_name)
-        return True,"Sucessfully Created! Login Now"
+        return True,"Successfully Created! Login Now"
     except Exception as e:
          return False,"Unexpected Error"
          
@@ -666,10 +666,10 @@ def teacher_screen_register():
                  st.rerun()
      
         
-        st.header("Register  Your  Teacher profile 👨‍🏫", text_alignment="center")
+        st.header("Register Your Teacher profile 👨‍🏫", text_alignment="center")
         
-        teacher_username=st.text_input("Enter username",placeholder="sagar_yadav_96")
-        teacher_name=st.text_input("Enter name",placeholder="sagar yadav")
+        teacher_username=st.text_input("Enter username",placeholder="tanish_rajput")
+        teacher_name=st.text_input("Enter name",placeholder="Tanish Rajput")
         teacher_pass=st.text_input("Enter password",type="password",placeholder="Enter password")
 
         teacher_pass_confirm=st.text_input("Confirm your password",type="password",placeholder="Enter password")

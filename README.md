@@ -214,6 +214,7 @@ streamlit run app.py
 
 ## Author
 
-**Sagar Yadav**, B.Tech CSE (2025-29)
+**Tanish Kumarh**, B.Tech CSE (2025-29)
 
-[GitHub](https://github.com/your-username) · [LinkedIn](https://linkedin.com/in/your-profile)
+[GitHub](https://github.com/Tanish-o9) · [LinkedIn](https://linkedin.com/in/your-profile)
+

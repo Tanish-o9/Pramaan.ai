@@ -51,10 +51,11 @@ def get_trained_model():
         return None
 
     clf=SVC(kernel='linear',probability=True,class_weight='balanced')
-    try:
-        clf.fit(x,y)
-    except ValueError:
-        pass
+    if len(set(y)) >= 2:
+        try:
+            clf.fit(x, y)
+        except Exception:
+            pass
     return{'clf':clf,'x':x,'y':y}
 
 def train_classifier():

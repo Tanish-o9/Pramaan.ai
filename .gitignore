@@ -4,7 +4,7 @@
 
 *.pyc
 
-.Ds_Stre
+.DS_Store
 __pycache__/
 
 venv1/

@@ -60,7 +60,7 @@ def student_dashboard():
 
         stats=stats_map.get(sid,{'total':0,"attended":0})
 
-        def unenroll_button():
+        def unenroll_button(sid=sid, sub=sub):
             if st.button("Unenroll from this course",type="tertiary",width='stretch'):
                 unenroll_student_to_subject(student_id,sid)
                 st.toast(f"Unenrolled from {sub['name']} successfully")
@@ -144,7 +144,7 @@ def student_screen():
             new_name=st.text_input("Enter your name",placeholder='E.g. Hamza Rizvi')
             new_roll = st.text_input("Enter your Roll Number", placeholder='E.g. 2025-CS-40')
             st.subheader("Optional:voice Enrollment")
-            st.info("Enroll Your  for Voice only attendance")
+            st.info("Enroll your voice for voice only attendance")
 
             audio_data=None
 
@@ -199,5 +199,6 @@ def student_screen():
         
             
     footer()
+
 
 

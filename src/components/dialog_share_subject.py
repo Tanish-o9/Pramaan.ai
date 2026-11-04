@@ -7,7 +7,7 @@ import io
 def share_subject_dialog(subject_name,subject_code):
     
     app_domain ="presence-ai-main.streamlit.app"
-    join_url=f"{app_domain}/?join-code={subject_code}"
+    join_url=f"https://{app_domain}/?join-code={subject_code}"
 
 
     st.header("Scan to Join")
@@ -29,3 +29,4 @@ def share_subject_dialog(subject_name,subject_code):
     with col2:
         st.markdown("### Scan to Join")
         st.image(out.getvalue(),caption="QR CODE for class joining")
+
