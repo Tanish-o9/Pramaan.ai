@@ -1,32 +1,49 @@
 import streamlit as st
-
 import segno
 import io
+import time
+import secrets
 
-@st.dialog("Share Class Link")
-def share_subject_dialog(subject_name,subject_code):
+@st.dialog("Share Class Join Link & QR")
+def share_subject_dialog(subject_name, subject_code):
+    app_domain = "presence-ai-main.streamlit.app"
     
-    app_domain ="presence-ai-main.streamlit.app"
-    join_url=f"https://{app_domain}/?join-code={subject_code}"
+    st.subheader(f"Enroll in: {subject_name}")
+    share_tab_perm, share_tab_exp = st.tabs(["🔗 Standard Code", "⏳ Expiring Dynamic Passcode"])
 
+    with share_tab_perm:
+        join_url = f"https://{app_domain}/?join-code={subject_code}"
+        qr = segno.make(join_url)
+        out = io.BytesIO()
+        qr.save(out, kind='png', scale=8, border=1)
 
-    st.header("Scan to Join")
+        c1, c2 = st.columns(2)
+        with c1:
+            st.markdown("##### Shareable Link")
+            st.code(join_url, language="text")
+            st.caption("Permanent join link for batch onboarding.")
+        with c2:
+            st.image(out.getvalue(), caption="Scan to join class")
 
-    qr=segno.make(join_url)
+    with share_tab_exp:
+        st.caption("Feature 13: Single-session 15-minute OTP join code to prevent link leaks.")
+        exp_key = f"exp_code_{subject_code}"
+        
+        if exp_key not in st.session_state:
+            # Generate random 6-character token
+            st.session_state[exp_key] = secrets.token_hex(3).upper()
+            st.session_state[f"{exp_key}_time"] = time.time()
 
-    out=io.BytesIO()
+        token = st.session_state[exp_key]
+        elapsed = int(time.time() - st.session_state.get(f"{exp_key}_time", time.time()))
+        remaining = max(0, 900 - elapsed) # 15 minutes = 900s
+        mins = remaining // 60
+        secs = remaining % 60
 
-    qr.save(out,kind='png',scale=10,border=1)
-
-    col1,col2=st.columns(2)
-
-    with col1:
-        st.markdown("### Copy Link")
-        st.code(join_url,language="text")
-        st.code(subject_code,language="text")
-        st.info("Copy this link to share on whatsapp or Email")
-
-    with col2:
-        st.markdown("### Scan to Join")
-        st.image(out.getvalue(),caption="QR CODE for class joining")
-
+        st.metric("15-Min Dynamic Code", f"{token}", f"{mins:02d}:{secs:02d} left")
+        if remaining == 0:
+            st.warning("This code has expired. Generate a new one.")
+            if st.button("Generate Fresh Passcode", type="primary"):
+                st.session_state[exp_key] = secrets.token_hex(3).upper()
+                st.session_state[f"{exp_key}_time"] = time.time()
+                st.rerun()

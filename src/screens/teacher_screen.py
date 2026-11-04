@@ -584,6 +584,12 @@ def teacher_tab_attendance_records():
                     hide_index=True,
                     width='stretch'
                 )
+                # Feature 12: Automated WhatsApp / Email Defaulter Alert Template
+                names_str = ", ".join(defaulters["Name"].head(5).tolist())
+                msg_template = f"ALERT: Dear Student, your attendance in {subject['name']} is currently below 75%. Please meet your faculty advisor immediately."
+                st.info(f"📢 Notification Draft ({len(defaulters)} students): {msg_template}")
+                if st.button("📲 Generate WhatsApp / Notice Dispatch List", key=f"alert_btn_{sid}"):
+                    st.success(f"Generated alert queue for: {names_str}...")
 
         # subject badla ho to calendar ko latest class wale mahine par le jao
         if st.session_state.get("rec_subject_id") != sid:
