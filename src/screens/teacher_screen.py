@@ -26,7 +26,7 @@ import pandas as pd
 from src.utiils import roll_sort_key
 from src.components.dialog_attendance_results import attendance_result_dialog
 from datetime import datetime,timezone
-from src.pipline.face_pipline import predict_attendance
+from src.pipline.face_pipline import predict_attendance, predict_attendance_with_confidence, predict_attendance_with_confidence
 from src.database.db import get_attendance_for_teacher
 DOWNLOAD_BTN_CSS = """<style>
 .st-key-dl_full.st-key-dl_full.st-key-dl_full button,
@@ -205,12 +205,15 @@ def attendance_photo_mode(subject_id):
 
 
 def run_face_analysis(subject_id, images):
-    with st.spinner("Deep scanning classroom photos...."):
+    with st.spinner("Deep scanning classroom photos and measuring landmark confidence..."):
         detected_map = {}
+        confidence_map = {}
         for idx, img in enumerate(images):
-            detected, _, _ = predict_attendance(np.array(img.convert('RGB')))
-            for sid in detected.keys():
+            detected, _, _ = predict_attendance_with_confidence(np.array(img.convert('RGB')))
+            for sid, score in detected.items():
                 detected_map.setdefault(int(sid), []).append(f"Photo {idx + 1}")
+                if sid not in confidence_map or score > confidence_map[sid]:
+                    confidence_map[sid] = score
         students = get_enrolled_students(subject_id)
 
     if not students:
@@ -220,12 +223,16 @@ def run_face_analysis(subject_id, images):
     timestamp = datetime.now(timezone.utc).isoformat()
     results, to_log = [], []
     for s in students:
-        sources = detected_map.get(int(s["student_id"]), [])
+        sid = int(s["student_id"])
+        sources = detected_map.get(sid, [])
         present = len(sources) > 0
+        conf = confidence_map.get(sid, 0.0)
+        source_str = f"{', '.join(sources)} ({conf}% match)" if present else "-"
         results.append({
             "Roll No": s.get("roll_number") or "-",
             "Name": s["name"],
-            "Source": ", ".join(sources) if present else "-",
+            "Confidence": f"{conf}%" if present else "0%",
+            "Source": source_str,
             "Status": "✅ Present" if present else "❌ Absent",
         })
         to_log.append({
