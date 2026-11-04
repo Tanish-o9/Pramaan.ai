@@ -16,7 +16,7 @@ from datetime import date, datetime, timedelta, timezone
 import pandas as pd
 import streamlit as st
 
-from src.database.db import get_teacher_subjects, get_subject_attendance
+from src.database.db import get_teacher_subjects, get_subject_attendance, update_single_attendance
 from src.utiils import roll_sort_key
 XLSX_MIME = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 IST = timezone(timedelta(hours=5, minutes=30))
@@ -357,6 +357,8 @@ def parse_logs(raw):
             "dt": dt,
             "date": dt.date(),
             "label": dt.strftime("%I:%M %p"),
+            "log_id": r.get("id"),
+            "student_id": r.get("student_id"),
             "Roll No": stu.get("roll_number") or "-",
             "Name": stu.get("name", "Unknown"),
             "present": bool(r.get("is_present")),
@@ -497,13 +499,30 @@ def render_day_view(df, selected, subject_code):
     c2.metric("Present", present)
     c3.metric("Absent", total - present)
 
-    view = sess[["Roll No", "Name", "present"]].copy()
-    view["Status"] = view["present"].map({True: "Present", False: "Absent"})
-    view = view.drop(columns="present")
+    view = sess[["log_id", "Roll No", "Name", "present"]].copy()
+    view["Present"] = view["present"]
     order = sorted(range(len(view)), key=lambda i: roll_sort_key(view.iloc[i]["Roll No"]))
-    view = view.iloc[order].reset_index(drop=True)             # ✅ sirf ek baar
+    view = view.iloc[order].reset_index(drop=True)
 
-    st.dataframe(view, hide_index=True, width='stretch')
+    with st.expander("✏️ Edit / Override Attendance for this class", expanded=False):
+        st.caption("Toggle checkbox to change Present / Absent status and click Save.")
+        edit_df = st.data_editor(
+            view[["Roll No", "Name", "Present"]],
+            disabled=["Roll No", "Name"],
+            hide_index=True,
+            key=f"editor_{session_id}"
+        )
+        if st.button("💾 Save Override Changes", type="primary", key=f"save_ov_{session_id}"):
+            for idx, row in edit_df.iterrows():
+                lid = view.iloc[idx]["log_id"]
+                if lid:
+                    update_single_attendance(lid, bool(row["Present"]))
+            st.toast("Attendance updated successfully!")
+            st.rerun()
+
+    view_display = view[["Roll No", "Name"]].copy()
+    view_display["Status"] = view["Present"].map({True: "Present", False: "Absent"})
+    st.dataframe(view_display, hide_index=True, width='stretch')
 
     stamp = sess["dt"].iloc[0].strftime("%Y-%m-%d_%I%M%p")
     safe_id = "".join(ch for ch in str(session_id) if ch.isalnum())    # ✅ saaf key
@@ -540,6 +559,24 @@ def teacher_tab_attendance_records():
             return
         df = parse_logs(raw)
         class_days = set(df["date"])
+
+        # Feature 1: Defaulter Analytics (< 75%)
+        full_sheet = build_sheet(df)
+        defaulters = full_sheet[full_sheet["Percentage"] < 75.0]
+        
+        stat_c1, stat_c2, stat_c3 = st.columns(3)
+        stat_c1.metric("Total Students", len(full_sheet))
+        stat_c2.metric("Classes Held", len(class_days))
+        stat_c3.metric("🚨 Defaulters (<75%)", len(defaulters), delta="Alert" if len(defaulters) > 0 else "All Safe", delta_color="inverse")
+
+        if not defaulters.empty:
+            with st.expander(f"⚠️ View {len(defaulters)} Defaulter Students (<75% Attendance)", expanded=False):
+                st.caption("Students below statutory 75% attendance threshold:")
+                st.dataframe(
+                    defaulters[["Roll No", "Name", "Classes", "Attended", "Percentage"]],
+                    hide_index=True,
+                    width='stretch'
+                )
 
         # subject badla ho to calendar ko latest class wale mahine par le jao
         if st.session_state.get("rec_subject_id") != sid:
