@@ -614,7 +614,7 @@ def teacher_tab_attendance_records():
         month_df = df[df["date"].map(lambda d: (d.year, d.month) == (y, m))]
         xlsx_mime = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 
-        d1, d2 = st.columns(2)
+        d1, d2, d3 = st.columns(3)
         with d1:
             if month_df.empty:
                 st.button(f"{calendar.month_name[m]} {y}", disabled=True, width='stretch',
@@ -628,11 +628,22 @@ def teacher_tab_attendance_records():
                     key="dl_month")
         with d2:
             st.download_button(
-                "Full sheet (all classes)",
+                "Full Excel Sheet",
                 data=to_excel_bytes(build_sheet(df)),
                 file_name=f"{subject['subject_code']}_full.xlsx",
                 mime=xlsx_mime, icon=":material/download:", type='primary', width='stretch',
                 key="dl_full")
+        with d3:
+            # Feature 14 & 15: LMS CSV Sync & Official CSV Export
+            csv_data = build_sheet(df).to_csv(index=False).encode('utf-8')
+            st.download_button(
+                "Export LMS / CSV Sync",
+                data=csv_data,
+                file_name=f"{subject['subject_code']}_lms_sync.csv",
+                mime="text/csv",
+                icon=":material/sync:",
+                width='stretch',
+                key="dl_csv_lms")
 
 
 
