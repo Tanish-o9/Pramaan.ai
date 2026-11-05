@@ -16,21 +16,16 @@ supabase
 # hasing password ko kisi code mai
 bcrypt
 
-
-
-
 # for qr
 segno
 
 # image processing
 pillow
 
-
 # web pages
 
-
-
 # voice 
-librosa 
+librosa
+webrtcvad-wheels
 resemblyzer
 openpyxl

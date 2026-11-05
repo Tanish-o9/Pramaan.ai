@@ -153,7 +153,7 @@ def student_screen():
         student_dashboard()
         return
 
-    c1, c2 = st.columns(2, vertical_alignment='center', gap='xxlarge')
+    c1, c2 = st.columns(2, vertical_alignment='center', gap='large')
     with c1:
         teacher_dashboard_header()
     with c2:
@@ -269,3 +269,4 @@ def student_screen():
                     st.error("Invalid Roll Number or PIN.")
 
     footer()
+

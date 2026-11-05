@@ -55,7 +55,7 @@ def teacher_screen():
 def teacher_dashboard():
     teacher_data = st.session_state.teacher_data
 
-    col1, col2 = st.columns(2, vertical_alignment='center', gap="xxlarge")
+    col1, col2 = st.columns(2, vertical_alignment='center', gap="large")
     with col1:
         teacher_dashboard_header()
     with col2:
@@ -662,7 +662,7 @@ def login_teacher(username,password):
         return True
 
 def teacher_screen_login():
-        col1,col2 =st.columns(2,vertical_alignment='center',gap="xxlarge")
+        col1,col2 =st.columns(2,vertical_alignment='center',gap="large")
         with col1:
             teacher_dashboard_header()
         with col2:
@@ -717,7 +717,7 @@ def register_teacher(teacher_username,teacher_name,teacher_pass,teacher_pass_con
          
 
 def teacher_screen_register():
-        col1,col2 =st.columns(2,vertical_alignment='center',gap="xxlarge")
+        col1,col2 =st.columns(2,vertical_alignment='center',gap="large")
         with col1:
              teacher_dashboard_header()
         with col2:
@@ -754,3 +754,4 @@ def teacher_screen_register():
                  st.session_state.teacher_login_type="login"
         st.space()
         footer() 
+
