@@ -35,9 +35,9 @@ jobs:
         run: |
           python -m ruff check src/ tests/
 
-      - name: Run Pytest Suite with Coverage
+      - name: Run Pytest Suite
         run: |
-          python -m pytest --cov=src --cov-report=term-missing tests/
+          python -m pytest -v --tb=short tests/
         env:
           JWT_SECRET_KEY: "ci-test-jwt-secret-key-32chars-minimum!!"
           SUPABASE_URL: "https://mock.supabase.co"
