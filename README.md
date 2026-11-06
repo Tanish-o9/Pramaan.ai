@@ -1,113 +1,234 @@
-# Presence.ai
+# Pramaan (प्रमाण) 🎓
 
-**AI-powered next-generation attendance ecosystem for modern educational institutions.** Teachers take attendance seamlessly from classroom photos, multi-angle video sweeps, voice recordings, or manual review. Students sign in with **Anti-Spoofing Face ID** or Roll Number + Backup PIN, calculate their attendance targets, and track their records.
+[![Tests](https://img.shields.io/badge/Tests-80%2F80%20Passing-emerald)](TEST_PLAN.md)
+[![Coverage](https://img.shields.io/badge/Coverage-67%25%20(Core%20Services%2091--100%25)-blue)](docs/TEST_REPORT.md)
+[![Biometrics FAR](https://img.shields.io/badge/Biometrics%20FAR-%3C0.4%25-purple)](docs/EVALUATION.md)
+[![ML Risk ROC-AUC](https://img.shields.io/badge/Risk%20ML%20ROC--AUC-0.942-amber)](docs/ML_REPORT.md)
+[![License](https://img.shields.io/badge/License-MIT-zinc)](LICENSE)
 
-[**Live Demo**](https://presence-ai-main.streamlit.app) · Built with Python, Streamlit, Supabase, and Dlib/ResNet
-
-![Python](https://img.shields.io/badge/Python-3.10+-3776AB?logo=python&logoColor=white)
-![Streamlit](https://img.shields.io/badge/Streamlit-FF4B4B?logo=streamlit&logoColor=white)
-![Supabase](https://img.shields.io/badge/Supabase-3ECF8E?logo=supabase&logoColor=white)
-
----
-
-## 🚀 Advanced Features (17 Enterprise Capabilities)
-
-### 👨‍🏫 For Teachers
-1. **Multi-Mode AI Attendance**:
-   - **Photo Analysis**: Deep face matching using HOG detector + 68-point shape alignment + 128-D ResNet embeddings.
-   - **Classroom Video Sweep**: Automatic keyframe extraction from short video sweeps.
-   - **Voice Biomarker Matching**: Speaker verification via Resemblyzer & librosa cosine similarity.
-   - **Manual Mode**: One-click "Mark everyone present" with interactive data editor.
-2. **AI Landmark Confidence Scores**: Real-time match percentage (%) per student in attendance review dialogs.
-3. **Interactive Calendar & Override**:
-   - Color-coded calendar (Green = Class Held, Red = Missed, Gray = Future).
-   - In-app **Edit & Override**: Teachers can toggle any past student's attendance and instantly persist it.
-4. **Automated Defaulter Analytics**: Real-time detection of students below statutory 75% threshold with automated WhatsApp / Notice alert drafts.
-5. **Dynamic Join Codes & QR**: Expiring 15-minute OTP join passcodes alongside permanent join links.
-6. **Triple-Format Export**: Single-click downloads for **Daily Excel**, **Monthly Roll**, **Full Master Sheet**, and **LMS CSV Sync** (Moodle/Google Classroom compatible).
-
-### 🎓 For Students
-7. **Anti-Spoofing & Liveness Verification**: Eye Aspect Ratio (EAR) geometry to reject photo-on-screen spoofing attempts.
-8. **Dual-Channel Authentication**: High-speed **Face ID login** or alternative **Roll Number + PIN** backup.
-9. **Smart Target / Bunk Calculator**:
-   - Tells students precisely how many classes they can bunk safely while staying ≥ 75%.
-   - Calculates exact number of consecutive classes required to recover from attendance shortage.
-10. **Biometric Re-Enrollment Portal**: Students can re-scan and update their Face or Voice vectors when appearance or audio setup changes.
-11. **Instant Self-Enrollment**: Join subjects via shared codes or direct URL links (`?join-code=...`).
+**Enterprise Face + Voice Biometric Attendance & Academic Monitoring Ecosystem**  
+High-performance campus attendance platform featuring **dlib 128-d ResNet face recognition**, **68-point facial landmark EAR liveness anti-spoofing**, **Resemblyzer 256-d voice biometrics**, **multi-factor Trust Score Engine**, **Machine Learning Risk Prediction**, **AI Natural Language Copilot**, **Hands-free Classroom Kiosk Mode**, and **Medical Leave / OD Workflow**. Built with **React 19 + Tailwind CSS**, **FastAPI (Python 3.13)**, and **Supabase (PostgreSQL)**.
 
 ---
 
-## 🛠️ Architecture & Tech Stack
+## ⚡ Architecture & Tech Stack
 
-| Domain | Technologies |
-|---|---|
-| **Frontend & UI** | Streamlit, Outfit Font, Glassmorphic CSS Engine |
-| **Database & Cloud Storage** | Supabase (PostgreSQL), Row Level Security |
-| **Face Biometrics** | dlib, 68-point Shape Predictor, ResNet-128, Scikit-Learn SVM |
-| **Voice Recognition** | Resemblyzer, librosa, Preprocessed Utterance Encodings |
-| **Data & Reports** | pandas, NumPy, openpyxl, Segno (QR) |
-| **Security** | bcrypt salted hashing, Session state isolation |
+- **Frontend**: React 19, Vite, Tailwind CSS (Clean dark-mode zinc aesthetic `#09090b` / `#27272a`), Lucide Icons.
+- **Backend API**: FastAPI, Python 3.13, Uvicorn, SlowAPI (rate limiting).
+- **Authentication**: JWT access tokens (15 min) + refresh tokens (7 days) in HTTP-only, SameSite=Lax, Secure cookies. Role-based protection (`teacher` & `student`).
+- **Face Pipeline**: dlib frontal face detector, 68-point shape predictor, ResNet-128 face descriptor, Euclidean distance + SVM matching.
+- **Anti-Spoofing**: Eye Aspect Ratio (EAR) geometry to reject photo-on-screen spoof attacks.
+- **Voice Pipeline**: Resemblyzer (GE2E PyTorch acoustic encoder) generating 256-d speaker embeddings with cosine similarity matching.
+- **Database**: Supabase PostgreSQL.
 
 ---
 
-## 🗄️ Database Setup (Supabase SQL)
+## 🗄️ Database Setup & SQL Migrations
 
-Paste and run this schema in your **Supabase SQL Editor**:
+Run the following SQL script in your **Supabase SQL Editor**:
 
 ```sql
-create table teachers (
+-- 1. Teachers Table
+create table if not exists teachers (
   teachers_id bigint generated by default as identity primary key,
   username text unique not null,
   password text not null,
-  name text
+  name text not null
 );
 
-create table students (
+-- 2. Students Table
+create table if not exists students (
   student_id bigint generated by default as identity primary key,
   name text not null,
-  roll_number text unique,
-  pin text,
+  roll_number text unique not null,
+  pin text default '$2b$12$CX8/0cFVuAqAeFUcXA6AcO93nFceqTdaVhlTBy51djY4HEbuI6F3u', -- Default: 1234
   face_embedding jsonb,
   voice_embedding jsonb
 );
 
-create table subjects (
+-- 3. Subjects Table
+create table if not exists subjects (
   subject_id bigint generated by default as identity primary key,
-  subject_code text not null,
-  name text default 'UNKNOWN',
-  section text default 'N/A',
-  teachers_id bigint references teachers(teachers_id) on delete set null
+  subject_code text unique not null,
+  name text not null,
+  section text not null,
+  teachers_id bigint references teachers(teachers_id) on delete cascade
 );
 
-create table subject_students (
-  subject_id bigint references subjects(subject_id) on delete cascade,
-  student_id bigint references students(student_id) on delete cascade,
-  primary key (subject_id, student_id)
-);
-
-create table attendance_logs (
+-- 4. Enrollments Table
+create table if not exists subject_students (
   id bigint generated by default as identity primary key,
-  timestamp timestamptz default now(),
-  subject_id bigint references subjects(subject_id) on delete cascade,
   student_id bigint references students(student_id) on delete cascade,
-  is_present bool default true
+  subject_id bigint references subjects(subject_id) on delete cascade,
+  unique (student_id, subject_id)
+);
+
+-- 5. Attendance Logs Table
+create table if not exists attendance_logs (
+  id bigint generated by default as identity primary key,
+  timestamp text not null,
+  is_present boolean not null,
+  student_id bigint references students(student_id) on delete cascade,
+  subject_id bigint references subjects(subject_id) on delete cascade,
+  trust_score int default 100,
+  trust_breakdown jsonb default '{}'::jsonb,
+  verification_status text default 'auto_accepted'
+);
+
+-- 6. Medical Leave & On-Duty (OD) Requests Table
+create table if not exists leave_requests (
+  id bigint generated by default as identity primary key,
+  student_id bigint references students(student_id) on delete cascade,
+  student_name text not null,
+  roll_number text not null,
+  subject_id bigint references subjects(subject_id) on delete cascade,
+  subject_name text not null,
+  leave_type text default 'medical',
+  start_date text not null,
+  end_date text not null,
+  reason text not null,
+  document_name text,
+  document_url text,
+  status text default 'pending', -- 'pending' | 'approved' | 'rejected'
+  faculty_remarks text,
+  created_at text not null
 );
 ```
 
 ---
 
-## ⚙️ Configuration (.streamlit/secrets.toml)
+## 🚀 Local Development Quick-Start
 
-Create `.streamlit/secrets.toml`:
-```toml
-SUPABASE_URL = "https://your-project-ref.supabase.co"
-SUPABASE_KEY = "your-supabase-key"
+### 1. Environment Setup
+Copy the example environment file:
+```bash
+cp .env.example .env
 ```
+Fill in your `SUPABASE_URL`, `SUPABASE_KEY`, and a strong `JWT_SECRET_KEY`.
+
+### 2. Install Python Dependencies
+```bash
+pip install -r requirements.txt
+```
+
+### 3. Build Frontend & Launch Backend
+```bash
+# Build React frontend
+cd frontend
+npm install
+npm run build
+cd ..
+
+# Start FastAPI production server
+python server.py
+```
+Open **`http://localhost:8000`** in your browser.
 
 ---
 
-## 👨‍💻 Author
+## 🧪 Automated Test Suite
 
-**Tanish Rajput**, B.Tech CSE (2025-29)
+Run the full pytest suite:
+```bash
+python -m pytest tests/ -v
+```
+Test coverage includes:
+- `tests/test_bunk_calculator.py`: Attendance percentage, bunk margin, and 75% recovery targets.
+- `tests/test_face_pipeline.py`: EAR liveness anti-spoofing, blank frame rejection, and threshold configs.
+- `tests/test_auth.py`: JWT issuance, refresh tokens, role authorization dependencies, and PIN hashing.
+- `tests/test_voice_pipeline.py`: Silence rejection, duration thresholds, and cosine speaker verification.
 
-[GitHub: @Tanish-o9](https://github.com/Tanish-o9)
+---
+
+## 📸 Face Seeding Script (Admin Tool)
+
+To bulk-seed student face profiles:
+1. Place student portrait photos inside `seed_faces/<roll_number>.jpg` (e.g. `seed_faces/22CS042.jpg`).
+2. Run the seeding script:
+```bash
+python scripts/seed_faces.py
+```
+The script detects faces with dlib, computes 128-d embeddings, and updates or creates the student profile in Supabase.
+
+---
+
+## 🌐 Mobile Testing with HTTPS (Cloudflare Tunnel)
+
+Mobile browsers (Chrome / Safari on iOS & Android) **strictly block camera and microphone access on plain HTTP** over local WiFi (e.g. `http://192.168.x.x:8000`).
+
+To test live webcam & voice features on your mobile phone in under 60 seconds for free:
+1. Download [Cloudflare Tunnel (`cloudflared`)](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/downloads/).
+2. Run in a terminal while `python server.py` is active:
+```bash
+cloudflared tunnel --url http://localhost:8000
+```
+3. Cloudflare will output an instant public HTTPS URL (e.g., `https://random-subdomain.trycloudflare.com`).
+4. Open this HTTPS URL on your phone — camera and voice recording will work with full native permissions!
+
+---
+
+## 🚢 Production Deployment
+
+### Option A: Render (Backend + Database)
+1. Push this repository to GitHub.
+2. In [Render](https://render.com), create a **New Web Service** pointing to your repo.
+3. Select **Docker** environment (using the included `Dockerfile`).
+4. Set Environment Variables:
+   - `SUPABASE_URL`: Your Supabase URL
+   - `SUPABASE_KEY`: Your Supabase Key
+   - `JWT_SECRET_KEY`: A random 64-character secret
+   - `COOKIE_SECURE`: `true`
+   - `CORS_ORIGINS`: `https://your-frontend-domain.vercel.app`
+
+### Option B: Railway
+1. In [Railway](https://railway.app), click **New Project** &rarr; **Deploy from GitHub repo**.
+2. Railway will automatically pick up `railway.json` and `Dockerfile`.
+3. Add the required environment variables in the Railway dashboard.
+
+### Option C: Frontend on Vercel
+1. In [Vercel](https://vercel.com), import the `frontend/` directory.
+2. Set Environment Variable:
+   - `VITE_API_URL`: `https://your-backend.onrender.com`
+3. Update `frontend/vercel.json` with your backend domain.
+
+> [!NOTE]
+> **dlib Build Note for Free Cloud Tiers:**
+> Building `dlib` from C++ source code during Docker builds can take 5-10 minutes and requires ~1.5 GB of RAM. The included `requirements.txt` uses `dlib-bin` which installs precompiled wheels to prevent build timeouts on free tiers. If your target Linux architecture lacks a wheel, use `python:3.13-slim` with `cmake` and `build-essential` as configured in the `Dockerfile`.
+
+---
+
+## 🧪 Testing & Quality Assurance
+
+Pramaan includes an automated test suite covering unit math, biometrics pipelines, security boundaries, API routes, and frontend components:
+
+```bash
+# 1. Run all backend unit tests (40 tests)
+npm run test:unit
+# or: make test-unit
+
+# 2. Run API integration tests with RBAC & IDOR checks (14 tests)
+npm run test:api
+# or: make test-api
+
+# 3. Run backend tests with code coverage report
+npm run test:cov
+# or: make test-cov
+
+# 4. Run frontend Vitest component tests (9 tests)
+npm run test:frontend
+# or: make test-frontend
+
+# 5. Run performance & latency load benchmark
+python scripts/load_test.py
+
+# 6. Generate biometric FAR/FRR/EER evaluation
+python scripts/evaluate_biometrics.py
+```
+
+### QA Documentation & Audit Reports
+- 📋 **[TEST_PLAN.md](TEST_PLAN.md)**: Architectural test strategy, mock fixtures, and risk analysis.
+- 🐛 **[BUGS.md](BUGS.md)**: Formal bug tracking log with root-cause fixes and regression guards.
+- 📊 **[docs/TEST_REPORT.md](docs/TEST_REPORT.md)**: Executive audit report, pass rates, and coverage statistics.
+- 🔬 **[docs/EVALUATION.md](docs/EVALUATION.md)**: Biometric FAR/FRR/EER curves and Presentation Attack Detection (PAD) results.
+- 📱 **[docs/MANUAL_QA.md](docs/MANUAL_QA.md)**: Real-device audit checklist for Android, iOS, and webcam hardware shutters.
+
