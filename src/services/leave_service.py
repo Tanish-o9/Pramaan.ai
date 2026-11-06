@@ -1,91 +1,54 @@
 """
 Medical Leave & OD (On-Duty) Workflow Service for Pramaan.
-Handles student leave submissions (medical certificate, college event OD, sports),
+Handles authentic student leave submissions (medical certificate, college event OD, sports),
 faculty approvals/rejections, and calculates excused attendance credits.
+Stores real leave records in persistent local storage (and Supabase when table exists).
+Zero fake mock leaves.
 """
 
 from datetime import datetime, timezone
+import json
+import logging
+from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from src.database.config import supabase
 
-# Local in-memory store for development/testing and fallback if table is not yet created in Supabase
-_LOCAL_LEAVE_STORE: List[Dict[str, Any]] = [
-    {
-        "id": 1,
-        "student_id": 4,
-        "student_name": "Tanish Rajput (You)",
-        "roll_number": "25153162",
-        "subject_id": 1,
-        "subject_name": "Deep Learning & Neural Networks",
-        "leave_type": "medical",
-        "start_date": "2026-10-28",
-        "end_date": "2026-10-29",
-        "reason": "Acute migraine and doctor advised bed rest",
-        "document_name": "prescription_hospital.pdf",
-        "document_url": "data:application/pdf;base64,JVBERi0xLjQKJ...",
-        "status": "approved",
-        "faculty_remarks": "Approved. Medical slip verified by Dr. Tanish Rajput.",
-        "created_at": "2026-10-28T09:00:00Z"
-    },
-    {
-        "id": 2,
-        "student_id": 4,
-        "student_name": "Tanish Rajput (You)",
-        "roll_number": "25153162",
-        "subject_id": 1,
-        "subject_name": "Deep Learning & Neural Networks",
-        "leave_type": "od",
-        "start_date": "2026-11-05",
-        "end_date": "2026-11-06",
-        "reason": "Smart India Hackathon Finalist Presentation & Travel",
-        "document_name": "hackathon_invite.pdf",
-        "document_url": "data:application/pdf;base64,JVBERi0xLjQKJ...",
-        "status": "pending",
-        "faculty_remarks": "",
-        "created_at": "2026-11-05T08:30:00Z"
-    },
-    {
-        "id": 3,
-        "student_id": 1,
-        "student_name": "Rahul Sharma",
-        "roll_number": "22CS042",
-        "subject_id": 1,
-        "subject_name": "Deep Learning & Neural Networks",
-        "leave_type": "sports",
-        "start_date": "2026-11-06",
-        "end_date": "2026-11-07",
-        "reason": "State Level Inter-College Cricket Tournament Match",
-        "document_name": "sports_certificate.pdf",
-        "document_url": "data:application/pdf;base64,JVBERi0xLjQKJ...",
-        "status": "pending",
-        "faculty_remarks": "",
-        "created_at": "2026-11-06T07:15:00Z"
-    },
-    {
-        "id": 4,
-        "student_id": 2,
-        "student_name": "Priya Singh",
-        "roll_number": "22CS043",
-        "subject_id": 2,
-        "subject_name": "Computer Vision & Biometrics",
-        "leave_type": "event",
-        "start_date": "2026-11-02",
-        "end_date": "2026-11-03",
-        "reason": "Annual TechFest Coordinator Duties",
-        "document_name": "techfest_duty_slip.pdf",
-        "document_url": "data:application/pdf;base64,JVBERi0xLjQKJ...",
-        "status": "approved",
-        "faculty_remarks": "Approved. Event coordinator list verified.",
-        "created_at": "2026-11-02T10:00:00Z"
-    }
-]
-_LEAVE_ID_COUNTER = 5
+logger = logging.getLogger(__name__)
+
+LEAVE_DB_PATH = Path(__file__).resolve().parent.parent / "database" / "leave_store.json"
+
+def _load_leaves() -> List[Dict[str, Any]]:
+    if not LEAVE_DB_PATH.exists():
+        return []
+    try:
+        with open(LEAVE_DB_PATH, "r", encoding="utf-8") as f:
+            data = json.load(f)
+            return data if isinstance(data, list) else []
+    except Exception as e:
+        logger.warning(f"Failed to read leave_store.json: {e}")
+        return []
+
+def _save_leaves(leaves: List[Dict[str, Any]]) -> None:
+    try:
+        LEAVE_DB_PATH.parent.mkdir(parents=True, exist_ok=True)
+        with open(LEAVE_DB_PATH, "w", encoding="utf-8") as f:
+            json.dump(leaves, f, indent=2, ensure_ascii=False)
+    except Exception as e:
+        logger.error(f"Failed to save leave_store.json: {e}")
 
 class LeaveService:
     """
-    Manages student leave and on-duty requests.
+    Manages authentic student leave and on-duty requests with zero fake data.
     """
+
+    def __init__(self):
+        self._local_leaves = _load_leaves()
+
+    def _next_id(self) -> int:
+        if not self._local_leaves:
+            return 1
+        return max(l.get("id", 0) for l in self._local_leaves) + 1
 
     def apply_leave(
         self,
@@ -101,8 +64,6 @@ class LeaveService:
         document_name: str = "",
         document_url: str = ""
     ) -> Dict[str, Any]:
-        global _LEAVE_ID_COUNTER
-
         if not reason or len(reason.strip()) < 5:
             raise ValueError("Please provide a valid reason (at least 5 characters)")
 
@@ -110,7 +71,7 @@ class LeaveService:
             raise ValueError("Start date and end date are required")
 
         new_record = {
-            "id": _LEAVE_ID_COUNTER,
+            "id": self._next_id(),
             "student_id": student_id,
             "student_name": student_name,
             "roll_number": roll_number,
@@ -126,17 +87,20 @@ class LeaveService:
             "faculty_remarks": "",
             "created_at": datetime.now(timezone.utc).isoformat()
         }
-        _LEAVE_ID_COUNTER += 1
 
-        # Attempt Supabase insert, fall back to memory
+        # Attempt Supabase insert if table exists
         try:
             res = supabase.table("leave_requests").insert(new_record).execute()
             if res.data:
-                return res.data[0]
+                saved = res.data[0]
+                self._local_leaves.append(saved)
+                _save_leaves(self._local_leaves)
+                return saved
         except Exception:
             pass
 
-        _LOCAL_LEAVE_STORE.append(new_record)
+        self._local_leaves.append(new_record)
+        _save_leaves(self._local_leaves)
         return new_record
 
     def get_student_leaves(self, student_id: int) -> List[Dict[str, Any]]:
@@ -146,7 +110,7 @@ class LeaveService:
                 return res.data
         except Exception:
             pass
-        return [l for l in _LOCAL_LEAVE_STORE if l["student_id"] == student_id]
+        return [l for l in self._local_leaves if l.get("student_id") == student_id]
 
     def get_teacher_leaves(self, teacher_subject_ids: List[int]) -> List[Dict[str, Any]]:
         if not teacher_subject_ids:
@@ -157,7 +121,9 @@ class LeaveService:
                 return res.data
         except Exception:
             pass
-        return [l for l in _LOCAL_LEAVE_STORE if l["subject_id"] in teacher_subject_ids]
+        leaves = [l for l in self._local_leaves if l.get("subject_id") in teacher_subject_ids]
+        leaves.sort(key=lambda x: x.get("id", 0), reverse=True)
+        return leaves
 
     def review_leave(self, leave_id: int, status: str, remarks: str = "") -> Dict[str, Any]:
         if status not in ("approved", "rejected", "pending"):
@@ -172,14 +138,20 @@ class LeaveService:
                 .execute()
             )
             if res.data:
+                for l in self._local_leaves:
+                    if l.get("id") == leave_id:
+                        l["status"] = status
+                        l["faculty_remarks"] = remarks
+                _save_leaves(self._local_leaves)
                 return res.data[0]
         except Exception:
             pass
 
-        for l in _LOCAL_LEAVE_STORE:
-            if l["id"] == leave_id:
+        for l in self._local_leaves:
+            if l.get("id") == leave_id:
                 l["status"] = status
                 l["faculty_remarks"] = remarks
+                _save_leaves(self._local_leaves)
                 return l
 
         raise ValueError(f"Leave request #{leave_id} not found")
@@ -187,14 +159,12 @@ class LeaveService:
     def count_excused_classes(self, student_id: int, subject_id: int) -> int:
         """
         Count approved excused classes for a given student in a given subject.
-        Each approved leave counts as 1 or multiple excused sessions.
+        Each approved leave counts as 2 excused attendance credits by default.
         """
         leaves = [
-            l for l in _LOCAL_LEAVE_STORE
-            if l["student_id"] == student_id and l["subject_id"] == subject_id and l["status"] == "approved"
+            l for l in self._local_leaves
+            if l.get("student_id") == student_id and l.get("subject_id") == subject_id and l.get("status") == "approved"
         ]
-        # Approximation: Each approved leave grant provides 2 excused attendance credits by default
         return len(leaves) * 2
 
 leave_service = LeaveService()
-

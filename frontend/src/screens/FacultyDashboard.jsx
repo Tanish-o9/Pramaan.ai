@@ -56,8 +56,7 @@ export default function FacultyDashboard({ teacher }) {
   const [tab, setTab] = useState('attendance'); // 'attendance' | 'analytics' | 'leaves' | 'subjects' | 'logs' | 'settings'
   const [subjects, setSubjects] = useState(() => DEFAULT_AKGEC_SUBJECTS);
   const [selectedSubId, setSelectedSubId] = useState('1');
-  const [sectionFilter, setSectionFilter] = useState('ALL'); // 'ALL' | 'CSE(AIML-2)' | 'CSE(AIML-1)' | 'CSE(DS)'
-  const [scopeFilter, setScopeFilter] = useState('all'); // 'all' (All Classes) | 'my' (My Lectures)
+  const [scopeFilter, setScopeFilter] = useState('all'); // 'all' (All CSE(AIML-2) Courses) | 'my' (My Assigned Courses)
   const [loading, setLoading] = useState(false);
 
   // Derived filtered subjects guaranteeing dropdown never appears empty
@@ -66,13 +65,10 @@ export default function FacultyDashboard({ teacher }) {
       if (scopeFilter === 'my' && subjects.some((sub) => sub.is_my_assigned) && !s.is_my_assigned) {
         return false;
       }
-      if (sectionFilter !== 'ALL' && s.section !== sectionFilter) {
-        return false;
-      }
       return true;
     });
     return list.length > 0 ? list : subjects;
-  }, [subjects, scopeFilter, sectionFilter]);
+  }, [subjects, scopeFilter]);
 
   // Keep selectedSubId valid if current selection is not in visibleSubjects
   useEffect(() => {
@@ -1006,7 +1002,7 @@ export default function FacultyDashboard({ teacher }) {
             }`}
           >
             <Clock className="w-3.5 h-3.5 text-cyan-400" />
-            <span>AKGEC Timetable</span>
+            <span>CSE(AIML-2) Timetable</span>
           </button>
 
           <button
@@ -1044,19 +1040,19 @@ export default function FacultyDashboard({ teacher }) {
                 <div>
                   <div className="flex items-center gap-2 flex-wrap">
                     <h3 className="text-sm sm:text-base font-bold text-white tracking-tight">
-                      Class & Lecture Allocation System
+                      CSE(AIML-2) Lecture Allocation Studio
                     </h3>
                     <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
-                      AKGEC CSE(AIML-2)
+                      Room CL-11 • Sem III
                     </span>
                   </div>
                   <p className="text-xs text-zinc-400 mt-0.5">
-                    Faculty: <strong className="text-white">{teacher?.name || 'Dr. Tanish Rajput'}</strong> • Select assigned course & section to record attendance
+                    Faculty: <strong className="text-white">{teacher?.name || 'Dr. Tanish Rajput'}</strong> • Timetable strictly for B.Tech CSE(AIML) Section CSE(AIML-2)
                   </p>
                 </div>
               </div>
 
-              {/* Scope Filter Pills: My Assigned vs All Department Courses */}
+              {/* Scope Filter Pills: My Assigned vs All CSE(AIML-2) Courses */}
               <div className="flex items-center gap-1.5 p-1 rounded-xl bg-zinc-950 border border-zinc-800 text-xs">
                 <button
                   type="button"
@@ -1078,7 +1074,7 @@ export default function FacultyDashboard({ teacher }) {
                       : 'text-zinc-400 hover:text-zinc-200'
                   }`}
                 >
-                  🌐 All Classes ({subjects.length})
+                  📚 All CSE(AIML-2) Subjects ({subjects.length})
                 </button>
               </div>
             </div>
@@ -1090,7 +1086,7 @@ export default function FacultyDashboard({ teacher }) {
                 <div className="p-3 rounded-xl bg-zinc-950/80 border border-zinc-800/80 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5 text-xs">
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 flex items-center gap-1">
-                      <Clock className="w-3 h-3" /> LIVE TIMETABLE
+                      <Clock className="w-3 h-3" /> LIVE TIMETABLE (CSE AIML-2)
                     </span>
                     <span className="text-zinc-300 font-medium">
                       {currentSlot.day} • {currentSlot.period?.name} ({currentSlot.period?.slot}):
@@ -1122,30 +1118,17 @@ export default function FacultyDashboard({ teacher }) {
               );
             })()}
 
-            {/* Section Filter + Highlighted Class Dropdown */}
+            {/* Section Badge + Highlighted Class Dropdown */}
             <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3 pt-1">
-              {/* Section Filters */}
-              <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs">
-                <span className="text-zinc-400 text-[11px] font-medium mr-1 shrink-0">Section:</span>
-                {[
-                  { id: 'ALL', label: 'All Sections' },
-                  { id: 'CSE(AIML-2)', label: 'CSE(AIML-2) • CL-11' },
-                  { id: 'CSE(AIML-1)', label: 'CSE(AIML-1)' },
-                  { id: 'CSE(DS)', label: 'CSE(DS)' },
-                ].map((sec) => (
-                  <button
-                    key={sec.id}
-                    type="button"
-                    onClick={() => setSectionFilter(sec.id)}
-                    className={`px-2.5 py-1 rounded-lg font-medium text-[11px] transition cursor-pointer shrink-0 ${
-                      sectionFilter === sec.id
-                        ? 'bg-zinc-800 text-white border border-cyan-500/50 shadow-sm'
-                        : 'text-zinc-400 hover:text-zinc-200 border border-transparent'
-                    }`}
-                  >
-                    {sec.label}
-                  </button>
-                ))}
+              {/* Section Details Badge */}
+              <div className="flex items-center gap-2 text-xs">
+                <span className="px-3 py-1.5 rounded-xl bg-zinc-950 border border-cyan-500/40 text-cyan-300 font-mono text-[11px] font-bold flex items-center gap-2 shadow-sm">
+                  <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></span>
+                  Section: CSE(AIML-2) • Room CL-11
+                </span>
+                <span className="text-[11px] text-zinc-400 hidden sm:inline font-medium">
+                  Coordinator: <strong className="text-zinc-300">Mr. Narendra Kumar</strong>
+                </span>
               </div>
 
               {/* Dropdown Selection */}
@@ -2870,10 +2853,10 @@ export default function FacultyDashboard({ teacher }) {
             <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 relative z-10">
               <div>
                 <span className="text-[11px] font-mono font-bold text-cyan-400 uppercase tracking-widest block mb-1">
-                  {AKGEC_META.college}
+                  {AKGEC_META.college} • {AKGEC_META.department}
                 </span>
                 <h2 className="text-xl font-black text-white tracking-tight">
-                  {AKGEC_META.department}
+                  Class Timetable — Section: CSE(AIML-2) (Room CL-11)
                 </h2>
                 <div className="flex flex-wrap items-center gap-2 mt-2">
                   <span className="px-2.5 py-1 rounded-lg bg-zinc-900 border border-zinc-800 text-xs font-semibold text-zinc-200">
@@ -3055,7 +3038,7 @@ export default function FacultyDashboard({ teacher }) {
           {/* Official AKGEC Course Reference Roster Table */}
           <div className="panel-card rounded-2xl p-5 border border-zinc-800/80 bg-zinc-950/80">
             <h3 className="text-xs font-bold text-zinc-200 uppercase tracking-wider mb-3">
-              Official Course Roster & Faculty Allocation (AKGEC Session 2026-27)
+              Official Course Roster & Faculty Allocation (Section CSE(AIML-2) • Room CL-11)
             </h3>
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs border-collapse">
