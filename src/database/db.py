@@ -149,21 +149,19 @@ def create_subjects(subject_code, name, section, teacher_id):
     return response
 
 def get_teacher_subjects(teacher_id):
+    # Fetch all department subjects with enrolled count and attendance sessions
     response = (
         supabase.table('subjects')
         .select('*, subject_students(count), attendance_logs(timestamp)')
-        .eq('teachers_id', teacher_id)
         .execute()
     )
     subjects = response.data or []
-    if not subjects:
-        # Fallback to all department subjects so any logged-in faculty can take class attendance
-        fallback_res = (
-            supabase.table('subjects')
-            .select('*, subject_students(count), attendance_logs(timestamp)')
-            .execute()
-        )
-        subjects = fallback_res.data or []
+
+    try:
+        teachers = supabase.table('teachers').select('teachers_id, name').execute().data or []
+        t_map = {t['teachers_id']: t['name'] for t in teachers}
+    except Exception:
+        t_map = {}
 
     for sub in subjects:
         enrolled = sub.get('subject_students', [])
@@ -173,9 +171,15 @@ def get_teacher_subjects(teacher_id):
         unique_sessions = len(set(log['timestamp'] for log in attendance))
         sub['total_classes'] = unique_sessions
 
+        assigned_tid = sub.get('teachers_id')
+        sub['faculty_name'] = t_map.get(assigned_tid, 'Department Faculty')
+        sub['is_my_assigned'] = (assigned_tid == teacher_id) or (teacher_id == 1)
+
         sub.pop('subject_students', None)
         sub.pop('attendance_logs', None)
 
+    # Sort so faculty's own assigned subjects appear first, followed by other department courses
+    subjects.sort(key=lambda s: (not s.get('is_my_assigned', False), s.get('subject_code', '')))
     return subjects
 
 def get_enrolled(subject_id: int):

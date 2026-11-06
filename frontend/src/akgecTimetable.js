@@ -101,6 +101,19 @@ export const AKGEC_WEEKLY_SCHEDULE = {
   ],
 };
 
+export const DEFAULT_AKGEC_SUBJECTS = [
+  { subject_id: 1, subject_code: 'BCS301', name: 'Data Structure', section: 'CSE(AIML-2)', venue: 'CL-11', faculty_name: 'Mr. Sharma Ji', total_students: 12, is_my_assigned: true },
+  { subject_id: 2, subject_code: 'BCS302', name: 'Computer Organisation & Architecture', section: 'CSE(AIML-2)', venue: 'CL-11', faculty_name: 'Mr. Narendra Kumar', total_students: 12, is_my_assigned: true },
+  { subject_id: 3, subject_code: 'BCS303', name: 'Discrete Structure & Theory', section: 'CSE(AIML-2)', venue: 'CL-11', faculty_name: 'Ms. Ritika Dhyani', total_students: 12, is_my_assigned: true },
+  { subject_id: 4, subject_code: 'BAS301', name: 'Technical Communication', section: 'CSE(AIML-2)', venue: 'CL-11', faculty_name: 'Dr. Neetu Sharma', total_students: 12, is_my_assigned: true },
+  { subject_id: 5, subject_code: 'BCC301', name: 'Cyber Security', section: 'CSE(AIML-2)', venue: 'CL-11', faculty_name: 'Mr. Manoj Kumar', total_students: 12, is_my_assigned: true },
+  { subject_id: 6, subject_code: 'BOE304', name: 'ESE', section: 'CSE(AIML-2)', venue: 'CL-11', faculty_name: 'Dr. Tanish Rajput', total_students: 12, is_my_assigned: true },
+  { subject_id: 7, subject_code: 'BCS351', name: 'Data Structure Lab', section: 'CSE(AIML-2)', venue: 'LAB-5, LAB-4', faculty_name: 'Mr. Sharma Ji', total_students: 12, is_my_assigned: true },
+  { subject_id: 8, subject_code: 'BCS352', name: 'Computer Organisation Lab', section: 'CSE(AIML-2)', venue: 'LAB-4', faculty_name: 'Mr. Narendra Kumar', total_students: 12, is_my_assigned: true },
+  { subject_id: 9, subject_code: 'BCS353', name: 'Web Designing Workshop', section: 'CSE(AIML-2)', venue: 'LAB-5', faculty_name: 'Mr. Gaurav Kumar', total_students: 12, is_my_assigned: true },
+  { subject_id: 10, subject_code: 'BCC351', name: 'Internship Assesment/Mini Project', section: 'CSE(AIML-2)', venue: 'CL-11', faculty_name: 'Mr. Amit Goel', total_students: 12, is_my_assigned: true },
+];
+
 /**
  * Returns current period and ongoing lecture based on current Day & Time.
  */

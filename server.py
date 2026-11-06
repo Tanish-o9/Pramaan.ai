@@ -454,16 +454,8 @@ def api_student_unenroll(req: StudentActionReq, current_user: dict = Depends(req
 # ================= TEACHER WORKSPACE & ADMIN TOOLS =================
 
 @app.get("/api/teacher/subjects")
-def api_subjects(request: Request):
-    token = request.cookies.get("access_token")
-    teacher_id = 1
-    if token:
-        try:
-            payload = decode_token(token)
-            if payload.get("role") == "teacher":
-                teacher_id = payload.get("user_id", 1)
-        except Exception:
-            pass
+def api_subjects(current_user: dict = Depends(require_teacher)):
+    teacher_id = current_user.get("user_id", 1)
     return get_teacher_subjects(teacher_id)
 
 @app.post("/api/teacher/subjects")

@@ -1,10 +1,10 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { api } from '../api';
 import { toast } from '../components/Toast';
 import QRCode from 'qrcode';
 import KioskScreen from './KioskScreen';
 import CopilotDrawer from '../components/CopilotDrawer';
-import { AKGEC_META, AKGEC_PERIODS, AKGEC_WEEKLY_SCHEDULE, getCurrentLectureSlot } from '../akgecTimetable';
+import { AKGEC_META, AKGEC_PERIODS, AKGEC_WEEKLY_SCHEDULE, DEFAULT_AKGEC_SUBJECTS, getCurrentLectureSlot } from '../akgecTimetable';
 import { 
   Camera, 
   Video, 
@@ -54,9 +54,32 @@ import {
 
 export default function FacultyDashboard({ teacher }) {
   const [tab, setTab] = useState('attendance'); // 'attendance' | 'analytics' | 'leaves' | 'subjects' | 'logs' | 'settings'
-  const [subjects, setSubjects] = useState([]);
-  const [selectedSubId, setSelectedSubId] = useState('');
+  const [subjects, setSubjects] = useState(() => DEFAULT_AKGEC_SUBJECTS);
+  const [selectedSubId, setSelectedSubId] = useState('1');
+  const [sectionFilter, setSectionFilter] = useState('ALL'); // 'ALL' | 'CSE(AIML-2)' | 'CSE(AIML-1)' | 'CSE(DS)'
+  const [scopeFilter, setScopeFilter] = useState('all'); // 'all' (All Classes) | 'my' (My Lectures)
   const [loading, setLoading] = useState(false);
+
+  // Derived filtered subjects guaranteeing dropdown never appears empty
+  const visibleSubjects = useMemo(() => {
+    const list = subjects.filter((s) => {
+      if (scopeFilter === 'my' && subjects.some((sub) => sub.is_my_assigned) && !s.is_my_assigned) {
+        return false;
+      }
+      if (sectionFilter !== 'ALL' && s.section !== sectionFilter) {
+        return false;
+      }
+      return true;
+    });
+    return list.length > 0 ? list : subjects;
+  }, [subjects, scopeFilter, sectionFilter]);
+
+  // Keep selectedSubId valid if current selection is not in visibleSubjects
+  useEffect(() => {
+    if (visibleSubjects.length > 0 && !visibleSubjects.some((s) => String(s.subject_id) === String(selectedSubId))) {
+      setSelectedSubId(String(visibleSubjects[0].subject_id));
+    }
+  }, [visibleSubjects, selectedSubId]);
 
   // Classroom Kiosk Mode state
   const [kioskSubject, setKioskSubject] = useState(null);
@@ -1010,51 +1033,142 @@ export default function FacultyDashboard({ teacher }) {
             </div>
           </div>
 
-          {/* Prominent Class & Lecture Slot Selector */}
-          <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-cyan-950/40 via-sky-950/20 to-zinc-950 border-2 border-cyan-500/40 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4 mb-6 shadow-xl shadow-cyan-500/5">
-            <div className="flex items-center gap-3.5">
-              <div className="w-11 h-11 rounded-xl bg-gradient-to-tr from-cyan-500/20 to-sky-500/10 border border-cyan-500/40 flex items-center justify-center text-cyan-400 shrink-0 shadow-md">
-                <GraduationCap className="w-6 h-6 animate-pulse" />
-              </div>
-              <div>
-                <div className="flex items-center gap-2 flex-wrap">
-                  <h3 className="text-sm sm:text-base font-bold text-white tracking-tight">
-                    Select Subject & Class to Take Attendance
-                  </h3>
-                  <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
-                    REQUIRED
-                  </span>
+          {/* Prominent Class, Faculty & Section Management Studio */}
+          <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-cyan-950/40 via-sky-950/20 to-zinc-950 border-2 border-cyan-500/40 flex flex-col gap-4 mb-6 shadow-xl shadow-cyan-500/5">
+            {/* Header + Scope Switcher */}
+            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-3 pb-3 border-b border-white/5">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-cyan-500/20 to-sky-500/10 border border-cyan-500/40 flex items-center justify-center text-cyan-400 shrink-0 shadow-md">
+                  <GraduationCap className="w-5 h-5 animate-pulse" />
                 </div>
-                <p className="text-xs text-zinc-400 mt-0.5">
-                  Pick your course from the list below. Attendance will be recorded for this course.
-                </p>
+                <div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h3 className="text-sm sm:text-base font-bold text-white tracking-tight">
+                      Class & Lecture Allocation System
+                    </h3>
+                    <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
+                      AKGEC CSE(AIML-2)
+                    </span>
+                  </div>
+                  <p className="text-xs text-zinc-400 mt-0.5">
+                    Faculty: <strong className="text-white">{teacher?.name || 'Dr. Tanish Rajput'}</strong> • Select assigned course & section to record attendance
+                  </p>
+                </div>
+              </div>
+
+              {/* Scope Filter Pills: My Assigned vs All Department Courses */}
+              <div className="flex items-center gap-1.5 p-1 rounded-xl bg-zinc-950 border border-zinc-800 text-xs">
+                <button
+                  type="button"
+                  onClick={() => setScopeFilter('my')}
+                  className={`px-3 py-1.5 rounded-lg font-semibold transition cursor-pointer ${
+                    scopeFilter === 'my'
+                      ? 'bg-cyan-500 text-zinc-950 shadow-md'
+                      : 'text-zinc-400 hover:text-zinc-200'
+                  }`}
+                >
+                  📌 My Assigned ({subjects.filter((s) => s.is_my_assigned).length})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setScopeFilter('all')}
+                  className={`px-3 py-1.5 rounded-lg font-semibold transition cursor-pointer ${
+                    scopeFilter === 'all'
+                      ? 'bg-cyan-500 text-zinc-950 shadow-md'
+                      : 'text-zinc-400 hover:text-zinc-200'
+                  }`}
+                >
+                  🌐 All Classes ({subjects.length})
+                </button>
               </div>
             </div>
 
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-              {/* Highlighted Class Dropdown */}
-              <div className="relative min-w-[280px]">
-                <select
-                  value={selectedSubId}
-                  onChange={(e) => setSelectedSubId(e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl text-xs font-bold cursor-pointer bg-zinc-950 border-2 border-cyan-400 hover:border-cyan-300 text-white shadow-lg shadow-cyan-500/15 focus:outline-none focus:ring-2 focus:ring-cyan-400 transition"
-                >
-                  {subjects.length === 0 && (
-                    <option value="">Loading AKGEC Classes...</option>
+            {/* Current Timetable Live Slot Bar + Quick Auto-Set */}
+            {(() => {
+              const currentSlot = getCurrentLectureSlot();
+              return (
+                <div className="p-3 rounded-xl bg-zinc-950/80 border border-zinc-800/80 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5 text-xs">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 flex items-center gap-1">
+                      <Clock className="w-3 h-3" /> LIVE TIMETABLE
+                    </span>
+                    <span className="text-zinc-300 font-medium">
+                      {currentSlot.day} • {currentSlot.period?.name} ({currentSlot.period?.slot}):
+                    </span>
+                    <strong className="text-white">
+                      {currentSlot.lecture?.code || 'Free'} • {currentSlot.lecture?.subject || 'Break/Prep'}
+                    </strong>
+                    <span className="text-zinc-400 font-mono text-[11px]">
+                      ({currentSlot.lecture?.faculty || 'No Faculty'} • {currentSlot.lecture?.venue || 'CL-11'})
+                    </span>
+                  </div>
+
+                  {currentSlot.lecture?.code && currentSlot.lecture?.code !== 'BREAK' && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const match = subjects.find((s) => s.subject_code?.toUpperCase() === currentSlot.lecture.code.toUpperCase());
+                        if (match) {
+                          setSelectedSubId(String(match.subject_id));
+                          toast(`⚡ Auto-selected live timetable lecture: ${match.name} (${match.subject_code})`, 'success');
+                        }
+                      }}
+                      className="px-2.5 py-1 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 text-emerald-300 font-bold text-[11px] transition cursor-pointer shrink-0"
+                    >
+                      ⚡ Auto-Select Live Slot
+                    </button>
                   )}
-                  {subjects.map((s) => (
-                    <option key={s.subject_id} value={s.subject_id} className="bg-zinc-950 text-white py-2">
-                      📚 {s.name} ({s.subject_code} - Sec {s.section})
-                    </option>
-                  ))}
-                </select>
+                </div>
+              );
+            })()}
+
+            {/* Section Filter + Highlighted Class Dropdown */}
+            <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3 pt-1">
+              {/* Section Filters */}
+              <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs">
+                <span className="text-zinc-400 text-[11px] font-medium mr-1 shrink-0">Section:</span>
+                {[
+                  { id: 'ALL', label: 'All Sections' },
+                  { id: 'CSE(AIML-2)', label: 'CSE(AIML-2) • CL-11' },
+                  { id: 'CSE(AIML-1)', label: 'CSE(AIML-1)' },
+                  { id: 'CSE(DS)', label: 'CSE(DS)' },
+                ].map((sec) => (
+                  <button
+                    key={sec.id}
+                    type="button"
+                    onClick={() => setSectionFilter(sec.id)}
+                    className={`px-2.5 py-1 rounded-lg font-medium text-[11px] transition cursor-pointer shrink-0 ${
+                      sectionFilter === sec.id
+                        ? 'bg-zinc-800 text-white border border-cyan-500/50 shadow-sm'
+                        : 'text-zinc-400 hover:text-zinc-200 border border-transparent'
+                    }`}
+                  >
+                    {sec.label}
+                  </button>
+                ))}
               </div>
 
-              {/* Quick Counter */}
-              <div className="px-3.5 py-2.5 rounded-xl bg-zinc-950/80 border border-zinc-800 text-center shrink-0">
-                <span className="text-[11px] text-zinc-300 font-mono">
-                  Enrolled: <strong className="text-emerald-400">{subjects.find((s) => String(s.subject_id) === String(selectedSubId))?.total_students || 12}</strong> students
-                </span>
+              {/* Dropdown Selection */}
+              <div className="flex items-center gap-2.5 flex-1 lg:max-w-xl">
+                <div className="relative w-full">
+                  <select
+                    value={selectedSubId}
+                    onChange={(e) => setSelectedSubId(e.target.value)}
+                    className="w-full px-4 py-3 rounded-xl text-xs font-bold cursor-pointer bg-zinc-950 border-2 border-cyan-400 hover:border-cyan-300 text-white shadow-lg shadow-cyan-500/15 focus:outline-none focus:ring-2 focus:ring-cyan-400 transition"
+                  >
+                    {visibleSubjects.map((s) => (
+                      <option key={s.subject_id} value={s.subject_id} className="bg-zinc-950 text-white py-2">
+                        📚 {s.name} ({s.subject_code} - Sec {s.section}) • {s.faculty_name || 'Faculty'} {s.is_my_assigned ? '⭐' : ''}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="px-3.5 py-2.5 rounded-xl bg-zinc-950/90 border border-zinc-800 text-center shrink-0">
+                  <span className="text-[11px] text-zinc-300 font-mono">
+                    Enrolled: <strong className="text-emerald-400">{subjects.find((s) => String(s.subject_id) === String(selectedSubId))?.total_students || 12}</strong> students
+                  </span>
+                </div>
               </div>
             </div>
           </div>
