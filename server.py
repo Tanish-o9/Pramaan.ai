@@ -997,6 +997,7 @@ async def api_kiosk_verify(
             "status": "already_marked",
             "student": {"student_id": sid, "name": s_name, "roll_number": s_roll},
             "confidence": round(best_conf, 1),
+            "trust_score": 96,
             "bounding_box": matched_box,
             "message": f"Already marked present today: {s_name} ({s_roll})"
         }

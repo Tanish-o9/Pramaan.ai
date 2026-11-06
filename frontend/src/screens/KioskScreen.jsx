@@ -108,36 +108,15 @@ export default function KioskScreen({ subject: initialSubject, onExit }) {
       });
   }, []);
 
-  // Sync active subject students count & roster
+  // Fresh Live Terminal Session for Selected Subject (100% Real-Time Live Only)
   useEffect(() => {
     if (activeSubject?.subject_id) {
-      setStats((prev) => ({
-        ...prev,
+      setStats({
+        markedCount: 0,
         totalEnrolled: activeSubject.total_enrolled || 12,
-      }));
-
-      // Fetch today's verified roster for kiosk sidebar
-      api.getKioskRoster(activeSubject.subject_id)
-        .then((res) => {
-          if (res?.status === 'success') {
-            setStats({
-              markedCount: res.marked_count || 0,
-              totalEnrolled: res.total_enrolled || activeSubject.total_enrolled || 12,
-            });
-            if (Array.isArray(res.records)) {
-              setVerifiedList(res.records.map((r) => ({
-                id: r.id || `${r.student_id}-${Date.now()}`,
-                student_id: r.student_id,
-                name: r.name,
-                roll: r.roll,
-                time: r.timestamp ? new Date(r.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Today',
-                trust: r.trust || 98,
-                status: r.status || 'VERIFIED'
-              })));
-            }
-          }
-        })
-        .catch(() => {});
+      });
+      setVerifiedList([]);
+      cooldownCache.current.clear();
     }
   }, [activeSubject]);
 
@@ -686,9 +665,24 @@ export default function KioskScreen({ subject: initialSubject, onExit }) {
                 <Users className="w-3.5 h-3.5 text-cyan-400" />
                 <span>Live Roster Stream</span>
               </h2>
-              <span className="text-xs font-mono font-bold text-emerald-400">
-                {Math.max(stats.markedCount, verifiedList.length)} / {stats.totalEnrolled} Present
-              </span>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-mono font-bold text-emerald-400">
+                  {Math.max(stats.markedCount, verifiedList.length)} / {stats.totalEnrolled} Present
+                </span>
+                {verifiedList.length > 0 && (
+                  <button
+                    onClick={() => {
+                      setVerifiedList([]);
+                      setStats((s) => ({ ...s, markedCount: 0 }));
+                      cooldownCache.current.clear();
+                    }}
+                    className="p-1 rounded hover:bg-zinc-800 text-zinc-500 hover:text-zinc-300 transition-colors cursor-pointer"
+                    title="Clear live session list"
+                  >
+                    <RefreshCw className="w-3 h-3" />
+                  </button>
+                )}
+              </div>
             </div>
 
             {/* Progress Bar */}
