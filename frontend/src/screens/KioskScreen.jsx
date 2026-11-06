@@ -15,7 +15,8 @@ import {
   ChevronDown, 
   Radio,
   ArrowLeft,
-  AlertCircle
+  AlertCircle,
+  Upload
 } from 'lucide-react';
 import { api } from '../api';
 
@@ -44,9 +45,10 @@ export default function KioskScreen({ subject: initialSubject, onExit }) {
   // Quick Face Enrollment Modal State
   const [showEnrollModal, setShowEnrollModal] = useState(false);
   const [enrolledStudents, setEnrolledStudents] = useState([]);
-  const [selectedStudentForEnroll, setSelectedStudentForEnroll] = useState('');
+  const [selectedStudentForEnroll, setSelectedStudentForEnroll] = useState('4');
   const [enrollLoading, setEnrollLoading] = useState(false);
   const [enrollSuccessMsg, setEnrollSuccessMsg] = useState('');
+  const enrollFileInputRef = useRef(null);
 
   const cooldownCache = useRef(new Map()); // student_id -> timestamp
 
@@ -376,27 +378,41 @@ export default function KioskScreen({ subject: initialSubject, onExit }) {
     }
   };
 
-  // Quick Enroll Face from Live Webcam
-  const handleQuickEnroll = async () => {
-    if (!videoRef.current || !canvasRef.current || !selectedStudentForEnroll) return;
+  // Quick Enroll Face from Live Webcam or File Upload
+  const handleQuickEnroll = async (fileOverride = null) => {
+    if (!selectedStudentForEnroll) return;
     setEnrollLoading(true);
     setEnrollSuccessMsg('');
 
     try {
-      const video = videoRef.current;
-      const canvas = canvasRef.current;
-      canvas.width = video.videoWidth || 640;
-      canvas.height = video.videoHeight || 480;
-      const ctx = canvas.getContext('2d');
-      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      let blob = fileOverride;
+      if (!blob) {
+        if (!videoRef.current || !canvasRef.current) {
+          throw new Error('Webcam feed unavailable. Please upload a photo instead.');
+        }
+        const video = videoRef.current;
+        const canvas = canvasRef.current;
+        canvas.width = video.videoWidth || 640;
+        canvas.height = video.videoHeight || 480;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.95));
+      }
+      if (!blob) throw new Error('Failed to capture frame');
 
-      const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.90));
-      if (!blob) return;
-
-      const res = await api.kioskQuickEnroll(parseInt(selectedStudentForEnroll, 10), blob);
+      const subId = activeSubject?.subject_id || null;
+      const res = await api.kioskQuickEnroll(parseInt(selectedStudentForEnroll, 10), blob, subId);
       if (res.status === 'success') {
         playSuccessChime();
         setEnrollSuccessMsg(`Success! Face enrolled for student. The live camera will now recognize you.`);
+        try {
+          const subRes = await api.getKioskSubjects();
+          if (subRes?.subjects) {
+            setSubjects(subRes.subjects);
+            const found = subRes.subjects.find((s) => s.subject_id === activeSubject?.subject_id);
+            if (found) setActiveSubject(found);
+          }
+        } catch (_) {}
         setTimeout(() => {
           setShowEnrollModal(false);
           setEnrollSuccessMsg('');
@@ -783,32 +799,56 @@ export default function KioskScreen({ subject: initialSubject, onExit }) {
                 </div>
               )}
 
-              <div className="flex items-center justify-end gap-3 pt-2">
+              <input
+                type="file"
+                ref={enrollFileInputRef}
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => {
+                  if (e.target.files && e.target.files[0]) {
+                    handleQuickEnroll(e.target.files[0]);
+                  }
+                }}
+              />
+
+              <div className="flex flex-wrap items-center justify-between gap-2 pt-2">
                 <button
                   type="button"
-                  onClick={() => setShowEnrollModal(false)}
-                  className="px-4 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-xs font-medium text-zinc-300 cursor-pointer"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  onClick={handleQuickEnroll}
+                  onClick={() => enrollFileInputRef.current?.click()}
                   disabled={enrollLoading}
-                  className="px-5 py-2 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-xs font-bold text-white shadow-lg shadow-cyan-500/20 cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
+                  className="px-3 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-xs font-semibold text-zinc-200 cursor-pointer flex items-center gap-1.5 transition-all disabled:opacity-50"
                 >
-                  {enrollLoading ? (
-                    <>
-                      <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                      <span>Extracting Face 128-d...</span>
-                    </>
-                  ) : (
-                    <>
-                      <Camera className="w-3.5 h-3.5" />
-                      <span>Capture & Save My Face</span>
-                    </>
-                  )}
+                  <Upload className="w-3.5 h-3.5 text-cyan-400" />
+                  <span>Upload Photo</span>
                 </button>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowEnrollModal(false)}
+                    className="px-3.5 py-2 rounded-xl bg-zinc-800/80 hover:bg-zinc-700 text-xs font-medium text-zinc-300 cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleQuickEnroll()}
+                    disabled={enrollLoading}
+                    className="px-4 py-2 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-xs font-bold text-white shadow-lg shadow-cyan-500/20 cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
+                  >
+                    {enrollLoading ? (
+                      <>
+                        <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                        <span>Extracting Face 128-d...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Camera className="w-3.5 h-3.5" />
+                        <span>Capture Webcam</span>
+                      </>
+                    )}
+                  </button>
+                </div>
               </div>
             </div>
           </div>

@@ -5,6 +5,7 @@ import tempfile
 import time
 from collections import defaultdict
 from datetime import datetime, timezone
+from typing import Optional
 
 import cv2
 import numpy as np
@@ -802,9 +803,10 @@ def api_kiosk_subjects():
 @app.post("/api/kiosk/quick-enroll")
 async def api_kiosk_quick_enroll(
     student_id: int = Form(...),
+    subject_id: Optional[int] = Form(None),
     file: UploadFile = File(...)
 ):
-    """Instant 1-click face enrollment directly from live webcam for immediate recognition testing."""
+    """Instant face enrollment from webcam frame or photo with auto-enrollment into subject roster."""
     content = await file.read()
     if not content:
         raise HTTPException(400, "Empty image frame")
@@ -817,6 +819,18 @@ async def api_kiosk_quick_enroll(
 
     emb_list = embs[0].tolist() if hasattr(embs[0], "tolist") else embs[0]
     update_student_biometrics(student_id, face_embedding=emb_list)
+
+    if subject_id:
+        existing = (
+            supabase.table("subject_students")
+            .select("student_id")
+            .eq("subject_id", subject_id)
+            .eq("student_id", student_id)
+            .execute()
+        )
+        if not existing.data:
+            supabase.table("subject_students").insert({"subject_id": subject_id, "student_id": student_id}).execute()
+
     student = get_student_by_id(student_id)
     s_name = student.get("name") if student else "Student"
     return {"status": "success", "message": f"Biometrics successfully enrolled for {s_name}!"}

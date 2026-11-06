@@ -282,9 +282,12 @@ export const api = {
   getKioskSubjects: () =>
     request('/api/kiosk/subjects'),
 
-  kioskQuickEnroll: (student_id, fileBlob) => {
+  kioskQuickEnroll: (student_id, fileBlob, subject_id = null) => {
     const fd = new FormData();
     fd.append('student_id', student_id);
+    if (subject_id) {
+      fd.append('subject_id', subject_id);
+    }
     fd.append('file', fileBlob, 'webcam_enroll.jpg');
     return request('/api/kiosk/quick-enroll', {
       method: 'POST',
