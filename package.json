@@ -1,0 +1,20 @@
+{
+  "name": "pramaan",
+  "version": "2.0.0",
+  "description": "Enterprise Face + Voice Biometric Attendance Ecosystem with React & FastAPI",
+  "scripts": {
+    "dev:frontend": "cd frontend && npm run dev",
+    "build": "cd frontend && npm run build",
+    "server": "python server.py",
+    "start": "python server.py",
+    "test": "python -m pytest tests/",
+    "test:unit": "python -m pytest tests/test_bunk_calculator.py tests/test_trust_score.py tests/test_face_pipeline.py tests/test_voice_pipeline.py tests/test_session_token.py tests/test_csv_export.py",
+    "test:api": "python -m pytest tests/test_api_integration.py",
+    "test:e2e": "npm --prefix frontend run test:e2e",
+    "test:cov": "python -m pytest --cov=src --cov-report=term-missing tests/",
+    "test:frontend": "cd frontend && npm test"
+  },
+  "keywords": ["ai", "attendance", "facial-recognition", "voice-biometrics", "react", "fastapi", "trust-score"],
+  "author": "Tanish Rajput"
+}
+

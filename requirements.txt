@@ -1,31 +1,29 @@
-# 
-streamlit
-numpy
-pandas
-
-# face recognition
-
-scikit-learn
-dlib-bin
-
-git+https://github.com/ageitgey/face_recognition_models
-setuptools<70.0.0
-
-# data base
+# Database & Auth
 supabase
-# hasing password ko kisi code mai
 bcrypt
+pyjwt
+slowapi
 
-# for qr
-segno
-
-# image processing
+# Face Recognition Pipeline
+dlib-bin
+face_recognition_models @ git+https://github.com/ageitgey/face_recognition_models
+scikit-learn
+numpy
 pillow
+opencv-python-headless
 
-# web pages
-
-# voice 
+# Voice Recognition Pipeline
 librosa
+soundfile
 webrtcvad-wheels
 resemblyzer
+
+# API Server & Data
+fastapi
+uvicorn
+python-multipart
+pandas
 openpyxl
+
+# Testing & Quality
+pytest
