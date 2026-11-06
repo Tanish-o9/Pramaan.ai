@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 36" fill="none">
+  <!-- Biometric Symbol Icon -->
+  <rect x="2" y="2" width="32" height="32" rx="8" fill="#18181b" stroke="#27272a" stroke-width="1.5"/>
+  <circle cx="18" cy="18" r="9" stroke="#3f3f46" stroke-width="1.5"/>
+  <path d="M14 18C14 15.7909 15.7909 14 18 14" stroke="#10b981" stroke-width="2" stroke-linecap="round"/>
+  <circle cx="18" cy="18" r="3.5" fill="#10b981"/>
+  <path d="M11 18H13M23 18H25M18 11V13M18 23V25" stroke="#71717a" stroke-width="1.2" stroke-linecap="round"/>
+  
+  <!-- Typography -->
+  <text x="44" y="23" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-weight="700" font-size="16" fill="#fafafa" letter-spacing="-0.02em">Presence<tspan fill="#10b981">.ai</tspan></text>
+</svg>
+
