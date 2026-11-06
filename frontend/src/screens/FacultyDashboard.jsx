@@ -536,80 +536,227 @@ export default function FacultyDashboard({ teacher }) {
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-8 w-full">
-      {/* Top Banner */}
-      <div className="panel rounded-xl p-5 mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h1 className="text-xl font-semibold text-zinc-100">{teacher.name}</h1>
-          <p className="text-xs text-zinc-400 mt-0.5">Faculty Workspace · {subjects.length} Subjects Active</p>
+      {/* Executive Faculty Hero Banner */}
+      <div className="panel-card rounded-2xl p-6 mb-6 relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-80 h-80 bg-gradient-to-bl from-cyan-500/10 via-sky-500/5 to-transparent rounded-full blur-3xl pointer-events-none" />
+
+        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 relative z-10">
+          <div className="flex items-center gap-4">
+            <div className="relative">
+              <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-cyan-500 to-sky-400 p-[2px] shadow-lg shadow-cyan-500/15">
+                <div className="w-full h-full rounded-[14px] bg-zinc-950 flex items-center justify-center text-lg font-bold text-white uppercase">
+                  {teacher.name ? teacher.name.slice(0, 2) : 'FC'}
+                </div>
+              </div>
+              <span className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-cyan-500 border-2 border-zinc-950 flex items-center justify-center" title="Faculty Active">
+                <span className="w-1.5 h-1.5 rounded-full bg-white"></span>
+              </span>
+            </div>
+
+            <div>
+              <div className="flex flex-wrap items-center gap-2">
+                <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-white">{teacher.name}</h1>
+                <span className="px-2 py-0.5 rounded-md text-[11px] font-mono font-semibold bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
+                  Faculty Workspace
+                </span>
+                <span className="px-2 py-0.5 rounded-md text-[11px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center gap-1">
+                  <ShieldCheck className="w-3.5 h-3.5" /> Biometrics Governance
+                </span>
+              </div>
+              <div className="flex flex-wrap items-center gap-3 mt-1.5 text-xs text-zinc-400">
+                <span>{subjects.length} Active Courses Assigned</span>
+                <span className="text-zinc-600">•</span>
+                <span className="text-emerald-400 flex items-center gap-1">
+                  <Sparkles className="w-3 h-3" /> ResNet-128 Multi-Face Online
+                </span>
+                <span className="text-zinc-600">•</span>
+                <span className="text-zinc-400">dlib 68-pt EAR Liveness Active</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2.5 w-full lg:w-auto">
+            {selectedSubId && (
+              <>
+                <button
+                  onClick={() => setShowPulseModal(true)}
+                  className="flex-1 lg:flex-none flex items-center justify-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 text-amber-300 font-semibold text-xs transition cursor-pointer active:scale-98"
+                >
+                  <Zap className="w-4 h-4 text-amber-400" />
+                  <span>Surprise Pulse Check</span>
+                </button>
+                <button
+                  onClick={() => {
+                    const sub = subjects.find((s) => s.subject_id === Number(selectedSubId));
+                    if (sub) setKioskSubject(sub);
+                  }}
+                  className="flex-1 lg:flex-none flex items-center justify-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-zinc-950 font-bold text-xs transition shadow-lg shadow-emerald-500/15 cursor-pointer active:scale-98"
+                >
+                  <Video className="w-4 h-4" />
+                  <span>Launch Door Kiosk</span>
+                </button>
+              </>
+            )}
+          </div>
         </div>
 
-        <div className="flex flex-wrap gap-2 text-xs">
+        {/* 4 Faculty Executive Metric Cards */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-6 pt-6 border-t border-white/5">
+          <div className="p-3.5 rounded-xl bg-zinc-950/60 border border-zinc-800/80">
+            <div className="text-[11px] text-zinc-400 flex items-center justify-between">
+              <span>Active Subject Sections</span>
+              <Users className="w-3.5 h-3.5 text-cyan-400" />
+            </div>
+            <div className="text-2xl font-black mt-1 tracking-tight text-white flex items-baseline gap-1">
+              {subjects.length}
+              <span className="text-[11px] font-normal text-zinc-400">classes</span>
+            </div>
+            <div className="text-[10px] text-zinc-400 mt-1">
+              {subjects.reduce((acc, s) => acc + (s.students_count || 0), 0)} students enrolled
+            </div>
+          </div>
+
+          <div className="p-3.5 rounded-xl bg-zinc-950/60 border border-zinc-800/80">
+            <div className="text-[11px] text-zinc-400 flex items-center justify-between">
+              <span>Pending Leaves / OD</span>
+              <FileText className="w-3.5 h-3.5 text-amber-400" />
+            </div>
+            <div className="text-2xl font-black mt-1 tracking-tight text-amber-400 flex items-baseline gap-1">
+              {teacherLeaves.filter((l) => l.status === 'pending').length}
+              <span className="text-[11px] font-normal text-zinc-400">requests</span>
+            </div>
+            <div className="text-[10px] text-zinc-400 mt-1">
+              Requires faculty verification
+            </div>
+          </div>
+
+          <div className="p-3.5 rounded-xl bg-zinc-950/60 border border-zinc-800/80">
+            <div className="text-[11px] text-zinc-400 flex items-center justify-between">
+              <span>Classroom Desk Layout</span>
+              <LayoutGrid className="w-3.5 h-3.5 text-cyan-400" />
+            </div>
+            <div className="text-2xl font-black mt-1 tracking-tight text-white flex items-baseline gap-1">
+              {selectedSubId ? 'Grid Ready' : 'Select Class'}
+            </div>
+            <div className="text-[10px] text-zinc-400 mt-1">
+              Interactive 5x6 spatial matrix
+            </div>
+          </div>
+
+          <div className="p-3.5 rounded-xl bg-zinc-950/60 border border-zinc-800/80">
+            <div className="text-[11px] text-zinc-400 flex items-center justify-between">
+              <span>AI Governance Radar</span>
+              <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
+            </div>
+            <div className="text-2xl font-black mt-1 tracking-tight text-emerald-400 flex items-baseline gap-1">
+              100%
+              <span className="text-[11px] font-normal text-zinc-400">online</span>
+            </div>
+            <div className="text-[10px] text-zinc-400 mt-1">
+              Trust Score Engine & HoD Reports
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Floating Modern Pill Navigation */}
+      <div className="flex items-center justify-between mb-6 pb-2 border-b border-white/5 overflow-x-auto">
+        <div className="flex items-center gap-1.5 p-1 rounded-xl bg-zinc-950/90 border border-zinc-800/90 shadow-inner">
           <button
             onClick={() => setTab('attendance')}
-            className={`px-3 py-1.5 rounded-md font-medium transition cursor-pointer ${tab === 'attendance' ? 'bg-zinc-100 text-zinc-950 font-semibold' : 'bg-zinc-900 border border-zinc-800 text-zinc-400'}`}
+            className={`px-3.5 py-2 rounded-lg font-semibold text-xs transition cursor-pointer flex items-center gap-1.5 ${
+              tab === 'attendance' ? 'bg-zinc-800 text-white shadow-sm ring-1 ring-white/10' : 'text-zinc-400 hover:text-zinc-200'
+            }`}
           >
-            Take Attendance
+            <Camera className="w-3.5 h-3.5 text-sky-400" />
+            <span>Take Attendance</span>
           </button>
+
           <button
             onClick={() => setTab('seatmap')}
-            className={`px-3 py-1.5 rounded-md font-medium transition cursor-pointer flex items-center gap-1.5 ${tab === 'seatmap' ? 'bg-zinc-100 text-zinc-950 font-semibold' : 'bg-zinc-900 border border-zinc-800 text-zinc-400'}`}
+            className={`px-3.5 py-2 rounded-lg font-semibold text-xs transition cursor-pointer flex items-center gap-1.5 ${
+              tab === 'seatmap' ? 'bg-zinc-800 text-white shadow-sm ring-1 ring-white/10' : 'text-zinc-400 hover:text-zinc-200'
+            }`}
           >
-            <LayoutGrid className="w-3.5 h-3.5 text-cyan-400" /> Seat Map
+            <LayoutGrid className="w-3.5 h-3.5 text-cyan-400" />
+            <span>Seat Map</span>
           </button>
+
           <button
             onClick={() => setTab('analytics')}
-            className={`px-3 py-1.5 rounded-md font-medium transition cursor-pointer flex items-center gap-1.5 ${tab === 'analytics' ? 'bg-zinc-100 text-zinc-950 font-semibold' : 'bg-zinc-900 border border-zinc-800 text-zinc-400'}`}
+            className={`px-3.5 py-2 rounded-lg font-semibold text-xs transition cursor-pointer flex items-center gap-1.5 ${
+              tab === 'analytics' ? 'bg-zinc-800 text-white shadow-sm ring-1 ring-white/10' : 'text-zinc-400 hover:text-zinc-200'
+            }`}
           >
-            <Flame className="w-3.5 h-3.5 text-amber-400" /> At-Risk & Anomalies (ML)
+            <Flame className="w-3.5 h-3.5 text-amber-400" />
+            <span>AI Risk Radar</span>
           </button>
+
           <button
             onClick={() => setTab('leaves')}
-            className={`px-3 py-1.5 rounded-md font-medium transition cursor-pointer flex items-center gap-1.5 ${tab === 'leaves' ? 'bg-zinc-100 text-zinc-950 font-semibold' : 'bg-zinc-900 border border-zinc-800 text-zinc-400'}`}
+            className={`px-3.5 py-2 rounded-lg font-semibold text-xs transition cursor-pointer flex items-center gap-1.5 ${
+              tab === 'leaves' ? 'bg-zinc-800 text-white shadow-sm ring-1 ring-white/10' : 'text-zinc-400 hover:text-zinc-200'
+            }`}
           >
-            <FileText className="w-3.5 h-3.5 text-blue-400" /> Leave Requests
+            <FileText className="w-3.5 h-3.5 text-blue-400" />
+            <span>Leave Requests</span>
             {teacherLeaves.filter((l) => l.status === 'pending').length > 0 && (
               <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-rose-500 text-white font-mono font-bold">
                 {teacherLeaves.filter((l) => l.status === 'pending').length}
               </span>
             )}
           </button>
+
           <button
             onClick={() => setTab('subjects')}
-            className={`px-3 py-1.5 rounded-md font-medium transition cursor-pointer ${tab === 'subjects' ? 'bg-zinc-100 text-zinc-950 font-semibold' : 'bg-zinc-900 border border-zinc-800 text-zinc-400'}`}
+            className={`px-3.5 py-2 rounded-lg font-semibold text-xs transition cursor-pointer flex items-center gap-1.5 ${
+              tab === 'subjects' ? 'bg-zinc-800 text-white shadow-sm ring-1 ring-white/10' : 'text-zinc-400 hover:text-zinc-200'
+            }`}
           >
-            Subjects & Students
+            <Users className="w-3.5 h-3.5 text-emerald-400" />
+            <span>Subjects & Roster</span>
           </button>
+
           <button
             onClick={() => setTab('logs')}
-            className={`px-3 py-1.5 rounded-md font-medium transition cursor-pointer ${tab === 'logs' ? 'bg-zinc-100 text-zinc-950 font-semibold' : 'bg-zinc-900 border border-zinc-800 text-zinc-400'}`}
+            className={`px-3.5 py-2 rounded-lg font-semibold text-xs transition cursor-pointer flex items-center gap-1.5 ${
+              tab === 'logs' ? 'bg-zinc-800 text-white shadow-sm ring-1 ring-white/10' : 'text-zinc-400 hover:text-zinc-200'
+            }`}
           >
-            Logbook
+            <Download className="w-3.5 h-3.5 text-violet-400" />
+            <span>Logbook & Export</span>
           </button>
+
           <button
             onClick={() => setTab('settings')}
-            className={`px-3 py-1.5 rounded-md font-medium transition cursor-pointer flex items-center gap-1 ${tab === 'settings' ? 'bg-zinc-100 text-zinc-950 font-semibold' : 'bg-zinc-900 border border-zinc-800 text-zinc-400'}`}
+            className={`px-3.5 py-2 rounded-lg font-semibold text-xs transition cursor-pointer flex items-center gap-1.5 ${
+              tab === 'settings' ? 'bg-zinc-800 text-white shadow-sm ring-1 ring-white/10' : 'text-zinc-400 hover:text-zinc-200'
+            }`}
           >
-            <Sliders className="w-3.5 h-3.5" /> Settings
+            <Sliders className="w-3.5 h-3.5 text-zinc-400" />
+            <span>Settings</span>
           </button>
         </div>
       </div>
 
       {/* 1. ATTENDANCE TAB */}
       {tab === 'attendance' && (
-        <div className="panel rounded-xl p-6">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+        <div className="panel-card rounded-2xl p-6 border border-zinc-800/80 shadow-2xl">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 pb-6 border-b border-white/5">
             <div>
-              <h2 className="text-sm font-semibold text-zinc-100">Take Class Attendance</h2>
-              <p className="text-xs text-zinc-400 mt-0.5">Select active subject and attendance capture method</p>
+              <h2 className="text-base font-bold text-zinc-100 flex items-center gap-2">
+                <Camera className="w-4 h-4 text-sky-400" /> Take Class Attendance
+              </h2>
+              <p className="text-xs text-zinc-400 mt-0.5">Select active subject lecture and preferred capture studio</p>
             </div>
 
-            <div className="flex items-center gap-3">
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-zinc-400">Class:</span>
+            <div className="flex items-center gap-3 w-full sm:w-auto">
+              <div className="flex items-center gap-2 w-full sm:w-auto">
+                <span className="text-xs text-zinc-400 font-medium">Class:</span>
                 <select
                   value={selectedSubId}
                   onChange={(e) => setSelectedSubId(e.target.value)}
-                  className="px-3 py-1.5 rounded text-xs font-medium cursor-pointer"
+                  className="px-3.5 py-2 rounded-xl text-xs font-semibold cursor-pointer bg-zinc-900 border border-zinc-700/80 text-white w-full sm:w-auto shadow-sm"
                 >
                   {subjects.map((s) => (
                     <option key={s.subject_id} value={s.subject_id}>
@@ -618,86 +765,88 @@ export default function FacultyDashboard({ teacher }) {
                   ))}
                 </select>
               </div>
-
-              {selectedSubId && (
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => setShowPulseModal(true)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-amber-600/90 hover:bg-amber-500 text-white font-medium text-xs shadow-sm transition cursor-pointer"
-                    title="Trigger mid-lecture surprise pulse check"
-                  >
-                    <Zap className="w-3.5 h-3.5" /> Pulse Check
-                  </button>
-                  <button
-                    onClick={() => {
-                      const sub = subjects.find((s) => s.subject_id === Number(selectedSubId));
-                      if (sub) setKioskSubject(sub);
-                    }}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-emerald-600/90 hover:bg-emerald-500 text-white font-medium text-xs shadow-sm transition cursor-pointer"
-                    title="Launch hands-free classroom door kiosk"
-                  >
-                    <Video className="w-3.5 h-3.5" /> Launch Kiosk
-                  </button>
-                </div>
-              )}
             </div>
           </div>
 
           {/* Mode Selector */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 mb-6 text-xs">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5 mb-6 text-xs">
             <button
               onClick={() => { setMode('photos'); setReview(null); }}
-              className={`p-3 rounded-lg border flex flex-col items-center gap-1.5 transition cursor-pointer ${
-                mode === 'photos' ? 'bg-zinc-900 border-zinc-600 text-zinc-100 font-semibold' : 'panel border-zinc-800 text-zinc-400'
+              className={`p-3.5 rounded-xl border flex flex-col items-center gap-2 transition cursor-pointer active:scale-98 ${
+                mode === 'photos' 
+                  ? 'bg-zinc-800/90 border-sky-500/50 text-white font-bold shadow-lg shadow-sky-500/10 ring-1 ring-sky-500/30' 
+                  : 'bg-zinc-900/60 hover:bg-zinc-800/50 border-zinc-800 text-zinc-400'
               }`}
             >
-              <Camera className="w-4 h-4 text-sky-400" />
-              <span>Multi-Photo</span>
+              <div className="w-8 h-8 rounded-lg bg-sky-500/10 border border-sky-500/20 flex items-center justify-center text-sky-400">
+                <Camera className="w-4 h-4" />
+              </div>
+              <span className="font-medium">Multi-Photo</span>
             </button>
             <button
               onClick={() => { setMode('group_photo'); setReview(null); }}
-              className={`p-3 rounded-lg border flex flex-col items-center gap-1.5 transition cursor-pointer ${
-                mode === 'group_photo' ? 'bg-zinc-900 border-zinc-600 text-zinc-100 font-semibold' : 'panel border-zinc-800 text-zinc-400'
+              className={`p-3.5 rounded-xl border flex flex-col items-center gap-2 transition cursor-pointer active:scale-98 ${
+                mode === 'group_photo' 
+                  ? 'bg-zinc-800/90 border-cyan-500/50 text-white font-bold shadow-lg shadow-cyan-500/10 ring-1 ring-cyan-500/30' 
+                  : 'bg-zinc-900/60 hover:bg-zinc-800/50 border-zinc-800 text-zinc-400'
               }`}
             >
-              <Sparkles className="w-4 h-4 text-cyan-400" />
-              <span>Class Photo</span>
+              <div className="w-8 h-8 rounded-lg bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400">
+                <Sparkles className="w-4 h-4" />
+              </div>
+              <span className="font-medium">Class Photo</span>
             </button>
             <button
               onClick={() => { setMode('voice_command'); setReview(null); }}
-              className={`p-3 rounded-lg border flex flex-col items-center gap-1.5 transition cursor-pointer ${
-                mode === 'voice_command' ? 'bg-zinc-900 border-zinc-600 text-zinc-100 font-semibold' : 'panel border-zinc-800 text-zinc-400'
+              className={`p-3.5 rounded-xl border flex flex-col items-center gap-2 transition cursor-pointer active:scale-98 ${
+                mode === 'voice_command' 
+                  ? 'bg-zinc-800/90 border-emerald-500/50 text-white font-bold shadow-lg shadow-emerald-500/10 ring-1 ring-emerald-500/30' 
+                  : 'bg-zinc-900/60 hover:bg-zinc-800/50 border-zinc-800 text-zinc-400'
               }`}
             >
-              <Volume2 className="w-4 h-4 text-emerald-400" />
-              <span>Voice AI</span>
+              <div className="w-8 h-8 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
+                <Mic className="w-4 h-4" />
+              </div>
+              <span className="font-medium">Voice AI</span>
             </button>
             <button
               onClick={() => { setMode('video'); setReview(null); }}
-              className={`p-3 rounded-lg border flex flex-col items-center gap-1.5 transition cursor-pointer ${
-                mode === 'video' ? 'bg-zinc-900 border-zinc-600 text-zinc-100 font-semibold' : 'panel border-zinc-800 text-zinc-400'
+              className={`p-3.5 rounded-xl border flex flex-col items-center gap-2 transition cursor-pointer active:scale-98 ${
+                mode === 'video' 
+                  ? 'bg-zinc-800/90 border-violet-500/50 text-white font-bold shadow-lg shadow-violet-500/10 ring-1 ring-violet-500/30' 
+                  : 'bg-zinc-900/60 hover:bg-zinc-800/50 border-zinc-800 text-zinc-400'
               }`}
             >
-              <Video className="w-4 h-4 text-emerald-400" />
-              <span>Video Keyframes</span>
+              <div className="w-8 h-8 rounded-lg bg-violet-500/10 border border-violet-500/20 flex items-center justify-center text-violet-400">
+                <Video className="w-4 h-4" />
+              </div>
+              <span className="font-medium">Video Pan</span>
             </button>
             <button
               onClick={() => { setMode('voice'); setReview(null); }}
-              className={`p-3 rounded-lg border flex flex-col items-center gap-1.5 transition cursor-pointer ${
-                mode === 'voice' ? 'bg-zinc-900 border-zinc-600 text-zinc-100 font-semibold' : 'panel border-zinc-800 text-zinc-400'
+              className={`p-3.5 rounded-xl border flex flex-col items-center gap-2 transition cursor-pointer active:scale-98 ${
+                mode === 'voice' 
+                  ? 'bg-zinc-800/90 border-amber-500/50 text-white font-bold shadow-lg shadow-amber-500/10 ring-1 ring-amber-500/30' 
+                  : 'bg-zinc-900/60 hover:bg-zinc-800/50 border-zinc-800 text-zinc-400'
               }`}
             >
-              <Mic className="w-4 h-4 text-amber-400" />
-              <span>Voice Match</span>
+              <div className="w-8 h-8 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400">
+                <Volume2 className="w-4 h-4" />
+              </div>
+              <span className="font-medium">Single Voice</span>
             </button>
             <button
-              onClick={() => { setMode('manual'); setReview(null); }}
-              className={`p-3 rounded-lg border flex flex-col items-center gap-1.5 transition cursor-pointer ${
-                mode === 'manual' ? 'bg-zinc-900 border-zinc-600 text-zinc-100 font-semibold' : 'panel border-zinc-800 text-zinc-400'
+              onClick={() => { setMode('manual'); setReview(null); loadManualList(); }}
+              className={`p-3.5 rounded-xl border flex flex-col items-center gap-2 transition cursor-pointer active:scale-98 ${
+                mode === 'manual' 
+                  ? 'bg-zinc-800/90 border-rose-500/50 text-white font-bold shadow-lg shadow-rose-500/10 ring-1 ring-rose-500/30' 
+                  : 'bg-zinc-900/60 hover:bg-zinc-800/50 border-zinc-800 text-zinc-400'
               }`}
             >
-              <CheckSquare className="w-4 h-4 text-purple-400" />
-              <span>Manual</span>
+              <div className="w-8 h-8 rounded-lg bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-rose-400">
+                <CheckSquare className="w-4 h-4" />
+              </div>
+              <span className="font-medium">Manual</span>
             </button>
           </div>
 

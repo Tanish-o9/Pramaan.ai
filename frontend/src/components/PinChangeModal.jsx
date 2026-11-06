@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { api } from '../api';
-import { ShieldAlert, ArrowRight, Loader2, AlertCircle } from 'lucide-react';
+import { ShieldAlert, ArrowRight, Loader2, AlertCircle, X } from 'lucide-react';
 
-export default function PinChangeModal({ student, onSuccess }) {
+export default function PinChangeModal({ student, onSuccess, onClose }) {
   const [oldPin, setOldPin] = useState('1234');
   const [newPin, setNewPin] = useState('');
   const [confirmPin, setConfirmPin] = useState('');
@@ -38,8 +38,18 @@ export default function PinChangeModal({ student, onSuccess }) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-      <div className="panel max-w-sm w-full rounded-xl p-6 shadow-2xl border border-zinc-700">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+      <div className="panel max-w-sm w-full rounded-2xl p-6 shadow-2xl border border-zinc-700/80 relative">
+        {onClose && (
+          <button
+            onClick={onClose}
+            className="absolute top-4 right-4 text-zinc-400 hover:text-white p-1 rounded-lg hover:bg-zinc-800/80 transition cursor-pointer"
+            aria-label="Close modal"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        )}
+
         <div className="flex items-center gap-2.5 mb-3 text-amber-400">
           <ShieldAlert className="w-5 h-5 shrink-0" />
           <h3 className="text-sm font-semibold text-zinc-100">Security Update Required</h3>
@@ -64,19 +74,19 @@ export default function PinChangeModal({ student, onSuccess }) {
               value={oldPin}
               onChange={(e) => setOldPin(e.target.value)}
               placeholder="1234"
-              className="w-full px-3 py-2 rounded text-xs font-mono"
+              className="w-full px-3 py-2 rounded-lg text-xs font-mono"
               required
             />
           </div>
 
           <div>
-            <label className="block text-xs text-zinc-400 mb-1">New 4+ Digit PIN</label>
+            <label className="block text-xs text-zinc-400 mb-1">New PIN (min 4 digits)</label>
             <input
               type="password"
               value={newPin}
               onChange={(e) => setNewPin(e.target.value)}
               placeholder="Enter new PIN"
-              className="w-full px-3 py-2 rounded text-xs font-mono"
+              className="w-full px-3 py-2 rounded-lg text-xs font-mono"
               required
             />
           </div>
@@ -88,29 +98,40 @@ export default function PinChangeModal({ student, onSuccess }) {
               value={confirmPin}
               onChange={(e) => setConfirmPin(e.target.value)}
               placeholder="Re-enter new PIN"
-              className="w-full px-3 py-2 rounded text-xs font-mono"
+              className="w-full px-3 py-2 rounded-lg text-xs font-mono"
               required
             />
           </div>
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full mt-2 py-2 px-3 bg-zinc-100 text-zinc-950 font-semibold rounded text-xs hover:bg-white transition flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
-          >
-            {loading ? (
-              <>
-                <Loader2 className="w-3.5 h-3.5 animate-spin" /> Saving PIN...
-              </>
-            ) : (
-              <>
-                Set New PIN & Continue <ArrowRight className="w-3.5 h-3.5" />
-              </>
+          <div className="pt-2 flex flex-col gap-2">
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full py-2.5 px-3 bg-gradient-to-r from-cyan-500 to-emerald-500 text-zinc-950 font-semibold rounded-lg text-xs hover:opacity-95 transition flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 shadow-md shadow-cyan-500/10"
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" /> Saving PIN...
+                </>
+              ) : (
+                <>
+                  Set New PIN & Continue <ArrowRight className="w-3.5 h-3.5" />
+                </>
+              )}
+            </button>
+
+            {onClose && (
+              <button
+                type="button"
+                onClick={onClose}
+                className="w-full py-2 text-xs text-zinc-400 hover:text-zinc-200 transition text-center cursor-pointer font-medium"
+              >
+                Skip for now, remind me later
+              </button>
             )}
-          </button>
+          </div>
         </form>
       </div>
     </div>
   );
 }
-

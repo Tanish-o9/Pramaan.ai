@@ -351,61 +351,196 @@ export default function StudentDashboard({ student, onUpdateStudent }) {
         </div>
       )}
 
-      {/* Top Banner */}
-      <div className="panel rounded-xl p-5 mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h1 className="text-xl font-semibold text-zinc-100">Welcome, {student.name}</h1>
-          <p className="text-xs text-zinc-400 mt-0.5">
-            Roll: <span className="font-mono text-zinc-300 font-medium">{student.roll_number}</span> · Overall Attendance: <span className={overallPct >= 75 ? 'text-emerald-400 font-semibold' : 'text-rose-400 font-semibold'}>{overallPct}%</span>
-          </p>
+      {/* Executive Student Hero Banner */}
+      <div className="panel-card rounded-2xl p-6 mb-6 relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-80 h-80 bg-gradient-to-bl from-cyan-500/10 via-emerald-500/5 to-transparent rounded-full blur-3xl pointer-events-none" />
+        
+        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 relative z-10">
+          <div className="flex items-center gap-4">
+            <div className="relative">
+              <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-cyan-500 to-emerald-400 p-[2px] shadow-lg shadow-cyan-500/15">
+                <div className="w-full h-full rounded-[14px] bg-zinc-950 flex items-center justify-center text-lg font-bold text-white uppercase">
+                  {student.name ? student.name.slice(0, 2) : 'ST'}
+                </div>
+              </div>
+              <span className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-emerald-500 border-2 border-zinc-950 flex items-center justify-center" title="Account Active">
+                <span className="w-1.5 h-1.5 rounded-full bg-white"></span>
+              </span>
+            </div>
+
+            <div>
+              <div className="flex flex-wrap items-center gap-2">
+                <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-white">{student.name}</h1>
+                <span className="px-2 py-0.5 rounded-md text-[11px] font-mono font-semibold bg-zinc-800 text-zinc-300 border border-zinc-700">
+                  {student.roll_number}
+                </span>
+                <span className={`px-2 py-0.5 rounded-md text-[11px] font-semibold border flex items-center gap-1 ${
+                  overallPct >= 75 
+                    ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' 
+                    : 'bg-rose-500/10 text-rose-400 border-rose-500/20'
+                }`}>
+                  <ShieldCheck className="w-3.5 h-3.5" />
+                  {overallPct >= 75 ? 'Good Academic Standing' : 'Attendance Shortage'}
+                </span>
+              </div>
+              <div className="flex flex-wrap items-center gap-3 mt-1.5 text-xs text-zinc-400">
+                <span className="flex items-center gap-1 text-emerald-400">
+                  <UserCheck className="w-3.5 h-3.5" /> Face ResNet Verified
+                </span>
+                <span className="text-zinc-600">•</span>
+                <span className="flex items-center gap-1 text-cyan-400">
+                  <Mic className="w-3.5 h-3.5" /> {hasVoice ? 'Voice GE2E Registered' : 'Voice Optional'}
+                </span>
+                <span className="text-zinc-600">•</span>
+                <span className="text-zinc-400 font-mono text-[11px]">Dynamic ID Active</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2.5 w-full lg:w-auto">
+            <button
+              onClick={() => setShowEnroll(true)}
+              className="flex-1 lg:flex-none flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-emerald-500 hover:from-cyan-400 hover:to-emerald-400 text-zinc-950 text-xs font-bold transition shadow-lg shadow-cyan-500/15 cursor-pointer active:scale-98"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Enroll in Class</span>
+            </button>
+            <button
+              onClick={() => setActiveTab('digital-id')}
+              className="flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-zinc-900/90 hover:bg-zinc-800 border border-zinc-700 text-zinc-200 text-xs font-semibold transition cursor-pointer active:scale-98"
+            >
+              <QrCode className="w-4 h-4 text-emerald-400" />
+              <span className="hidden sm:inline">Show</span> ID Card
+            </button>
+          </div>
         </div>
 
-        <div className="flex flex-wrap gap-2 text-xs">
+        {/* 4 Top Metric Stat Cards */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-6 pt-6 border-t border-white/5">
+          <div className="p-3.5 rounded-xl bg-zinc-950/60 border border-zinc-800/80">
+            <div className="text-[11px] text-zinc-400 flex items-center justify-between">
+              <span>Overall Campus Rate</span>
+              <span className={`w-2 h-2 rounded-full ${overallPct >= 75 ? 'bg-emerald-400' : 'bg-rose-400'}`} />
+            </div>
+            <div className="text-2xl font-black mt-1 tracking-tight text-white flex items-baseline gap-1">
+              {overallPct}%
+              <span className="text-[11px] font-normal text-zinc-400">avg</span>
+            </div>
+            <div className="text-[10px] text-zinc-400 mt-1">
+              {overallPct >= 75 ? 'Above 75% requirement' : 'Requires immediate recovery'}
+            </div>
+          </div>
+
+          <div className="p-3.5 rounded-xl bg-zinc-950/60 border border-zinc-800/80">
+            <div className="text-[11px] text-zinc-400 flex items-center justify-between">
+              <span>Safe Bunks Bank</span>
+              <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+            </div>
+            <div className="text-2xl font-black mt-1 tracking-tight text-emerald-400 flex items-baseline gap-1">
+              {subjects.reduce((acc, s) => acc + (s.bunks_available || 0), 0)}
+              <span className="text-[11px] font-normal text-zinc-400">classes</span>
+            </div>
+            <div className="text-[10px] text-zinc-400 mt-1">
+              Across all enrolled courses
+            </div>
+          </div>
+
+          <div className="p-3.5 rounded-xl bg-zinc-950/60 border border-zinc-800/80">
+            <div className="text-[11px] text-zinc-400 flex items-center justify-between">
+              <span>Enrolled Courses</span>
+              <FileText className="w-3.5 h-3.5 text-cyan-400" />
+            </div>
+            <div className="text-2xl font-black mt-1 tracking-tight text-white flex items-baseline gap-1">
+              {subjects.length}
+              <span className="text-[11px] font-normal text-zinc-400">subjects</span>
+            </div>
+            <div className="text-[10px] text-zinc-400 mt-1">
+              {subjects.filter(s => s.attendance_percentage < 75).length === 0 ? 'All subjects safe' : `${subjects.filter(s => s.attendance_percentage < 75).length} subject(s) in deficit`}
+            </div>
+          </div>
+
+          <div className="p-3.5 rounded-xl bg-zinc-950/60 border border-zinc-800/80">
+            <div className="text-[11px] text-zinc-400 flex items-center justify-between">
+              <span>Excused Leaves & OD</span>
+              <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+            </div>
+            <div className="text-2xl font-black mt-1 tracking-tight text-white flex items-baseline gap-1">
+              {leaves.filter(l => l.status === 'approved').length}
+              <span className="text-[11px] font-normal text-zinc-400">approved</span>
+            </div>
+            <div className="text-[10px] text-zinc-400 mt-1">
+              {leaves.filter(l => l.status === 'pending').length} pending approval
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Floating Modern Pill Navigation */}
+      <div className="flex items-center justify-between mb-6 pb-2 border-b border-white/5">
+        <div className="flex items-center gap-1.5 p-1 rounded-xl bg-zinc-950/90 border border-zinc-800/90 shadow-inner">
           <button
             onClick={() => setActiveTab('classes')}
-            className={`px-3 py-1.5 rounded-md font-medium transition cursor-pointer ${
-              activeTab === 'classes' ? 'bg-zinc-100 text-zinc-950 font-semibold' : 'bg-zinc-900 border border-zinc-800 text-zinc-400'
+            className={`px-4 py-2 rounded-lg font-semibold text-xs transition cursor-pointer flex items-center gap-2 ${
+              activeTab === 'classes' 
+                ? 'bg-zinc-800 text-white shadow-sm ring-1 ring-white/10' 
+                : 'text-zinc-400 hover:text-zinc-200'
             }`}
           >
-            My Classes
+            <span>My Classes</span>
+            <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-zinc-700/60 text-zinc-300 font-mono">
+              {subjects.length}
+            </span>
           </button>
+
           <button
             onClick={() => setActiveTab('leaves')}
-            className={`px-3 py-1.5 rounded-md font-medium transition cursor-pointer flex items-center gap-1.5 ${
-              activeTab === 'leaves' ? 'bg-zinc-100 text-zinc-950 font-semibold' : 'bg-zinc-900 border border-zinc-800 text-zinc-400'
+            className={`px-4 py-2 rounded-lg font-semibold text-xs transition cursor-pointer flex items-center gap-2 ${
+              activeTab === 'leaves' 
+                ? 'bg-zinc-800 text-white shadow-sm ring-1 ring-white/10' 
+                : 'text-zinc-400 hover:text-zinc-200'
             }`}
           >
-            <FileText className="w-3.5 h-3.5" /> Leave & OD
+            <FileText className="w-3.5 h-3.5 text-cyan-400" />
+            <span>Leave & OD</span>
             {leaves.length > 0 && (
-              <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-zinc-800 text-zinc-300 font-mono">
+              <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-zinc-700/60 text-zinc-300 font-mono">
                 {leaves.length}
               </span>
             )}
           </button>
+
           <button
             onClick={() => setActiveTab('profile')}
-            className={`px-3 py-1.5 rounded-md font-medium transition cursor-pointer flex items-center gap-1.5 ${
-              activeTab === 'profile' ? 'bg-zinc-100 text-zinc-950 font-semibold' : 'bg-zinc-900 border border-zinc-800 text-zinc-400'
+            className={`px-4 py-2 rounded-lg font-semibold text-xs transition cursor-pointer flex items-center gap-2 ${
+              activeTab === 'profile' 
+                ? 'bg-zinc-800 text-white shadow-sm ring-1 ring-white/10' 
+                : 'text-zinc-400 hover:text-zinc-200'
             }`}
           >
-            <Mic className="w-3.5 h-3.5" /> Biometrics
+            <Mic className="w-3.5 h-3.5 text-violet-400" />
+            <span>Biometrics</span>
           </button>
+
           <button
             onClick={() => setActiveTab('digital-id')}
-            className={`px-3 py-1.5 rounded-md font-medium transition cursor-pointer flex items-center gap-1.5 ${
-              activeTab === 'digital-id' ? 'bg-zinc-100 text-zinc-950 font-semibold' : 'bg-zinc-900 border border-zinc-800 text-zinc-400'
+            className={`px-4 py-2 rounded-lg font-semibold text-xs transition cursor-pointer flex items-center gap-2 ${
+              activeTab === 'digital-id' 
+                ? 'bg-zinc-800 text-white shadow-sm ring-1 ring-white/10' 
+                : 'text-zinc-400 hover:text-zinc-200'
             }`}
           >
-            <QrCode className="w-3.5 h-3.5" /> Digital ID
-          </button>
-          <button
-            onClick={() => setShowEnroll(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 text-zinc-200 text-xs font-medium transition cursor-pointer"
-          >
-            <Plus className="w-3.5 h-3.5" />
-            <span>Join Class</span>
+            <QrCode className="w-3.5 h-3.5 text-emerald-400" />
+            <span>Digital ID</span>
           </button>
         </div>
+
+        <button 
+          onClick={loadData} 
+          className="text-zinc-400 hover:text-zinc-200 text-xs flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-zinc-900 border border-zinc-800 transition cursor-pointer hover:border-zinc-700"
+        >
+          <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
+          <span className="hidden sm:inline">Refresh Data</span>
+        </button>
       </div>
 
       {/* TAB 1: CLASSES */}
@@ -419,8 +554,21 @@ export default function StudentDashboard({ student, onUpdateStudent }) {
           </div>
 
           {subjects.length === 0 ? (
-            <div className="panel rounded-xl p-8 text-center text-xs text-zinc-400">
-              No enrolled classes found. Ask your faculty for a subject join code.
+            <div className="panel-card rounded-2xl p-10 text-center flex flex-col items-center justify-center max-w-lg mx-auto border border-zinc-800">
+              <div className="w-14 h-14 rounded-2xl bg-zinc-900/90 border border-zinc-800 flex items-center justify-center text-zinc-400 mb-4 shadow-inner">
+                <FileText className="w-7 h-7 text-cyan-400" />
+              </div>
+              <h3 className="text-base font-bold text-zinc-100">No Enrolled Classes Yet</h3>
+              <p className="text-xs text-zinc-400 mt-1 mb-6 max-w-sm leading-relaxed">
+                Enter your subject join code or scan your faculty's QR code to enroll and start automated biometric tracking.
+              </p>
+              <button
+                onClick={() => setShowEnroll(true)}
+                className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-emerald-500 hover:from-cyan-400 hover:to-emerald-400 text-zinc-950 font-bold text-xs transition shadow-lg shadow-cyan-500/15 flex items-center gap-2 cursor-pointer active:scale-98"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Join Your First Class</span>
+              </button>
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
