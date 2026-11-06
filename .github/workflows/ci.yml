@@ -37,7 +37,13 @@ jobs:
 
       - name: Run Pytest Suite
         run: |
-          python -m pytest -v --tb=short tests/
+          python -m pytest -v tests/ 2>&1 | tee pytest.log || {
+            echo "## Pytest Error Log" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            tail -n 60 pytest.log >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            exit 1
+          }
         env:
           JWT_SECRET_KEY: "ci-test-jwt-secret-key-32chars-minimum!!"
           SUPABASE_URL: "https://mock.supabase.co"

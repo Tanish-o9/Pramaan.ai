@@ -57,12 +57,6 @@ exclude = '''
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 python_files = ["test_*.py"]
-asyncio_mode = "strict"
-filterwarnings = [
-    "ignore::DeprecationWarning",
-    "ignore::FutureWarning",
-    "ignore::pydantic.PydanticDeprecatedSince20"
-]
 
 [tool.coverage.run]
 source = ["src"]
