@@ -1,0 +1,25 @@
+services:
+  - type: web
+    name: presence-ai-backend
+    env: docker
+    dockerfilePath: Dockerfile
+    plan: starter
+    region: oregon
+    envVars:
+      - key: PORT
+        value: 8000
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_KEY
+        sync: false
+      - key: JWT_SECRET_KEY
+        generateValue: true
+      - key: COOKIE_SECURE
+        value: "true"
+      - key: CORS_ORIGINS
+        sync: false
+      - key: FACE_MATCH_THRESHOLD
+        value: "0.60"
+      - key: LIVENESS_EAR_THRESHOLD
+        value: "0.16"
+
