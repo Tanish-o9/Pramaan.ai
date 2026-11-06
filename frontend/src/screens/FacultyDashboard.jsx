@@ -185,11 +185,16 @@ export default function FacultyDashboard({ teacher }) {
     try {
       const res = await api.getSubjects();
       setSubjects(res || []);
-      if (res && res.length > 0 && !selectedSubId) {
-        setSelectedSubId(res[0].subject_id);
+      if (res && res.length > 0) {
+        setSelectedSubId((prev) => {
+          if (prev && res.some((s) => String(s.subject_id) === String(prev))) {
+            return prev;
+          }
+          return String(res[0].subject_id);
+        });
       }
     } catch (err) {
-      console.error(err);
+      console.error("loadSubjects error:", err);
     }
   };
 
@@ -332,22 +337,31 @@ export default function FacultyDashboard({ teacher }) {
 
   // Run AI Scan
   const handleScan = async () => {
-    if (!selectedSubId) return;
+    let subId = selectedSubId;
+    if (!subId && subjects.length > 0) {
+      subId = String(subjects[0].subject_id);
+      setSelectedSubId(subId);
+    }
+    if (!subId) {
+      toast("Please select an active Class from the dropdown first!", "warning");
+      return;
+    }
     setScanning(true);
     try {
       let res;
       if (mode === 'photos') {
         if (!photoFiles.length) throw new Error('Select at least one classroom photo');
-        res = await api.analyzePhotos(selectedSubId, photoFiles);
+        res = await api.analyzePhotos(subId, photoFiles);
       } else if (mode === 'video') {
         if (!videoFile) throw new Error('Select a classroom video file');
-        res = await api.analyzeVideo(selectedSubId, videoFile);
+        res = await api.analyzeVideo(subId, videoFile);
       } else if (mode === 'voice') {
         if (!voiceFile) throw new Error('Select a classroom audio file');
-        res = await api.analyzeVoice(selectedSubId, voiceFile);
+        res = await api.analyzeVoice(subId, voiceFile);
       }
       setReview(res.results || []);
-      toast(`AI Scan complete: ${res.results.filter(r => r.is_present).length} identified present`, 'info');
+      const presentCount = (res.results || []).filter(r => r.is_present).length;
+      toast(`AI Scan complete: ${presentCount} students identified present!`, 'success');
     } catch (err) {
       toast(err.message || 'Scan failed', 'error');
     } finally {
@@ -992,6 +1006,9 @@ export default function FacultyDashboard({ teacher }) {
                   onChange={(e) => setSelectedSubId(e.target.value)}
                   className="px-3.5 py-2 rounded-xl text-xs font-semibold cursor-pointer bg-zinc-900 border border-zinc-700/80 text-white w-full sm:w-auto shadow-sm"
                 >
+                  {subjects.length === 0 && (
+                    <option value="">Loading Classes...</option>
+                  )}
                   {subjects.map((s) => (
                     <option key={s.subject_id} value={s.subject_id}>
                       {s.name} ({s.subject_code} - Sec {s.section})
@@ -1487,13 +1504,26 @@ export default function FacultyDashboard({ teacher }) {
                 className="text-xs text-zinc-400 file:mr-3 file:py-1.5 file:px-3 file:rounded file:border-0 file:bg-zinc-800 file:text-zinc-200 cursor-pointer"
               />
               {photoFiles.length > 0 && (
-                <button
-                  onClick={handleScan}
-                  disabled={scanning}
-                  className="mt-4 px-4 py-2 bg-zinc-100 text-zinc-950 font-semibold rounded text-xs hover:bg-white transition cursor-pointer disabled:opacity-50"
-                >
-                  {scanning ? 'Detecting Faces with dlib...' : `Scan ${photoFiles.length} Photo(s)`}
-                </button>
+                <div className="mt-4 flex flex-col items-center gap-2">
+                  <button
+                    onClick={handleScan}
+                    disabled={scanning}
+                    className="px-6 py-3 bg-gradient-to-r from-sky-500 to-cyan-500 hover:from-sky-400 hover:to-cyan-400 text-zinc-950 font-bold rounded-xl text-xs transition cursor-pointer disabled:opacity-50 inline-flex items-center gap-2 shadow-lg shadow-sky-500/20"
+                  >
+                    {scanning ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" /> Detecting Faces with dlib 128-d ResNet...
+                      </>
+                    ) : (
+                      <>
+                        <Camera className="w-4 h-4" /> Scan {photoFiles.length} Photo(s) Now
+                      </>
+                    )}
+                  </button>
+                  {!selectedSubId && (
+                    <p className="text-[11px] text-amber-400">Please select an active Class above first.</p>
+                  )}
+                </div>
               )}
             </div>
           )}

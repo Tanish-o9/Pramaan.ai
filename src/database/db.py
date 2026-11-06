@@ -156,6 +156,14 @@ def get_teacher_subjects(teacher_id):
         .execute()
     )
     subjects = response.data or []
+    if not subjects:
+        # Fallback to all department subjects so any logged-in faculty can take class attendance
+        fallback_res = (
+            supabase.table('subjects')
+            .select('*, subject_students(count), attendance_logs(timestamp)')
+            .execute()
+        )
+        subjects = fallback_res.data or []
 
     for sub in subjects:
         enrolled = sub.get('subject_students', [])
