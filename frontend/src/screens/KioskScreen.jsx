@@ -233,7 +233,7 @@ export default function KioskScreen({ subject: initialSubject, onExit }) {
             // Populate / bring student to top of verified stream sidebar immediately
             setVerifiedList((prev) => {
               const filtered = prev.filter((item) => item.student_id !== sid && item.roll !== student.roll_number);
-              return [
+              const updated = [
                 {
                   id: Date.now(),
                   student_id: sid,
@@ -245,11 +245,9 @@ export default function KioskScreen({ subject: initialSubject, onExit }) {
                 },
                 ...filtered.slice(0, 19)
               ];
+              setStats((s) => ({ ...s, markedCount: Math.max(s.markedCount + (res.status === 'success' ? 1 : 0), updated.length) }));
+              return updated;
             });
-
-            if (res.status === 'success') {
-              setStats((prev) => ({ ...prev, markedCount: prev.markedCount + 1 }));
-            }
 
             setStatusMessage(`Verified: ${student.name} (${student.roll_number})`);
             setTimeout(() => setLastMatch(null), 4500);
@@ -367,14 +365,20 @@ export default function KioskScreen({ subject: initialSubject, onExit }) {
 
           const newItems = res.recognized.map((r) => ({
             id: r.student_id,
+            student_id: r.student_id,
             name: r.name,
             roll: r.roll_number,
             time: 'Just now',
             trust: Math.round(r.confidence),
             status: 'PANORAMA'
           }));
-          setVerifiedList((prev) => [...newItems, ...prev].slice(0, 20));
-          setStats((prev) => ({ ...prev, markedCount: prev.markedCount + res.newly_marked_count }));
+          setVerifiedList((prev) => {
+            const existingIds = new Set(newItems.map((n) => n.student_id));
+            const filtered = prev.filter((p) => !existingIds.has(p.student_id));
+            const updated = [...newItems, ...filtered].slice(0, 20);
+            setStats((s) => ({ ...s, markedCount: Math.max(s.markedCount + res.newly_marked_count, updated.length) }));
+            return updated;
+          });
         }
       } else {
         setStatusMessage(res.message || 'No enrolled students recognized in classroom view.');
@@ -683,7 +687,7 @@ export default function KioskScreen({ subject: initialSubject, onExit }) {
                 <span>Live Roster Stream</span>
               </h2>
               <span className="text-xs font-mono font-bold text-emerald-400">
-                {stats.markedCount} / {stats.totalEnrolled} Present
+                {Math.max(stats.markedCount, verifiedList.length)} / {stats.totalEnrolled} Present
               </span>
             </div>
 
@@ -692,7 +696,7 @@ export default function KioskScreen({ subject: initialSubject, onExit }) {
               <div
                 className="h-full bg-gradient-to-r from-cyan-500 to-emerald-500 transition-all duration-500"
                 style={{
-                  width: `${Math.min(100, Math.round((stats.markedCount / Math.max(1, stats.totalEnrolled)) * 100))}%`,
+                  width: `${Math.min(100, Math.round((Math.max(stats.markedCount, verifiedList.length) / Math.max(1, stats.totalEnrolled)) * 100))}%`,
                 }}
               />
             </div>
