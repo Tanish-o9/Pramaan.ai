@@ -42,7 +42,7 @@ jobs:
         env:
           JWT_SECRET_KEY: "ci-test-jwt-secret-key-32chars-minimum!!"
           SUPABASE_URL: "https://mock.supabase.co"
-          SUPABASE_KEY: "mock-anon-key"
+          SUPABASE_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1vY2siLCJyb2xlIjoiYW5vbiIsImlhdCI6MTcwMDAwMDAwMCwiZXhwIjoyMDAwMDAwMDAwfQ.mock_signature_for_ci_testing_only"
 
   frontend-qa:
     name: Frontend Lint & Component Tests
