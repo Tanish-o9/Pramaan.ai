@@ -800,6 +800,41 @@ def api_kiosk_subjects():
         s["teacher_name"] = teacher_info.get("name") if isinstance(teacher_info, dict) else "Faculty"
     return {"status": "success", "subjects": subs}
 
+@app.get("/api/kiosk/roster/{subject_id}")
+def api_kiosk_roster(subject_id: int):
+    """Fetch today's verified attendance roster and active session counts for kiosk sidebar."""
+    logs = get_subject_attendance(subject_id) or []
+    today_prefix = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    today_logs = [
+        l for l in logs
+        if l.get("is_present") and str(l.get("timestamp", "")).startswith(today_prefix)
+    ]
+    seen = set()
+    unique_records = []
+    for l in reversed(today_logs):
+        sid = l.get("student_id")
+        if sid not in seen:
+            seen.add(sid)
+            s_info = l.get("students") or {}
+            unique_records.append({
+                "id": l.get("id"),
+                "student_id": sid,
+                "name": s_info.get("name") or f"Student #{sid}",
+                "roll": s_info.get("roll_number") or "N/A",
+                "timestamp": l.get("timestamp"),
+                "trust": l.get("trust_score") or 95,
+                "status": "VERIFIED"
+            })
+
+    enrolled = get_enrolled(subject_id)
+    return {
+        "status": "success",
+        "subject_id": subject_id,
+        "total_enrolled": len(enrolled),
+        "marked_count": len(unique_records),
+        "records": unique_records
+    }
+
 @app.post("/api/kiosk/quick-enroll")
 async def api_kiosk_quick_enroll(
     student_id: int = Form(...),

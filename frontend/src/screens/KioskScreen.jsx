@@ -116,23 +116,25 @@ export default function KioskScreen({ subject: initialSubject, onExit }) {
         totalEnrolled: activeSubject.total_enrolled || 12,
       }));
 
-      // Fetch enrolled students for enrollment modal
-      api.getRecords(activeSubject.subject_id)
+      // Fetch today's verified roster for kiosk sidebar
+      api.getKioskRoster(activeSubject.subject_id)
         .then((res) => {
-          if (res?.records) {
-            const todayPrefix = new Date().toISOString().split('T')[0];
-            const todayPresent = res.records.filter(
-              (r) => r.is_present && String(r.timestamp).startsWith(todayPrefix)
-            );
-            setStats((prev) => ({ ...prev, markedCount: todayPresent.length }));
-            setVerifiedList(todayPresent.map((r) => ({
-              id: r.id,
-              name: r.students?.name || 'Student',
-              roll: r.students?.roll_number || 'N/A',
-              time: new Date(r.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-              trust: r.trust_score || 95,
-              status: 'VERIFIED'
-            })));
+          if (res?.status === 'success') {
+            setStats({
+              markedCount: res.marked_count || 0,
+              totalEnrolled: res.total_enrolled || activeSubject.total_enrolled || 12,
+            });
+            if (Array.isArray(res.records)) {
+              setVerifiedList(res.records.map((r) => ({
+                id: r.id || `${r.student_id}-${Date.now()}`,
+                student_id: r.student_id,
+                name: r.name,
+                roll: r.roll,
+                time: r.timestamp ? new Date(r.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Today',
+                trust: r.trust || 98,
+                status: r.status || 'VERIFIED'
+              })));
+            }
           }
         })
         .catch(() => {});
@@ -228,19 +230,25 @@ export default function KioskScreen({ subject: initialSubject, onExit }) {
               isNew: res.status === 'success',
             });
 
-            if (res.status === 'success') {
-              setStats((prev) => ({ ...prev, markedCount: prev.markedCount + 1 }));
-              setVerifiedList((prev) => [
+            // Populate / bring student to top of verified stream sidebar immediately
+            setVerifiedList((prev) => {
+              const filtered = prev.filter((item) => item.student_id !== sid && item.roll !== student.roll_number);
+              return [
                 {
                   id: Date.now(),
+                  student_id: sid,
                   name: student.name,
                   roll: student.roll_number,
                   time: 'Just now',
-                  trust: res.trust_score || 96,
-                  status: 'VERIFIED'
+                  trust: res.trust_score || (res.confidence ? Math.round(res.confidence) : 98),
+                  status: res.status === 'success' ? 'VERIFIED' : 'PRESENT'
                 },
-                ...prev.slice(0, 14)
-              ]);
+                ...filtered.slice(0, 19)
+              ];
+            });
+
+            if (res.status === 'success') {
+              setStats((prev) => ({ ...prev, markedCount: prev.markedCount + 1 }));
             }
 
             setStatusMessage(`Verified: ${student.name} (${student.roll_number})`);
@@ -701,29 +709,45 @@ export default function KioskScreen({ subject: initialSubject, onExit }) {
                 </p>
               </div>
             ) : (
-              verifiedList.map((item) => (
-                <div
-                  key={item.id}
-                  className="p-3 rounded-xl bg-zinc-900/80 border border-zinc-800 hover:border-emerald-500/40 transition-all flex items-center justify-between"
-                >
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-8 h-8 rounded-lg bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 text-xs font-bold">
-                      {item.name.slice(0, 2).toUpperCase()}
-                    </div>
-                    <div>
-                      <div className="text-xs font-bold text-zinc-200">{item.name}</div>
-                      <div className="text-[10px] text-zinc-400 font-mono">
-                        {item.roll} • {item.time}
+              verifiedList.map((item) => {
+                const isCurrentActive = lastMatch?.roll === item.roll;
+                return (
+                  <div
+                    key={item.id}
+                    className={`p-3 rounded-xl transition-all flex items-center justify-between ${
+                      isCurrentActive
+                        ? 'bg-emerald-950/30 border-2 border-emerald-500 shadow-[0_0_20px_rgba(16,185,129,0.3)]'
+                        : 'bg-zinc-900/80 border border-zinc-800 hover:border-emerald-500/40'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold ${
+                        isCurrentActive
+                          ? 'bg-emerald-500 text-black shadow-lg shadow-emerald-500/30 font-black'
+                          : 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-400'
+                      }`}>
+                        {item.name.slice(0, 2).toUpperCase()}
+                      </div>
+                      <div>
+                        <div className="text-xs font-bold text-zinc-100 flex items-center gap-1.5">
+                          <span>{item.name}</span>
+                          {isCurrentActive && (
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block animate-pulse" />
+                          )}
+                        </div>
+                        <div className="text-[10px] text-zinc-400 font-mono">
+                          {item.roll} • {item.time}
+                        </div>
                       </div>
                     </div>
+                    <div className="text-right">
+                      <span className="text-[10px] font-mono px-2 py-0.5 rounded font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                        {item.trust}%
+                      </span>
+                    </div>
                   </div>
-                  <div className="text-right">
-                    <span className="text-[10px] font-mono px-2 py-0.5 rounded font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                      {item.trust}%
-                    </span>
-                  </div>
-                </div>
-              ))
+                );
+              })
             )}
           </div>
 

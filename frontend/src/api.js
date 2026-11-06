@@ -282,6 +282,9 @@ export const api = {
   getKioskSubjects: () =>
     request('/api/kiosk/subjects'),
 
+  getKioskRoster: (subject_id) =>
+    request(`/api/kiosk/roster/${subject_id}`),
+
   kioskQuickEnroll: (student_id, fileBlob, subject_id = null) => {
     const fd = new FormData();
     fd.append('student_id', student_id);
