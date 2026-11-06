@@ -1443,6 +1443,7 @@ async def api_take_group_photo_attendance(
     res["auto_marked"] = True
     res["newly_marked_count"] = len(logs_to_create)
     res["newly_marked"] = newly_marked
+    res["total_marked_today"] = len(already_marked_sids)
     res["period"] = p_num
     res["period_slot"] = p_slot
     res["message"] = f"Auto-marked attendance for {len(logs_to_create)} students from whole class photo!"

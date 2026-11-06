@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { api } from '../api';
 import { toast } from '../components/Toast';
 import QRCode from 'qrcode';
@@ -17,35 +17,38 @@ import {
   Copy, 
   Clock, 
   X, 
-  RefreshCw,
-  AlertCircle,
-  Sliders,
-  Upload,
-  UserCheck,
-  Users,
-  ShieldCheck,
-  ShieldAlert,
-  Info,
-  ArrowUpDown,
-  ArrowRight,
-  CheckCircle2,
-  Loader2,
-  FileText,
-  AlertTriangle,
-  Flame,
-  Check,
-  XCircle,
-  LayoutGrid,
-  Zap,
-  Printer,
-  Sparkles,
-  Volume2,
-  Search,
-  MessageSquare,
-  Send,
-  ExternalLink,
-  Eye,
-  Flag
+  RefreshCw, 
+  AlertCircle, 
+  Sliders, 
+  Upload, 
+  UserCheck, 
+  Users, 
+  ShieldCheck, 
+  ShieldAlert, 
+  Info, 
+  ArrowUpDown, 
+  ArrowRight, 
+  CheckCircle2, 
+  Loader2, 
+  FileText, 
+  AlertTriangle, 
+  Flame, 
+  Check, 
+  XCircle, 
+  LayoutGrid, 
+  Zap, 
+  Printer, 
+  Sparkles, 
+  Volume2, 
+  Search, 
+  MessageSquare, 
+  Send, 
+  ExternalLink, 
+  Eye, 
+  Flag,
+  Smartphone,
+  Repeat,
+  Layers
 } from 'lucide-react';
 
 export default function FacultyDashboard({ teacher }) {
@@ -79,9 +82,16 @@ export default function FacultyDashboard({ teacher }) {
   const [sortByLowestTrust, setSortByLowestTrust] = useState(true);
   const [expandedId, setExpandedId] = useState(null);
 
-  // Group Photo Mode State
+  // Group / Mobile Live Classroom Photo Mode State
   const [groupPhotoFile, setGroupPhotoFile] = useState(null);
   const [groupScanResult, setGroupScanResult] = useState(null);
+  const [mobileCamActive, setMobileCamActive] = useState(false);
+  const [facingMode, setFacingMode] = useState('environment'); // 'environment' (back) | 'user' (front)
+  const [capturedPreview, setCapturedPreview] = useState(null);
+  const [sessionAccumulated, setSessionAccumulated] = useState([]);
+  const [scansCount, setScansCount] = useState(0);
+  const mobileVideoRef = useRef(null);
+  const mobileStreamRef = useRef(null);
 
   // Voice Command Roll-Call State
   const [voiceTranscript, setVoiceTranscript] = useState('');
@@ -406,13 +416,78 @@ export default function FacultyDashboard({ teacher }) {
     }
   };
 
-  // Group / Class Photo Scan with 100% Automatic Attendance Marking
-  const handleGroupPhotoScan = async () => {
-    if (!groupPhotoFile || !selectedSubId) return;
+  // Mobile & Live Classroom Camera Management
+  const startMobileCamera = async (overrideFacing = facingMode) => {
+    try {
+      if (mobileStreamRef.current) {
+        mobileStreamRef.current.getTracks().forEach((t) => t.stop());
+        mobileStreamRef.current = null;
+      }
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          facingMode: { ideal: overrideFacing },
+          width: { ideal: 1920 },
+          height: { ideal: 1080 }
+        },
+        audio: false
+      });
+      mobileStreamRef.current = stream;
+      if (mobileVideoRef.current) {
+        mobileVideoRef.current.srcObject = stream;
+        mobileVideoRef.current.play().catch(() => {});
+      }
+      setMobileCamActive(true);
+    } catch (err) {
+      console.warn("Mobile camera getUserMedia error:", err);
+      setMobileCamActive(false);
+      toast("Live viewfinder unavailable. Tap 'Open Phone Camera App' to use native device camera.", "info");
+    }
+  };
+
+  const stopMobileCamera = () => {
+    if (mobileStreamRef.current) {
+      mobileStreamRef.current.getTracks().forEach((t) => t.stop());
+      mobileStreamRef.current = null;
+    }
+    setMobileCamActive(false);
+  };
+
+  const toggleCameraFacing = async () => {
+    const nextMode = facingMode === 'environment' ? 'user' : 'environment';
+    setFacingMode(nextMode);
+    if (mobileCamActive) {
+      await startMobileCamera(nextMode);
+    }
+  };
+
+  useEffect(() => {
+    return () => {
+      if (mobileStreamRef.current) {
+        mobileStreamRef.current.getTracks().forEach((t) => t.stop());
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    if (mode === 'group_photo' && !mobileCamActive) {
+      startMobileCamera();
+    } else if (mode !== 'group_photo' && mobileCamActive) {
+      stopMobileCamera();
+    }
+  }, [mode]);
+
+  // Unified Classroom / Mobile Photo Processor
+  const processGroupPhotoFile = async (file) => {
+    if (!file || !selectedSubId) {
+      toast("Please select an active subject first", "warning");
+      return;
+    }
     setScanning(true);
     try {
-      const res = await api.takeGroupPhotoAttendance(Number(selectedSubId), groupPhotoFile);
+      const res = await api.takeGroupPhotoAttendance(Number(selectedSubId), file);
       setGroupScanResult(res);
+      setScansCount((c) => c + 1);
+
       const recognizedMap = new Map((res.recognized || []).map((r) => [r.student_id, r]));
       const enrolled = await api.getSubjectStudents(Number(selectedSubId));
       const newReview = (enrolled || []).map((st) => {
@@ -427,17 +502,24 @@ export default function FacultyDashboard({ teacher }) {
           trust_score: match ? Math.min(100, Math.round(match.confidence + 10)) : 0,
           verification_status: match ? 'auto_accepted' : 'flagged',
           trust_breakdown: {
-            method: 'whole_class_photo_dlib',
+            method: 'faculty_mobile_camera',
             bounding_box: match ? match.bounding_box : null,
             distance: match ? match.distance : null,
-            source: 'Whole Class Photo'
+            source: 'Faculty Phone Live Camera'
           }
         };
       });
       setReview(newReview);
 
+      setSessionAccumulated((prev) => {
+        const existingIds = new Set(prev.map((s) => s.student_id));
+        const additions = (res.recognized || []).filter((r) => !existingIds.has(r.student_id));
+        return [...prev, ...additions];
+      });
+
       const newlyCount = res.newly_marked_count ?? res.recognized_count ?? 0;
-      toast(`🎉 Whole class photo processed! ${newlyCount} students auto-marked present in database!`, 'success');
+      const totalToday = res.total_marked_today ?? (res.recognized || []).length;
+      toast(`🎉 Attendance auto-marked! ${newlyCount} new students saved to DB (${totalToday} present today).`, 'success');
 
       // Refresh records immediately in background
       api.getRecords(Number(selectedSubId)).then((rec) => {
@@ -447,6 +529,64 @@ export default function FacultyDashboard({ teacher }) {
       toast(err.message || 'Group photo scan failed', 'error');
     } finally {
       setScanning(false);
+    }
+  };
+
+  // 1-Tap Shutter: Capture high-res frame from video stream & auto-mark attendance
+  const captureLiveShutter = async () => {
+    if (!mobileVideoRef.current || !selectedSubId) {
+      toast("Please select an active subject first", "warning");
+      return;
+    }
+    const video = mobileVideoRef.current;
+    if (!video.videoWidth || !video.videoHeight) {
+      toast("Live camera stream is starting, please wait a moment", "info");
+      return;
+    }
+
+    try {
+      setScanning(true);
+      const canvas = document.createElement('canvas');
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+      const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.95));
+      if (!blob) throw new Error("Could not capture frame from live camera");
+
+      setCapturedPreview(canvas.toDataURL('image/jpeg', 0.8));
+
+      // Shutter audio chime & haptic feedback
+      try {
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.frequency.setValueAtTime(880, audioCtx.currentTime);
+        gain.gain.setValueAtTime(0.25, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.2);
+      } catch {}
+
+      if (navigator.vibrate) {
+        navigator.vibrate([60, 40, 100]);
+      }
+
+      const file = new File([blob], `live_classroom_${Date.now()}.jpg`, { type: 'image/jpeg' });
+      await processGroupPhotoFile(file);
+    } catch (err) {
+      toast(err.message || "Failed to capture live photo", "error");
+    } finally {
+      setScanning(false);
+    }
+  };
+
+  const handleGroupPhotoScan = async () => {
+    if (groupPhotoFile) {
+      await processGroupPhotoFile(groupPhotoFile);
     }
   };
 
@@ -862,17 +1002,18 @@ export default function FacultyDashboard({ teacher }) {
               <span className="font-medium">Multi-Photo</span>
             </button>
             <button
-              onClick={() => { setMode('group_photo'); setReview(null); }}
+              onClick={() => { setMode('group_photo'); setReview(null); startMobileCamera(); }}
               className={`p-3.5 rounded-xl border flex flex-col items-center gap-2 transition cursor-pointer active:scale-98 ${
                 mode === 'group_photo' 
                   ? 'bg-zinc-800/90 border-cyan-500/50 text-white font-bold shadow-lg shadow-cyan-500/10 ring-1 ring-cyan-500/30' 
                   : 'bg-zinc-900/60 hover:bg-zinc-800/50 border-zinc-800 text-zinc-400'
               }`}
             >
-              <div className="w-8 h-8 rounded-lg bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400">
-                <Sparkles className="w-4 h-4" />
+              <div className="w-8 h-8 rounded-lg bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400 relative">
+                <span className="w-2 h-2 rounded-full bg-cyan-400 animate-ping absolute top-1 right-1 opacity-75"></span>
+                <Smartphone className="w-4 h-4" />
               </div>
-              <span className="font-medium">Class Photo</span>
+              <span className="font-medium text-cyan-300">Phone Cam & Snap</span>
             </button>
             <button
               onClick={() => { setMode('voice_command'); setReview(null); }}
@@ -982,73 +1123,266 @@ export default function FacultyDashboard({ teacher }) {
           )}
 
           {mode === 'group_photo' && (
-            <div className="space-y-4">
-              <div className="border border-dashed border-cyan-500/30 bg-gradient-to-b from-cyan-950/10 to-zinc-950 p-6 sm:p-8 rounded-2xl text-center relative overflow-hidden">
-                <div className="w-12 h-12 rounded-2xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400 mx-auto mb-3 shadow-inner">
-                  <Sparkles className="w-6 h-6 animate-pulse" />
+            <div className="space-y-5">
+              {/* Top Feature Banner */}
+              <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-cyan-950/40 via-sky-950/20 to-zinc-950 border border-cyan-500/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div className="flex items-center gap-3.5">
+                  <div className="w-11 h-11 rounded-xl bg-gradient-to-tr from-cyan-500/20 to-sky-500/10 border border-cyan-500/40 flex items-center justify-center text-cyan-400 shrink-0 shadow-lg shadow-cyan-500/10">
+                    <Smartphone className="w-5 h-5 animate-pulse" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-sm sm:text-base font-bold text-white tracking-tight">
+                        Faculty Mobile Live Attendance
+                      </h3>
+                      <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-cyan-500/15 text-cyan-300 border border-cyan-500/30">
+                        INSTANT AI SYNC
+                      </span>
+                    </div>
+                    <p className="text-xs text-zinc-400 mt-0.5 max-w-xl">
+                      Point phone back camera at lecture hall rows and tap <strong>Snap</strong> anytime. Pramaan AI detects every face simultaneously and marks attendance directly in the database.
+                    </p>
+                  </div>
                 </div>
-                <h3 className="text-base font-bold text-white mb-1">
-                  Whole Class Photo Auto-Attendance
-                </h3>
-                <p className="text-xs text-zinc-400 mb-4 max-w-lg mx-auto">
-                  Upload a single wide photo of the lecture hall. Pramaan AI's dlib 128-d multi-face radar will detect every student simultaneously, match them against your class roster, and <strong className="text-cyan-300">automatically mark their attendance in the database</strong>!
-                </p>
 
-                <div className="max-w-md mx-auto space-y-3">
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => setGroupPhotoFile(e.target.files[0])}
-                    className="w-full text-xs text-zinc-400 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:bg-cyan-500/10 file:text-cyan-300 file:font-semibold file:cursor-pointer hover:file:bg-cyan-500/20 cursor-pointer border border-zinc-800 rounded-xl p-1 bg-zinc-900/60"
+                {/* Session Counter Pill */}
+                <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-zinc-900/90 border border-zinc-800 text-xs shrink-0">
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                  <span className="text-zinc-300">
+                    Marked: <strong className="text-emerald-400">{groupScanResult?.total_marked_today || sessionAccumulated.length}</strong> students
+                  </span>
+                </div>
+              </div>
+
+              {/* Live Viewfinder & Camera Frame */}
+              <div className="relative rounded-2xl overflow-hidden bg-black border border-cyan-500/30 shadow-2xl shadow-cyan-500/5">
+                {/* Viewfinder Top Control Overlay */}
+                <div className="absolute top-3 left-3 right-3 z-20 flex items-center justify-between gap-2 pointer-events-auto">
+                  <div className="flex items-center gap-2">
+                    <span className="px-2.5 py-1 rounded-full text-[11px] font-bold font-mono tracking-wide bg-black/70 backdrop-blur-md border border-cyan-500/30 text-cyan-300 flex items-center gap-1.5 shadow-md">
+                      <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping"></span>
+                      <span>{facingMode === 'environment' ? 'REAR WIDE CAM' : 'FRONT CAM'}</span>
+                    </span>
+                    <span className="hidden sm:inline-flex px-2.5 py-1 rounded-full text-[11px] font-medium bg-black/60 backdrop-blur-md border border-zinc-800 text-zinc-300">
+                      {AKGEC_META.room} • {AKGEC_PERIODS.find((p) => p.id === selectedPeriod)?.name || 'Period'}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={toggleCameraFacing}
+                      className="px-3 py-1.5 rounded-xl bg-zinc-900/80 hover:bg-zinc-800/90 backdrop-blur-md border border-zinc-700 text-zinc-200 text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer shadow-lg active:scale-95"
+                      title="Switch Front/Back Camera"
+                    >
+                      <Repeat className="w-3.5 h-3.5 text-cyan-400" />
+                      <span>Flip Cam</span>
+                    </button>
+                    <button
+                      onClick={() => mobileCamActive ? stopMobileCamera() : startMobileCamera()}
+                      className="px-3 py-1.5 rounded-xl bg-zinc-900/80 hover:bg-zinc-800/90 backdrop-blur-md border border-zinc-700 text-zinc-200 text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer shadow-lg active:scale-95"
+                      title="Toggle Camera Stream"
+                    >
+                      <Camera className="w-3.5 h-3.5 text-emerald-400" />
+                      <span>{mobileCamActive ? 'Pause' : 'Start'}</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Video Stream Element */}
+                <div className="relative w-full aspect-[4/3] sm:aspect-[16/9] max-h-[460px] bg-zinc-950 flex items-center justify-center overflow-hidden">
+                  <video
+                    ref={mobileVideoRef}
+                    autoPlay
+                    playsInline
+                    muted
+                    className="w-full h-full object-cover"
                   />
 
-                  {groupPhotoFile && (
-                    <div className="pt-2">
+                  {/* Targeting Reticle Corners Overlay */}
+                  <div className="absolute inset-8 sm:inset-12 pointer-events-none border border-cyan-500/20 rounded-2xl flex flex-col justify-between">
+                    <div className="flex justify-between items-start">
+                      <div className="w-6 h-6 border-t-2 border-l-2 border-cyan-400 rounded-tl-lg"></div>
+                      <div className="w-6 h-6 border-t-2 border-r-2 border-cyan-400 rounded-tr-lg"></div>
+                    </div>
+                    <div className="text-center">
+                      <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-black/60 backdrop-blur-md border border-cyan-500/30 text-[11px] text-cyan-300 font-medium">
+                        <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
+                        <span>Aim at classroom benches & tap shutter below</span>
+                      </div>
+                    </div>
+                    <div className="flex justify-between items-end">
+                      <div className="w-6 h-6 border-b-2 border-l-2 border-cyan-400 rounded-bl-lg"></div>
+                      <div className="w-6 h-6 border-b-2 border-r-2 border-cyan-400 rounded-br-lg"></div>
+                    </div>
+                  </div>
+
+                  {/* Camera Paused / Error Placeholder */}
+                  {!mobileCamActive && (
+                    <div className="absolute inset-0 bg-zinc-950/90 flex flex-col items-center justify-center p-6 text-center z-10">
+                      <div className="w-14 h-14 rounded-2xl bg-zinc-900 border border-zinc-800 flex items-center justify-center text-zinc-400 mb-3 shadow-inner">
+                        <Camera className="w-7 h-7 text-zinc-500" />
+                      </div>
+                      <h4 className="text-sm font-bold text-zinc-200 mb-1">Live Camera Feed Standby</h4>
+                      <p className="text-xs text-zinc-400 max-w-sm mb-4">
+                        Enable live viewfinder or use your phone's native camera app directly.
+                      </p>
                       <button
-                        onClick={handleGroupPhotoScan}
-                        disabled={scanning}
-                        className="w-full py-3 bg-gradient-to-r from-cyan-500 to-sky-500 hover:from-cyan-400 hover:to-sky-400 text-zinc-950 font-bold rounded-xl text-xs transition cursor-pointer disabled:opacity-50 inline-flex items-center justify-center gap-2 shadow-lg shadow-cyan-500/20"
+                        onClick={() => startMobileCamera()}
+                        className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-sky-500 hover:from-cyan-400 hover:to-sky-400 text-zinc-950 font-bold text-xs transition cursor-pointer shadow-lg shadow-cyan-500/20 active:scale-95"
                       >
-                        {scanning ? (
-                          <>
-                            <Loader2 className="w-4 h-4 animate-spin" /> Detecting Every Student in Classroom Photo...
-                          </>
-                        ) : (
-                          <>
-                            <Sparkles className="w-4 h-4" /> Auto-Mark Attendance from Whole Class Photo
-                          </>
-                        )}
+                        Start Live Camera Stream
                       </button>
                     </div>
                   )}
+
+                  {/* Scanning Processing Spinner Overlay */}
+                  {scanning && (
+                    <div className="absolute inset-0 bg-black/75 backdrop-blur-sm flex flex-col items-center justify-center p-6 text-center z-30 animate-in fade-in duration-150">
+                      <div className="relative mb-3">
+                        <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-cyan-500 to-emerald-400 p-[2px] animate-spin">
+                          <div className="w-full h-full bg-zinc-950 rounded-[14px] flex items-center justify-center">
+                            <Sparkles className="w-7 h-7 text-cyan-400" />
+                          </div>
+                        </div>
+                      </div>
+                      <h4 className="text-sm font-bold text-white mb-1">Pramaan AI Multi-Face Radar Active</h4>
+                      <p className="text-xs text-cyan-300 font-mono">
+                        Running 128-d ResNet matching & saving attendance into Supabase database...
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Shutter & Quick Controls Bar */}
+                <div className="p-3 sm:p-4 bg-zinc-950 border-t border-zinc-800 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+                  {/* Big Primary Shutter Button */}
+                  <button
+                    onClick={captureLiveShutter}
+                    disabled={scanning || !selectedSubId}
+                    className="flex-1 py-4 px-6 rounded-2xl bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 hover:from-emerald-400 hover:via-teal-400 hover:to-cyan-400 text-zinc-950 font-black text-sm tracking-wide shadow-xl shadow-emerald-500/25 flex items-center justify-center gap-3 active:scale-98 transition-all cursor-pointer disabled:opacity-50 group"
+                  >
+                    <span className="relative flex h-3 w-3">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-zinc-950 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-3 w-3 bg-zinc-950"></span>
+                    </span>
+                    <Camera className="w-5 h-5 text-zinc-950 group-hover:rotate-12 transition-transform" />
+                    <span>{scansCount > 0 ? "📸 Snap Next Row / Angle" : "📸 Capture & Mark Attendance Now"}</span>
+                  </button>
+
+                  <div className="flex items-center gap-2">
+                    {/* Native Phone Camera App Trigger */}
+                    <label className="flex-1 sm:flex-initial py-3.5 px-4 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 hover:border-cyan-500/50 text-cyan-300 font-bold text-xs flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-95 shadow-md">
+                      <Smartphone className="w-4 h-4 text-cyan-400" />
+                      <span>Phone Camera App</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        capture="environment"
+                        onChange={(e) => {
+                          if (e.target.files?.[0]) {
+                            processGroupPhotoFile(e.target.files[0]);
+                          }
+                        }}
+                        className="hidden"
+                      />
+                    </label>
+
+                    {/* Storage / Gallery Upload */}
+                    <label className="py-3.5 px-3.5 rounded-xl bg-zinc-900/60 hover:bg-zinc-800 border border-zinc-800 text-zinc-400 hover:text-zinc-200 text-xs font-semibold flex items-center justify-center gap-1.5 cursor-pointer transition-all" title="Upload Photo from Gallery">
+                      <Upload className="w-4 h-4" />
+                      <span className="hidden md:inline">Upload</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => {
+                          if (e.target.files?.[0]) {
+                            processGroupPhotoFile(e.target.files[0]);
+                          }
+                        }}
+                        className="hidden"
+                      />
+                    </label>
+                  </div>
                 </div>
               </div>
 
               {/* Instant Auto-Attendance Result Summary */}
               {groupScanResult && (
-                <div className="p-4 rounded-xl border border-emerald-500/40 bg-gradient-to-r from-emerald-950/20 via-zinc-900/80 to-zinc-900/80 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 animate-in fade-in duration-200">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
-                      <CheckCircle2 className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs font-bold text-white">Attendance Auto-Marked!</span>
-                        <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                          SAVED TO DB
-                        </span>
+                <div className="space-y-4 animate-in fade-in duration-200">
+                  <div className="p-4 sm:p-5 rounded-2xl border border-emerald-500/40 bg-gradient-to-r from-emerald-950/30 via-zinc-900/90 to-zinc-900/90 shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                    <div className="flex items-center gap-3.5">
+                      <div className="w-12 h-12 rounded-xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400 shrink-0 shadow-lg shadow-emerald-500/10">
+                        <CheckCircle2 className="w-6 h-6" />
                       </div>
-                      <p className="text-[11px] text-zinc-400 mt-0.5">
-                        Found {groupScanResult.total_faces_detected || groupScanResult.total_detected} faces • <strong className="text-emerald-400">{groupScanResult.newly_marked_count ?? groupScanResult.recognized_count} students</strong> marked present in {AKGEC_PERIODS.find((p) => p.id === groupScanResult.period)?.name || 'current period'}
-                      </p>
+                      <div>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-sm font-bold text-white">Live Attendance Successfully Marked!</span>
+                          <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                            SAVED IN SUPABASE DB
+                          </span>
+                        </div>
+                        <p className="text-xs text-zinc-300 mt-1">
+                          Detected <strong className="text-white">{groupScanResult.total_faces_detected || groupScanResult.total_detected || 0} faces</strong> • <strong className="text-emerald-400">+{groupScanResult.newly_marked_count ?? groupScanResult.recognized_count ?? 0} students</strong> marked present in {AKGEC_PERIODS.find((p) => p.id === groupScanResult.period)?.name || 'current period'} ({groupScanResult.total_marked_today || (groupScanResult.recognized || []).length} total present today).
+                        </p>
+                        <p className="text-[11px] text-cyan-300 mt-1 flex items-center gap-1.5 font-medium">
+                          <Layers className="w-3.5 h-3.5" />
+                          <span>Tip: You can point at back rows or side benches and tap <strong>Snap Next Row / Angle</strong> — new students will be added without overwriting!</span>
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 w-full md:w-auto shrink-0">
+                      <button
+                        onClick={() => setTab('logs')}
+                        className="flex-1 md:flex-initial px-4 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-semibold transition cursor-pointer flex items-center justify-center gap-2 shadow-md"
+                      >
+                        <span>View Official Logbook</span>
+                        <ArrowRight className="w-3.5 h-3.5" />
+                      </button>
                     </div>
                   </div>
-                  <button
-                    onClick={() => setTab('logs')}
-                    className="px-3 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-medium transition cursor-pointer shrink-0"
-                  >
-                    View in Logbook →
-                  </button>
+
+                  {/* Recognized Students Card Roster */}
+                  {(groupScanResult.recognized || []).length > 0 && (
+                    <div className="p-4 sm:p-5 rounded-2xl bg-zinc-950/80 border border-zinc-800/80">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-2">
+                          <UserCheck className="w-4 h-4 text-emerald-400" />
+                          <h4 className="text-xs font-bold text-zinc-200 uppercase tracking-wider">
+                            Recognized Students in This Photo ({(groupScanResult.recognized || []).length})
+                          </h4>
+                        </div>
+                        <span className="text-[11px] font-mono text-zinc-400">
+                          128-d Euclidean ResNet Match
+                        </span>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+                        {(groupScanResult.recognized || []).map((st) => (
+                          <div
+                            key={st.student_id}
+                            className="p-3 rounded-xl bg-zinc-900/80 border border-emerald-500/25 flex items-center justify-between gap-3 shadow-sm hover:border-emerald-500/40 transition"
+                          >
+                            <div className="flex items-center gap-2.5 min-w-0">
+                              <div className="w-9 h-9 rounded-lg bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-xs font-bold text-emerald-300 shrink-0">
+                                {st.name ? st.name.slice(0, 2).toUpperCase() : 'ST'}
+                              </div>
+                              <div className="min-w-0">
+                                <div className="text-xs font-bold text-zinc-100 truncate">{st.name}</div>
+                                <div className="text-[10px] text-zinc-400 font-mono">Roll: {st.roll_number || st.student_id}</div>
+                              </div>
+                            </div>
+                            <div className="text-right shrink-0">
+                              <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                                {Math.round(st.confidence || 95)}% MATCH
+                              </span>
+                              <div className="text-[9px] text-zinc-500 font-mono mt-0.5">AUTO-MARKED</div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
