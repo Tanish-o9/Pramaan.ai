@@ -14,9 +14,25 @@ import {
   Clock
 } from 'lucide-react';
 
-export default function Landing({ onSelectRole, onOpenKiosk }) {
+export default function Landing({ onSelectRole, onOpenKiosk, currentUser, currentRole }) {
   return (
     <div className="max-w-5xl mx-auto px-4 py-12 sm:py-20 w-full flex flex-col items-center">
+      {/* Top Active Session Banner (if logged in) */}
+      {currentUser && currentRole && (
+        <div className="mb-6 px-4 py-2 rounded-2xl bg-zinc-900/90 border border-cyan-500/30 flex items-center gap-3 text-xs shadow-lg">
+          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+          <span className="text-zinc-300">
+            Active session: <strong className="text-white">{currentUser.name}</strong> ({currentRole === 'teacher' ? 'Faculty' : 'Student'})
+          </span>
+          <button
+            onClick={() => onSelectRole(currentRole)}
+            className="px-3 py-1 rounded-lg bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 font-semibold border border-cyan-500/40 transition cursor-pointer"
+          >
+            Open Workspace &rarr;
+          </button>
+        </div>
+      )}
+
       {/* Top Shimmering Badge */}
       <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-gradient-to-r from-cyan-500/10 via-sky-500/10 to-emerald-500/10 border border-cyan-500/30 text-xs text-cyan-300 font-medium mb-6 shadow-lg shadow-cyan-500/5 animate-pulse-glow">
         <Sparkles className="w-3.5 h-3.5 text-cyan-400" />

@@ -27,6 +27,7 @@ import {
   ShieldAlert,
   Info,
   ArrowUpDown,
+  ArrowRight,
   CheckCircle2,
   Loader2,
   FileText,
@@ -216,7 +217,7 @@ export default function FacultyDashboard({ teacher }) {
     loadSubjects(); 
     loadSettings();
     loadTeacherLeaves();
-  }, [teacher.teachers_id]);
+  }, [teacher?.teachers_id]);
 
   useEffect(() => {
     if (selectedSubId && tab === 'analytics') {

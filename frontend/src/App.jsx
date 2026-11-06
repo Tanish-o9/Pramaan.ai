@@ -11,6 +11,41 @@ import StudentDashboard from './screens/StudentDashboard';
 import KioskScreen from './screens/KioskScreen';
 import { api } from './api';
 
+class ErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+  componentDidCatch(error, errorInfo) {
+    console.error("Workspace ErrorBoundary caught:", error, errorInfo);
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="max-w-md mx-auto my-12 p-6 panel rounded-2xl border border-rose-500/30 bg-rose-950/20 text-center">
+          <h2 className="text-lg font-bold text-rose-300 mb-2">Workspace Recovery Notice</h2>
+          <p className="text-xs text-zinc-300 mb-4">
+            {this.state.error?.message || 'An unexpected error occurred while rendering the workspace.'}
+          </p>
+          <button
+            onClick={() => {
+              this.setState({ hasError: false });
+              window.location.reload();
+            }}
+            className="px-4 py-2 rounded-xl bg-rose-500 hover:bg-rose-400 text-zinc-950 font-bold text-xs"
+          >
+            Reload Workspace
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 export default function App() {
   const [role, setRole] = useState(() => localStorage.getItem('role') || null);
   const [user, setUser] = useState(() => {
@@ -22,6 +57,9 @@ export default function App() {
     }
   });
   const [mustChangePin, setMustChangePin] = useState(false);
+
+  const isTeacherUser = Boolean(user && (user.teachers_id || user.role === 'teacher'));
+  const isStudentUser = Boolean(user && (user.student_id || user.role === 'student'));
 
   // Sync session with backend HTTP-only cookies on boot
   useEffect(() => {
@@ -90,33 +128,42 @@ export default function App() {
           user={user} 
           role={role} 
           onLogout={handleLogout} 
-          onBackToHome={() => !user && setRole(null)} 
+          onBackToHome={() => setRole(null)} 
           onOpenKiosk={() => handleRole('kiosk')}
         />
       )}
       
       <main className="flex-1 flex flex-col">
-        {role === 'kiosk' && (
-          <KioskScreen onExit={() => setRole(user ? (role === 'teacher' ? 'teacher' : 'student') : null)} />
-        )}
-        {!role && <Landing onSelectRole={handleRole} onOpenKiosk={() => handleRole('kiosk')} />}
-        {role === 'teacher' && !user && <FacultyAuth onAuthSuccess={handleAuth} />}
-        {role === 'teacher' && user && <FacultyDashboard teacher={user} onOpenKiosk={() => handleRole('kiosk')} />}
-        {role === 'student' && !user && <StudentAuth onAuthSuccess={handleAuth} />}
-        {role === 'student' && user && (
-          <>
-            <StudentDashboard student={user} onUpdateStudent={(up) => setUser({ ...user, ...up })} />
-            {mustChangePin && (
-              <PinChangeModal
-                student={user}
-                onSuccess={() => {
-                  setMustChangePin(false);
-                  toast('PIN changed successfully! Your profile is secured.', 'success');
-                }}
-              />
-            )}
-          </>
-        )}
+        <ErrorBoundary>
+          {role === 'kiosk' && (
+            <KioskScreen onExit={() => setRole(isTeacherUser ? 'teacher' : (isStudentUser ? 'student' : null))} />
+          )}
+          {!role && (
+            <Landing 
+              onSelectRole={handleRole} 
+              onOpenKiosk={() => handleRole('kiosk')} 
+              currentUser={user}
+              currentRole={isTeacherUser ? 'teacher' : (isStudentUser ? 'student' : null)}
+            />
+          )}
+          {role === 'teacher' && !isTeacherUser && <FacultyAuth onAuthSuccess={handleAuth} />}
+          {role === 'teacher' && isTeacherUser && <FacultyDashboard teacher={user} onOpenKiosk={() => handleRole('kiosk')} />}
+          {role === 'student' && !isStudentUser && <StudentAuth onAuthSuccess={handleAuth} />}
+          {role === 'student' && isStudentUser && (
+            <>
+              <StudentDashboard student={user} onUpdateStudent={(up) => setUser({ ...user, ...up })} />
+              {mustChangePin && (
+                <PinChangeModal
+                  student={user}
+                  onSuccess={() => {
+                    setMustChangePin(false);
+                    toast('PIN changed successfully! Your profile is secured.', 'success');
+                  }}
+                />
+              )}
+            </>
+          )}
+        </ErrorBoundary>
       </main>
       
       {role !== 'kiosk' && <Footer />}
