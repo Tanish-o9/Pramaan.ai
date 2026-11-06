@@ -240,9 +240,12 @@ def get_subject_attendance(subject_id):
                 break
     return rows
 
-def update_single_attendance(log_id, is_present):
-    """Teacher override for a past attendance record"""
-    return supabase.table("attendance_logs").update({"is_present": is_present}).eq("id", log_id).execute()
+def update_single_attendance(log_id, is_present, verification_status=None):
+    """Teacher override for a past attendance record with optional status update."""
+    payload = {"is_present": is_present}
+    if verification_status:
+        payload["verification_status"] = verification_status
+    return supabase.table("attendance_logs").update(payload).eq("id", log_id).execute()
 
 def create_attendance(logs):
     try:

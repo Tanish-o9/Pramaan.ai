@@ -235,11 +235,11 @@ export const api = {
   getRecords: (subject_id) =>
     request(`/api/attendance/records/${subject_id}`),
 
-  overrideAttendance: (log_id, is_present) =>
+  overrideAttendance: (log_id, is_present, verification_status = null) =>
     request('/api/attendance/override', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ log_id, is_present }),
+      body: JSON.stringify({ log_id, is_present, verification_status }),
     }),
 
   // System Settings

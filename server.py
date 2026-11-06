@@ -123,6 +123,7 @@ class StudentActionReq(BaseModel):
 class OverrideReq(BaseModel):
     log_id: int
     is_present: bool
+    verification_status: Optional[str] = None
 
 class SettingsReq(BaseModel):
     face_match_threshold: float = None
@@ -712,7 +713,7 @@ def api_records(subject_id: int, current_user: dict = Depends(require_teacher)):
 
 @app.post("/api/attendance/override")
 def api_override(req: OverrideReq, current_user: dict = Depends(require_teacher)):
-    update_single_attendance(req.log_id, req.is_present)
+    update_single_attendance(req.log_id, req.is_present, req.verification_status)
     return {"status": "success"}
 
 @app.get("/api/attendance/export/csv/{subject_id}")
@@ -1059,14 +1060,40 @@ async def api_kiosk_verify(
         device_known=True
     )
 
+    now_dt = datetime.now(timezone.utc)
+    in_time_str = now_dt.strftime("%I:%M:%S %p")
+    hour = now_dt.hour
+    if 9 <= hour < 10:
+        p_num, p_slot = 1, "09:00 - 10:00 AM"
+    elif 10 <= hour < 11:
+        p_num, p_slot = 2, "10:00 - 11:00 AM"
+    elif 11 <= hour < 12:
+        p_num, p_slot = 3, "11:15 - 12:15 PM"
+    elif 13 <= hour < 14:
+        p_num, p_slot = 4, "01:00 - 02:00 PM"
+    elif 14 <= hour < 15:
+        p_num, p_slot = 5, "02:00 - 03:00 PM"
+    else:
+        p_num, p_slot = 6, "03:00 - 04:00 PM"
+
+    entry_status = "LATE" if now_dt.minute > 15 else "ON_TIME"
+
     log_entry = {
         "subject_id": subject_id,
         "student_id": sid,
         "is_present": True,
-        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "timestamp": now_dt.isoformat(),
         "trust_score": max(85, trust_calc["trust_score"]),
-        "trust_breakdown": {**trust_calc["breakdown"], "source": "kiosk_tablet"},
-        "verification_status": "auto_accepted"
+        "trust_breakdown": {
+            **trust_calc["breakdown"],
+            "source": "kiosk_tablet",
+            "period": p_num,
+            "period_slot": p_slot,
+            "in_time": in_time_str,
+            "entry_status": entry_status,
+            "confidence": round(best_conf, 1)
+        },
+        "verification_status": "late_entry" if entry_status == "LATE" else "auto_accepted"
     }
     create_attendance([log_entry])
     mark_student_cached_today(subject_id, sid)

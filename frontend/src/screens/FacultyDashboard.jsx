@@ -37,7 +37,13 @@ import {
   Zap,
   Printer,
   Sparkles,
-  Volume2
+  Volume2,
+  Search,
+  MessageSquare,
+  Send,
+  ExternalLink,
+  Eye,
+  Flag
 } from 'lucide-react';
 
 export default function FacultyDashboard({ teacher }) {
@@ -113,9 +119,32 @@ export default function FacultyDashboard({ teacher }) {
   const [dynamicCode, setDynamicCode] = useState('');
   const [dynamicSecs, setDynamicSecs] = useState(0);
 
-  // Logs & Overrides
+  // College Multi-Lecture Periods & Timetable State
+  const COLLEGE_PERIODS = [
+    { id: 1, name: 'Period 1', slot: '09:00 - 10:00 AM' },
+    { id: 2, name: 'Period 2', slot: '10:00 - 11:00 AM' },
+    { id: 3, name: 'Period 3', slot: '11:15 - 12:15 PM' },
+    { id: 4, name: 'Period 4', slot: '01:00 - 02:00 PM' },
+    { id: 5, name: 'Period 5', slot: '02:00 - 03:00 PM' },
+    { id: 6, name: 'Period 6', slot: '03:00 - 04:00 PM' },
+  ];
+
+  const [selectedPeriod, setSelectedPeriod] = useState(() => {
+    const h = new Date().getHours();
+    if (h >= 9 && h < 10) return 1;
+    if (h >= 10 && h < 11) return 2;
+    if (h >= 11 && h < 12) return 3;
+    if (h >= 13 && h < 14) return 4;
+    if (h >= 14 && h < 15) return 5;
+    return 1;
+  });
+
+  // Forensic Logs & Multi-Lecture Audit State
   const [records, setRecords] = useState([]);
   const [sessionTime, setSessionTime] = useState('');
+  const [searchLogQuery, setSearchLogQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all'); // 'all' | 'present' | 'absent' | 'late' | 'proxy'
+  const [selectedDossierStudent, setSelectedDossierStudent] = useState(null);
 
   // AI & Quality Settings
   const [settings, setSettings] = useState({
@@ -513,22 +542,44 @@ export default function FacultyDashboard({ teacher }) {
     }
   };
 
-  // Override single log
-  const toggleOverride = async (logId, curr) => {
-    await api.overrideAttendance(logId, !curr);
-    setRecords((prev) => prev.map((r) => r.id === logId ? { ...r, is_present: !curr } : r));
-    toast('Attendance status overridden', 'info');
+  // Override single log with punctuality & proxy support
+  const toggleOverride = async (logId, curr, customStatus = null) => {
+    const nextPres = customStatus === 'proxy' ? false : !curr;
+    const nextStatus = customStatus === 'proxy' ? 'proxy_suspect' : (nextPres ? 'manual_accepted' : 'manual_absent');
+    await api.overrideAttendance(logId, nextPres, nextStatus);
+    setRecords((prev) => prev.map((r) => r.id === logId ? { ...r, is_present: nextPres, verification_status: nextStatus } : r));
+    toast(customStatus === 'proxy' ? 'Flagged student as PROXY SUSPECT' : 'Attendance status updated', 'info');
   };
 
-  // Defaulter list for Logs view
+  // Defaulter list & rich student dossiers for Logs view
   const studentTotals = {};
   records.forEach((r) => {
     const sid = r.student_id;
-    if (!studentTotals[sid]) studentTotals[sid] = { name: r.students?.name || 'Student', roll: r.students?.roll_number || '-', total: 0, attended: 0 };
+    if (!studentTotals[sid]) {
+      studentTotals[sid] = {
+        student_id: sid,
+        name: r.students?.name || 'Student',
+        roll: r.students?.roll_number || '-',
+        total: 0,
+        attended: 0,
+        logs: []
+      };
+    }
     studentTotals[sid].total += 1;
     if (r.is_present) studentTotals[sid].attended += 1;
+    studentTotals[sid].logs.push(r);
   });
+
   const defaulters = Object.values(studentTotals).filter((st) => st.total >= 3 && (st.attended / st.total) * 100 < 75);
+
+  const generateGuardianAlert = (std) => {
+    if (!std) return '';
+    const subObj = subjects.find((s) => s.subject_id === parseInt(selectedSubId));
+    const subName = subObj ? `${subObj.name} (${subObj.subject_code})` : 'Class';
+    const pct = std.total > 0 ? Math.round((std.attended / std.total) * 100) : 100;
+    const msg = `Dear Parent/Guardian,\n\nOfficial Academic Alert from Department of Computer Science:\nYour ward ${std.name} (Roll No: ${std.roll}) currently has ${pct}% attendance in ${subName}.\n\nAs per University Ordinance, a minimum of 75% attendance is strictly mandatory to appear for Semester End Examinations. Please ensure regular attendance.\n\n- Dr. ${teacher?.name || 'Faculty'}, Course In-Charge`;
+    return encodeURIComponent(msg);
+  };
 
   if (kioskSubject) {
     return <KioskScreen subject={kioskSubject} onExit={() => setKioskSubject(null)} />;
@@ -1700,114 +1751,370 @@ export default function FacultyDashboard({ teacher }) {
         </div>
       )}
 
-      {/* 3. LOGS TAB */}
+      {/* 3. FORENSIC LOGBOOK & MULTI-LECTURE AUDIT TAB */}
       {tab === 'logs' && (
-        <div className="space-y-4">
-          <div className="panel rounded-xl p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-            <div className="flex items-center gap-2 text-xs">
-              <span className="text-zinc-400">Subject:</span>
-              <select
-                value={selectedSubId}
-                onChange={(e) => setSelectedSubId(e.target.value)}
-                className="px-2.5 py-1 rounded text-xs cursor-pointer"
-              >
-                {subjects.map((s) => (
-                  <option key={s.subject_id} value={s.subject_id}>{s.name} ({s.subject_code})</option>
-                ))}
-              </select>
+        <div className="space-y-5">
+          {/* Top College Timetable Period Selector */}
+          <div className="panel rounded-2xl p-4 sm:p-5 border border-zinc-800/80 bg-zinc-950/80 backdrop-blur-xl">
+            <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 mb-4">
+              <div>
+                <div className="flex items-center gap-2">
+                  <Clock className="w-4 h-4 text-cyan-400" />
+                  <h2 className="text-sm font-bold text-white tracking-wide">
+                    College Multi-Lecture Schedule & Audit Hub
+                  </h2>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-cyan-500/10 text-cyan-300 border border-cyan-500/30">
+                    Slot Aware
+                  </span>
+                </div>
+                <p className="text-xs text-zinc-400 mt-1">
+                  Filter attendance records per period slot, inspect biometric forensic entry in-times, and detect proxy walkouts.
+                </p>
+              </div>
 
-              <span className="text-zinc-400 ml-2">Session:</span>
-              <select
-                value={sessionTime}
-                onChange={(e) => setSessionTime(e.target.value)}
-                className="px-2.5 py-1 rounded text-xs font-mono cursor-pointer"
-              >
-                {[...new Set(records.map((r) => r.timestamp))].sort().reverse().map((t) => (
-                  <option key={t} value={t}>{new Date(t).toLocaleString()}</option>
-                ))}
-              </select>
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  onClick={() => setShowPulseModal(true)}
+                  className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-500/20 to-orange-500/20 hover:from-amber-500/30 hover:to-orange-500/30 border border-amber-500/40 text-amber-300 text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-sm"
+                  title="Trigger surprise mid-class verification to catch students who bunked after check-in"
+                >
+                  <Zap className="w-3.5 h-3.5 text-amber-400" />
+                  <span>Surprise Pulse Check</span>
+                </button>
+
+                <button
+                  onClick={() => setTab('seatmap')}
+                  className="px-3 py-1.5 rounded-xl bg-zinc-900 border border-zinc-800 hover:border-zinc-700 text-zinc-200 text-xs font-semibold transition flex items-center gap-1.5 cursor-pointer"
+                >
+                  <LayoutGrid className="w-3.5 h-3.5 text-cyan-400" />
+                  <span>Seat Map</span>
+                </button>
+
+                <a
+                  href={`/api/attendance/export/csv/${selectedSubId}`}
+                  download
+                  className="px-3 py-1.5 rounded-xl bg-zinc-900 border border-zinc-800 hover:border-zinc-700 text-zinc-200 text-xs font-semibold transition flex items-center gap-1.5 cursor-pointer"
+                >
+                  <Download className="w-3.5 h-3.5 text-violet-400" />
+                  <span>LMS CSV</span>
+                </a>
+              </div>
             </div>
 
-            <a
-              href={`/api/attendance/export/csv/${selectedSubId}`}
-              download
-              className="flex items-center gap-1 text-xs px-2.5 py-1 bg-zinc-900 border border-zinc-800 text-zinc-300 hover:text-white rounded transition cursor-pointer"
-            >
-              <Download className="w-3 h-3" /> Export LMS CSV
-            </a>
+            {/* Period Quick Select Pills */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 pt-2 border-t border-zinc-900">
+              {COLLEGE_PERIODS.map((p) => {
+                const isActive = selectedPeriod === p.id;
+                return (
+                  <button
+                    key={p.id}
+                    onClick={() => setSelectedPeriod(p.id)}
+                    className={`p-2.5 rounded-xl border text-left transition cursor-pointer flex flex-col justify-between ${
+                      isActive
+                        ? 'bg-cyan-500/10 border-cyan-500/60 shadow-[0_0_15px_rgba(6,182,212,0.15)] ring-1 ring-cyan-500/30'
+                        : 'bg-zinc-900/60 border-zinc-800/80 hover:border-zinc-700 text-zinc-400'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className={`text-xs font-bold ${isActive ? 'text-cyan-300' : 'text-zinc-200'}`}>
+                        {p.name}
+                      </span>
+                      {isActive && <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-ping" />}
+                    </div>
+                    <span className="text-[10px] font-mono text-zinc-400 mt-0.5">
+                      {p.slot}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Session Selector & Defaulter Stats Cards */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div className="panel rounded-xl p-3.5 border border-zinc-800/80 bg-zinc-950/70">
+              <span className="text-[11px] font-semibold text-zinc-400 block mb-1">Total Enrolled</span>
+              <div className="text-xl font-extrabold text-white font-mono">
+                {subjects.find((s) => s.subject_id === parseInt(selectedSubId))?.total_students || Object.keys(studentTotals).length || 12}
+              </div>
+              <span className="text-[10px] text-zinc-500 font-mono">Active class roster</span>
+            </div>
+
+            <div className="panel rounded-xl p-3.5 border border-zinc-800/80 bg-zinc-950/70">
+              <span className="text-[11px] font-semibold text-zinc-400 block mb-1">Present In Session</span>
+              <div className="text-xl font-extrabold text-emerald-400 font-mono">
+                {records.filter((r) => r.timestamp === sessionTime && r.is_present).length}
+              </div>
+              <span className="text-[10px] text-emerald-500/80 font-mono">Biometrically verified</span>
+            </div>
+
+            <div className="panel rounded-xl p-3.5 border border-zinc-800/80 bg-zinc-950/70">
+              <span className="text-[11px] font-semibold text-zinc-400 block mb-1">Late Entries</span>
+              <div className="text-xl font-extrabold text-amber-400 font-mono">
+                {records.filter((r) => r.timestamp === sessionTime && (r.verification_status === 'late_entry' || r.trust_breakdown?.entry_status === 'LATE')).length}
+              </div>
+              <span className="text-[10px] text-amber-500/80 font-mono">&gt;15m late checkin</span>
+            </div>
+
+            <div className="panel rounded-xl p-3.5 border border-zinc-800/80 bg-zinc-950/70">
+              <span className="text-[11px] font-semibold text-zinc-400 block mb-1">Defaulters Risk</span>
+              <div className="text-xl font-extrabold text-rose-400 font-mono">
+                {defaulters.length}
+              </div>
+              <span className="text-[10px] text-rose-500/80 font-mono">&lt;75% Attendance alert</span>
+            </div>
           </div>
 
           {/* Defaulter Alert Notice */}
           {defaulters.length > 0 && (
-            <div className="p-3 bg-rose-500/10 border border-rose-500/20 rounded-lg text-xs text-rose-300 flex justify-between items-center">
-              <div>
-                <strong className="block font-semibold">Attendance Shortage Alert</strong>
-                <span>{defaulters.length} student(s) below 75% threshold in this subject.</span>
+            <div className="p-4 bg-rose-500/10 border border-rose-500/30 rounded-2xl text-xs text-rose-300 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+              <div className="flex items-start gap-2.5">
+                <AlertTriangle className="w-5 h-5 text-rose-400 shrink-0 mt-0.5" />
+                <div>
+                  <strong className="block font-bold text-rose-200">University Attendance Shortage Warning</strong>
+                  <span>{defaulters.length} student(s) below 75% threshold in this course. Risk of semester exam detention.</span>
+                </div>
               </div>
-              <button
-                onClick={() => {
-                  const subObj = subjects.find((s) => s.subject_id === parseInt(selectedSubId));
-                  const draft = `NOTICE: Attendance below 75% in ${subObj?.name || 'Class'}. Meet your advisor.`;
-                  navigator.clipboard.writeText(draft);
-                  toast('Notification template copied to clipboard!', 'info');
-                }}
-                className="px-2.5 py-1 bg-rose-500/20 border border-rose-500/40 rounded text-rose-200 hover:bg-rose-500/30 flex items-center gap-1 cursor-pointer"
-              >
-                <Copy className="w-3 h-3" /> Copy Notice
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => {
+                    const subObj = subjects.find((s) => s.subject_id === parseInt(selectedSubId));
+                    const draft = `OFFICIAL UNIVERSITY NOTICE: Attendance below 75% in ${subObj?.name || 'Class'}. Semester examination eligibility compromised. Meet your Faculty Advisor immediately.`;
+                    navigator.clipboard.writeText(draft);
+                    toast('Official Notice copied to clipboard!', 'info');
+                  }}
+                  className="px-3 py-1.5 bg-rose-500/20 border border-rose-500/40 rounded-xl text-rose-200 hover:bg-rose-500/30 font-semibold flex items-center gap-1.5 transition cursor-pointer"
+                >
+                  <Copy className="w-3.5 h-3.5" />
+                  <span>Copy Notice</span>
+                </button>
+              </div>
             </div>
           )}
 
-          {/* Record entries */}
-          <div className="panel rounded-xl overflow-hidden">
-            <table className="w-full text-left text-xs">
-              <thead className="bg-zinc-900/60 text-zinc-400 border-b border-zinc-800">
-                <tr>
-                  <th className="py-2.5 px-4 font-medium">Roll No</th>
-                  <th className="py-2.5 px-4 font-medium">Student</th>
-                  <th className="py-2.5 px-4 font-medium">Status</th>
-                  <th className="py-2.5 px-4 font-medium">Trust Score</th>
-                  <th className="py-2.5 px-4 font-medium text-right">Action</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-zinc-800/40">
-                {records.filter((r) => r.timestamp === sessionTime).map((r) => {
-                  const tScore = r.trust_score;
-                  return (
-                    <tr key={r.id}>
-                      <td className="py-2 px-4 font-mono text-zinc-400">{r.students?.roll_number || '-'}</td>
-                      <td className="py-2 px-4 text-zinc-200 font-medium">{r.students?.name || 'Unknown'}</td>
-                      <td className="py-2 px-4">
-                        <span className={`text-[10px] font-semibold px-2 py-0.5 rounded ${r.is_present ? 'bg-emerald-500/10 text-emerald-400' : 'bg-rose-500/10 text-rose-400'}`}>
-                          {r.is_present ? 'Present' : 'Absent'}
-                        </span>
-                      </td>
-                      <td className="py-2 px-4">
-                        {tScore !== null && tScore !== undefined ? (
-                          <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded font-semibold border ${
-                            tScore >= 80 ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400' :
-                            tScore >= 50 ? 'bg-amber-500/15 border-amber-500/30 text-amber-300' :
-                            'bg-rose-500/15 border-rose-500/30 text-rose-400'
-                          }`}>
-                            {tScore}%
-                          </span>
-                        ) : (
-                          <span className="text-zinc-600 font-mono text-[10px]">-</span>
-                        )}
-                      </td>
-                      <td className="py-2 px-4 text-right">
-                        <button
-                          onClick={() => toggleOverride(r.id, r.is_present)}
-                          className="text-[11px] text-zinc-400 hover:text-white cursor-pointer"
-                        >
-                          Toggle
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+          {/* Session Filters, Search & Table */}
+          <div className="panel rounded-2xl border border-zinc-800/80 bg-zinc-950/90 overflow-hidden shadow-xl">
+            {/* Table Control Bar */}
+            <div className="p-4 border-b border-zinc-800/80 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 bg-zinc-900/40">
+              <div className="flex flex-wrap items-center gap-2.5 text-xs w-full sm:w-auto">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-zinc-400 font-semibold">Subject:</span>
+                  <select
+                    value={selectedSubId}
+                    onChange={(e) => setSelectedSubId(e.target.value)}
+                    className="bg-zinc-900 border border-zinc-800 rounded-lg px-2.5 py-1 text-xs text-zinc-200 font-semibold cursor-pointer focus:outline-none focus:border-cyan-500"
+                  >
+                    {subjects.map((s) => (
+                      <option key={s.subject_id} value={s.subject_id}>{s.name} ({s.subject_code})</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="flex items-center gap-1.5">
+                  <span className="text-zinc-400 font-semibold">Session Date:</span>
+                  <select
+                    value={sessionTime}
+                    onChange={(e) => setSessionTime(e.target.value)}
+                    className="bg-zinc-900 border border-zinc-800 rounded-lg px-2.5 py-1 text-xs font-mono text-zinc-200 cursor-pointer focus:outline-none focus:border-cyan-500"
+                  >
+                    {[...new Set(records.map((r) => r.timestamp))].sort().reverse().map((t) => (
+                      <option key={t} value={t}>{new Date(t).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* Search & Status Filter */}
+              <div className="flex items-center gap-2 w-full sm:w-auto">
+                <div className="relative flex-1 sm:w-48">
+                  <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-zinc-500" />
+                  <input
+                    type="text"
+                    placeholder="Search student / roll..."
+                    value={searchLogQuery}
+                    onChange={(e) => setSearchLogQuery(e.target.value)}
+                    className="w-full bg-zinc-900 border border-zinc-800 rounded-lg pl-8 pr-3 py-1 text-xs text-zinc-200 focus:outline-none focus:border-cyan-500"
+                  />
+                </div>
+
+                <select
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
+                  className="bg-zinc-900 border border-zinc-800 rounded-lg px-2 py-1 text-xs text-zinc-300 font-semibold cursor-pointer focus:outline-none focus:border-cyan-500"
+                >
+                  <option value="all">All Status</option>
+                  <option value="present">Present Only</option>
+                  <option value="late">Late Only</option>
+                  <option value="absent">Absent Only</option>
+                  <option value="proxy">Proxy Suspects</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Forensic Entry Table */}
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead className="bg-zinc-900/80 text-zinc-400 border-b border-zinc-800 font-mono text-[11px] uppercase tracking-wider">
+                  <tr>
+                    <th className="py-3 px-4 font-bold">Student Profile</th>
+                    <th className="py-3 px-4 font-bold">Period Slot & In-Time</th>
+                    <th className="py-3 px-4 font-bold">Punctuality Status</th>
+                    <th className="py-3 px-4 font-bold">Biometric Security</th>
+                    <th className="py-3 px-4 font-bold">Trust Score</th>
+                    <th className="py-3 px-4 font-bold text-right">Faculty Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-zinc-800/40">
+                  {records
+                    .filter((r) => r.timestamp === sessionTime)
+                    .filter((r) => {
+                      if (!searchLogQuery) return true;
+                      const q = searchLogQuery.toLowerCase();
+                      const name = (r.students?.name || '').toLowerCase();
+                      const roll = (r.students?.roll_number || '').toLowerCase();
+                      return name.includes(q) || roll.includes(q);
+                    })
+                    .filter((r) => {
+                      if (statusFilter === 'all') return true;
+                      if (statusFilter === 'present') return r.is_present;
+                      if (statusFilter === 'absent') return !r.is_present;
+                      if (statusFilter === 'late') return r.verification_status === 'late_entry' || r.trust_breakdown?.entry_status === 'LATE';
+                      if (statusFilter === 'proxy') return r.verification_status === 'proxy_suspect';
+                      return true;
+                    })
+                    .map((r) => {
+                      const tScore = r.trust_score;
+                      const breakdown = r.trust_breakdown || {};
+                      const inTime = breakdown.in_time || (r.timestamp ? new Date(r.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : 'N/A');
+                      const periodSlot = breakdown.period_slot || `Period ${selectedPeriod}`;
+                      const isLate = r.verification_status === 'late_entry' || breakdown.entry_status === 'LATE';
+                      const isProxy = r.verification_status === 'proxy_suspect';
+
+                      const sTotal = studentTotals[r.student_id] || {
+                        name: r.students?.name || 'Student',
+                        roll: r.students?.roll_number || 'N/A',
+                        total: 1,
+                        attended: r.is_present ? 1 : 0
+                      };
+
+                      return (
+                        <tr key={r.id} className="hover:bg-zinc-900/40 transition-colors">
+                          {/* Student Profile */}
+                          <td className="py-3 px-4">
+                            <div className="flex items-center gap-2.5">
+                              <div className="w-8 h-8 rounded-lg bg-zinc-800 border border-zinc-700 flex items-center justify-center text-xs font-bold text-zinc-300">
+                                {(r.students?.name || 'S').slice(0, 2).toUpperCase()}
+                              </div>
+                              <div>
+                                <div className="font-bold text-zinc-100 flex items-center gap-1.5">
+                                  <span>{r.students?.name || 'Unknown'}</span>
+                                  {isProxy && (
+                                    <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping inline-block" title="Flagged as Proxy Suspect" />
+                                  )}
+                                </div>
+                                <div className="text-[11px] font-mono text-zinc-400">
+                                  {r.students?.roll_number || '-'}
+                                </div>
+                              </div>
+                            </div>
+                          </td>
+
+                          {/* Period Slot & In-Time */}
+                          <td className="py-3 px-4 font-mono text-zinc-300">
+                            <div className="font-semibold text-zinc-200">{inTime}</div>
+                            <div className="text-[10px] text-zinc-500">{periodSlot}</div>
+                          </td>
+
+                          {/* Punctuality Status */}
+                          <td className="py-3 px-4">
+                            {isProxy ? (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold font-mono bg-purple-500/15 text-purple-300 border border-purple-500/30">
+                                <AlertTriangle className="w-3 h-3 text-purple-400" /> PROXY SUSPECT
+                              </span>
+                            ) : isLate ? (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold font-mono bg-amber-500/15 text-amber-300 border border-amber-500/30">
+                                <Clock className="w-3 h-3 text-amber-400" /> LATE ENTRY
+                              </span>
+                            ) : r.is_present ? (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold font-mono bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
+                                <CheckCircle2 className="w-3 h-3 text-emerald-400" /> ON TIME
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold font-mono bg-rose-500/15 text-rose-300 border border-rose-500/30">
+                                <XCircle className="w-3 h-3 text-rose-400" /> ABSENT
+                              </span>
+                            )}
+                          </td>
+
+                          {/* Biometric Security */}
+                          <td className="py-3 px-4">
+                            <div className="flex items-center gap-1.5 text-zinc-300 font-mono text-[11px]">
+                              <ShieldCheck className="w-3.5 h-3.5 text-cyan-400" />
+                              <span>{breakdown.confidence ? `${breakdown.confidence}% Match` : (r.is_present ? 'ResNet-128 Verified' : 'No biometric match')}</span>
+                            </div>
+                            <div className="text-[10px] text-zinc-500 font-mono">
+                              {breakdown.source === 'kiosk_tablet' ? 'AI Door Kiosk • Live' : 'Classroom Audit'}
+                            </div>
+                          </td>
+
+                          {/* Trust Score */}
+                          <td className="py-3 px-4">
+                            {tScore !== null && tScore !== undefined ? (
+                              <span className={`text-[10px] font-mono px-2 py-0.5 rounded font-bold border ${
+                                tScore >= 80 ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400' :
+                                tScore >= 50 ? 'bg-amber-500/15 border-amber-500/30 text-amber-300' :
+                                'bg-rose-500/15 border-rose-500/30 text-rose-400'
+                              }`}>
+                                {tScore}%
+                              </span>
+                            ) : (
+                              <span className="text-zinc-600 font-mono text-[10px]">-</span>
+                            )}
+                          </td>
+
+                          {/* Faculty Actions */}
+                          <td className="py-3 px-4 text-right">
+                            <div className="flex items-center justify-end gap-1.5">
+                              <button
+                                onClick={() => setSelectedDossierStudent({ ...sTotal, currentRecord: r })}
+                                className="px-2.5 py-1 rounded-md bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-[11px] font-medium transition cursor-pointer flex items-center gap-1"
+                                title="Open Student Forensic Dossier & Guardian Alerts"
+                              >
+                                <Eye className="w-3 h-3 text-cyan-400" />
+                                <span>Dossier</span>
+                              </button>
+
+                              <button
+                                onClick={() => toggleOverride(r.id, r.is_present)}
+                                className={`px-2.5 py-1 rounded-md text-[11px] font-medium transition cursor-pointer border ${
+                                  r.is_present
+                                    ? 'bg-rose-500/10 border-rose-500/30 text-rose-300 hover:bg-rose-500/20'
+                                    : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300 hover:bg-emerald-500/20'
+                                }`}
+                                title={r.is_present ? 'Mark Absent' : 'Mark Present'}
+                              >
+                                {r.is_present ? 'Mark Absent' : 'Mark Present'}
+                              </button>
+
+                              <button
+                                onClick={() => toggleOverride(r.id, r.is_present, isProxy ? null : 'proxy')}
+                                className={`p-1 rounded-md transition cursor-pointer border ${
+                                  isProxy
+                                    ? 'bg-purple-500 text-white border-purple-400 shadow-md shadow-purple-500/20'
+                                    : 'bg-zinc-800/80 hover:bg-purple-500/20 border-zinc-700 text-zinc-400 hover:text-purple-300'
+                                }`}
+                                title={isProxy ? 'Clear Proxy Flag' : 'Flag as Proxy Suspect'}
+                              >
+                                <Flag className="w-3 h-3" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       )}
@@ -2209,6 +2516,168 @@ export default function FacultyDashboard({ teacher }) {
                 </button>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Teacher-Only Student Forensic Dossier & Guardian Alert Modal */}
+      {selectedDossierStudent && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-zinc-950 border border-zinc-800 rounded-2xl w-full max-w-2xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+            {/* Modal Header */}
+            <div className="p-5 border-b border-zinc-800/80 flex items-center justify-between bg-zinc-900/50">
+              <div className="flex items-center gap-3.5">
+                <div className="w-11 h-11 rounded-xl bg-gradient-to-tr from-cyan-500/20 to-sky-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-300 font-bold font-mono text-sm">
+                  {selectedDossierStudent.name?.slice(0, 2).toUpperCase() || 'ST'}
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-base font-bold text-white">{selectedDossierStudent.name}</h3>
+                    <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
+                      {selectedDossierStudent.roll}
+                    </span>
+                  </div>
+                  <p className="text-xs text-zinc-400">Teacher Confidential Forensic Attendance Profile</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setSelectedDossierStudent(null)}
+                className="w-8 h-8 rounded-lg bg-zinc-800/60 hover:bg-zinc-800 text-zinc-400 hover:text-white flex items-center justify-center transition cursor-pointer text-sm"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-5 overflow-y-auto space-y-5">
+              {/* Metric Cards */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                {(() => {
+                  const pct = selectedDossierStudent.total > 0
+                    ? Math.round((selectedDossierStudent.attended / selectedDossierStudent.total) * 100)
+                    : 100;
+                  const isLow = pct < 75;
+                  const safeBunks = Math.max(0, Math.floor((selectedDossierStudent.attended - 0.75 * selectedDossierStudent.total) / 0.75));
+                  const needLectures = Math.max(0, Math.ceil((0.75 * selectedDossierStudent.total - selectedDossierStudent.attended) / 0.25));
+
+                  return (
+                    <>
+                      <div className={`p-3.5 rounded-xl border ${isLow ? 'bg-rose-500/10 border-rose-500/30 text-rose-400' : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'}`}>
+                        <div className="text-[10px] uppercase font-bold tracking-wider text-zinc-400">Aggregate Ratio</div>
+                        <div className="text-2xl font-black font-mono mt-1">{pct}%</div>
+                        <div className="text-[11px] text-zinc-400 mt-0.5">{selectedDossierStudent.attended} of {selectedDossierStudent.total} lectures</div>
+                      </div>
+
+                      <div className="p-3.5 rounded-xl border bg-zinc-900/60 border-zinc-800">
+                        <div className="text-[10px] uppercase font-bold tracking-wider text-zinc-400">Academic Standing</div>
+                        <div className="mt-1">
+                          {isLow ? (
+                            <span className="inline-flex items-center gap-1 text-xs font-bold text-rose-400">
+                              <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse"></span>
+                              Critical Detention
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 text-xs font-bold text-emerald-400">
+                              <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                              Exam Eligible
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-[11px] text-zinc-400 mt-0.5">Min required: 75%</div>
+                      </div>
+
+                      <div className="p-3.5 rounded-xl border bg-zinc-900/60 border-zinc-800">
+                        <div className="text-[10px] uppercase font-bold tracking-wider text-zinc-400">Lecture Bunk Allowance</div>
+                        <div className="text-lg font-bold font-mono text-zinc-200 mt-1">
+                          {isLow ? `+${needLectures} required` : `${safeBunks} safe bunks`}
+                        </div>
+                        <div className="text-[11px] text-zinc-400 mt-0.5">
+                          {isLow ? 'to reach 75% threshold' : 'without detention penalty'}
+                        </div>
+                      </div>
+                    </>
+                  );
+                })()}
+              </div>
+
+              {/* Guardian Notice Dispatcher */}
+              <div className="p-4 rounded-xl border border-zinc-800 bg-gradient-to-r from-amber-500/10 via-zinc-900/60 to-zinc-900/60 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                <div className="space-y-0.5">
+                  <div className="flex items-center gap-1.5 text-xs font-bold text-amber-300">
+                    <MessageSquare className="w-3.5 h-3.5" />
+                    Guardian Academic Dispatch (WhatsApp)
+                  </div>
+                  <p className="text-[11px] text-zinc-400 max-w-md">
+                    Send instant pre-formatted detention warning notice with live lecture stats directly to student's parent/guardian phone.
+                  </p>
+                </div>
+                <a
+                  href={`https://api.whatsapp.com/send?text=${generateGuardianAlert(selectedDossierStudent)}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="px-3.5 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs transition flex items-center gap-1.5 shrink-0 shadow-lg shadow-emerald-600/20"
+                >
+                  <Send className="w-3.5 h-3.5" />
+                  Dispatch Notice
+                </a>
+              </div>
+
+              {/* Recent Attendance Timeline */}
+              <div className="space-y-2">
+                <div className="text-xs font-bold text-zinc-300 uppercase tracking-wider">Historical Lecture Check-ins</div>
+                <div className="border border-zinc-800 rounded-xl overflow-hidden divide-y divide-zinc-800/80 max-h-56 overflow-y-auto">
+                  {selectedDossierStudent.logs && selectedDossierStudent.logs.length > 0 ? (
+                    selectedDossierStudent.logs.slice().reverse().map((lg) => {
+                      const tb = lg.trust_breakdown || {};
+                      return (
+                        <div key={lg.id} className="p-3 bg-zinc-900/40 hover:bg-zinc-900/80 transition flex items-center justify-between text-xs">
+                          <div className="flex items-center gap-3">
+                            <span className="font-mono text-zinc-400 text-[11px]">{lg.date}</span>
+                            <span className="font-mono font-semibold text-zinc-300">{tb.period || 'Period 1'}</span>
+                            {tb.in_time && (
+                              <span className="text-[11px] text-zinc-500">In: {tb.in_time}</span>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-2">
+                            {lg.verification_status === 'proxy_suspect' ? (
+                              <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                                PROXY SUSPECT
+                              </span>
+                            ) : lg.is_present ? (
+                              <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                                PRESENT
+                              </span>
+                            ) : (
+                              <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-500/20 text-rose-300 border border-rose-500/30">
+                                ABSENT
+                              </span>
+                            )}
+                            <button
+                              onClick={() => toggleOverride(lg.id, lg.is_present)}
+                              className="px-2 py-1 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-[10px] font-medium transition cursor-pointer"
+                            >
+                              Toggle
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })
+                  ) : (
+                    <div className="p-4 text-center text-xs text-zinc-500">No attendance entries recorded for this student yet.</div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="p-4 border-t border-zinc-800/80 bg-zinc-900/40 flex justify-end">
+              <button
+                onClick={() => setSelectedDossierStudent(null)}
+                className="px-4 py-2 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-semibold transition cursor-pointer"
+              >
+                Close Dossier
+              </button>
+            </div>
           </div>
         </div>
       )}
