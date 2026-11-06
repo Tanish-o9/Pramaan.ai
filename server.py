@@ -31,7 +31,8 @@ from src.database.db import (
 )
 from src.pipeline.face_pipeline import (
     predict_attendance_with_confidence, check_liveness_landmarks,
-    get_face_embeddings, get_face_config, set_face_config
+    get_face_embeddings, get_face_config, set_face_config,
+    predict_group_attendance
 )
 from src.pipeline.voice_pipeline import get_voice_embedding, process_bulk_audio
 from src.services.trust_score_service import trust_engine
@@ -39,6 +40,11 @@ from src.services.bunk_calculator import calculate_bunk_metrics
 from src.services.risk_prediction_service import risk_predictor
 from src.services.ai_copilot_service import copilot
 from src.services.leave_service import leave_service
+from src.services.digital_id_service import digital_id_service
+from src.services.voice_command_service import voice_command_service
+from src.services.pulse_check_service import pulse_check_service
+from src.services.seatmap_service import seatmap_service
+from src.services.hod_service import hod_service
 from src.utils.csv_export import format_attendance_csv
 from src.auth import (
     set_auth_cookies, clear_auth_cookies, decode_token,
@@ -194,9 +200,12 @@ async def api_student_reg(
     
     face_emb = None
     if face_image:
-        img = Image.open(io.BytesIO(await face_image.read())).convert('RGB')
-        embs = get_face_embeddings(np.array(img))
-        if embs:
+        contents = await face_image.read()
+        if len(contents) > 0:
+            img = Image.open(io.BytesIO(contents)).convert('RGB')
+            embs = get_face_embeddings(np.array(img))
+            if not embs:
+                raise HTTPException(400, "No face detected in the photo. Please ensure clear lighting and face the camera directly.")
             face_emb = embs[0].tolist() if hasattr(embs[0], 'tolist') else embs[0]
     
     voice_emb = None
@@ -210,7 +219,19 @@ async def api_student_reg(
         except Exception as e:
             raise HTTPException(400, f"Voice encoding failed: {e}")
 
-    return {"status": "success", "data": create_student(name.strip(), clean_roll, face_emb, voice_emb, pin)}
+    res_data = create_student(name.strip(), clean_roll, face_emb, voice_emb, pin)
+    if res_data and len(res_data) > 0:
+        new_sid = res_data[0].get("student_id")
+        if new_sid and face_emb:
+            try:
+                from src.services.vector_search_service import vector_service
+                vector_service.save_embedding(new_sid, "face", face_emb)
+                if voice_emb:
+                    vector_service.save_embedding(new_sid, "voice", voice_emb)
+            except Exception:
+                pass
+
+    return {"status": "success", "data": res_data}
 
 @app.post("/api/auth/refresh")
 def api_auth_refresh(request: Request, response: Response):
@@ -939,6 +960,155 @@ def api_update_settings(req: SettingsReq, current_user: dict = Depends(require_t
         liveness_enabled=req.liveness_enabled
     )
     return {"status": "success", "settings": updated}
+
+# ================= ADVANCED ECOSYSTEM ADD-ONS =================
+
+class VerifyDigitalIdReq(BaseModel):
+    token: str
+
+class VoiceCommandReq(BaseModel):
+    subject_id: int
+    transcript: str
+
+class TriggerPulseReq(BaseModel):
+    subject_id: int
+    sample_size: int = 3
+
+class RespondPulseReq(BaseModel):
+    pulse_id: str
+    is_verified: bool
+    remarks: str = ""
+
+class AutoArrangeSeatmapReq(BaseModel):
+    order_by: str = "roll"
+
+# 1. Digital ID
+@app.get("/api/student/digital-id")
+def api_get_digital_id(current_user: dict = Depends(require_student)):
+    sid = current_user.get("user_id")
+    student = get_student_by_id(sid)
+    if not student:
+        raise HTTPException(status_code=404, detail="Student not found")
+    return digital_id_service.generate_token(
+        student_id=sid,
+        roll_number=student.get("roll_number", ""),
+        name=student.get("name", ""),
+        department="Computer Science & Engineering"
+    )
+
+@app.post("/api/verify-digital-id")
+def api_verify_digital_id(req: VerifyDigitalIdReq, current_user: dict = Depends(require_any_user)):
+    return digital_id_service.verify_token(req.token)
+
+# 2. Voice Command Roll-Call
+@app.post("/api/attendance/voice-command")
+def api_voice_command(req: VoiceCommandReq, current_user: dict = Depends(require_teacher)):
+    students_res = get_all_student() or []
+    sub_students_data = supabase.table('subject_students').select('student_id').eq('subject_id', req.subject_id).execute()
+    enrolled_ids = {row['student_id'] for row in (sub_students_data.data or [])}
+    enrolled = [s for s in students_res if s.get('student_id') in enrolled_ids] or students_res
+    return voice_command_service.parse_command(req.transcript, enrolled)
+
+# 3. Mid-Class Random Pulse Check
+@app.post("/api/pulse-check/trigger")
+def api_trigger_pulse(req: TriggerPulseReq, current_user: dict = Depends(require_teacher)):
+    students_res = get_all_student() or []
+    sub_students_data = supabase.table('subject_students').select('student_id').eq('subject_id', req.subject_id).execute()
+    enrolled_ids = {row['student_id'] for row in (sub_students_data.data or [])}
+    enrolled = [s for s in students_res if s.get('student_id') in enrolled_ids]
+    return pulse_check_service.trigger_pulse(req.subject_id, enrolled, req.sample_size)
+
+@app.get("/api/pulse-check/active")
+def api_get_student_active_pulse(current_user: dict = Depends(require_student)):
+    sid = current_user.get("user_id")
+    active = pulse_check_service.get_active_pulse_for_student(sid)
+    return {"active": bool(active), "pulse": active}
+
+@app.post("/api/pulse-check/respond")
+def api_respond_pulse(req: RespondPulseReq, current_user: dict = Depends(require_student)):
+    sid = current_user.get("user_id")
+    return pulse_check_service.respond_to_pulse(req.pulse_id, sid, req.is_verified, req.remarks)
+
+@app.get("/api/pulse-check/status/{pulse_id}")
+def api_pulse_status(pulse_id: str, current_user: dict = Depends(require_any_user)):
+    return pulse_check_service.get_pulse_status(pulse_id)
+
+@app.get("/api/pulse-check/history/{subject_id}")
+def api_pulse_history(subject_id: int, current_user: dict = Depends(require_teacher)):
+    return {"history": pulse_check_service.get_subject_pulse_history(subject_id)}
+
+# 4. Classroom Seat Map
+@app.get("/api/subjects/{subject_id}/seatmap")
+def api_get_seatmap(subject_id: int, current_user: dict = Depends(require_any_user)):
+    students_res = get_all_student() or []
+    sub_students_data = supabase.table('subject_students').select('student_id').eq('subject_id', subject_id).execute()
+    enrolled_ids = {row['student_id'] for row in (sub_students_data.data or [])}
+    enrolled = [s for s in students_res if s.get('student_id') in enrolled_ids]
+    return seatmap_service.get_or_create_seatmap(subject_id, enrolled_students=enrolled)
+
+@app.post("/api/subjects/{subject_id}/seatmap/auto-arrange")
+def api_auto_arrange_seatmap(subject_id: int, req: AutoArrangeSeatmapReq, current_user: dict = Depends(require_teacher)):
+    students_res = get_all_student() or []
+    sub_students_data = supabase.table('subject_students').select('student_id').eq('subject_id', subject_id).execute()
+    enrolled_ids = {row['student_id'] for row in (sub_students_data.data or [])}
+    enrolled = [s for s in students_res if s.get('student_id') in enrolled_ids]
+    return seatmap_service.auto_arrange(subject_id, enrolled, order_by=req.order_by)
+
+# 5. HoD Governance & Defaulter Notice
+@app.get("/api/hod/analytics")
+def api_hod_analytics(current_user: dict = Depends(require_teacher)):
+    subjects = supabase.table('subjects').select('*').execute().data or []
+    subs_with_attendance = []
+    for sub in subjects:
+        sub_id = sub['subject_id']
+        enrollments = supabase.table('subject_students').select('student_id').eq('subject_id', sub_id).execute().data or []
+        student_ids = [e['student_id'] for e in enrollments]
+        
+        student_list = []
+        for sid in student_ids:
+            s_record = get_student_by_id(sid) or {}
+            logs = supabase.table('attendance_logs').select('*').eq('subject_id', sub_id).eq('student_id', sid).execute().data or []
+            student_list.append({
+                "student_id": sid,
+                "name": s_record.get("name", "Unknown"),
+                "roll_number": s_record.get("roll_number", ""),
+                "logs": logs
+            })
+            
+        subs_with_attendance.append({
+            "subject_id": sub_id,
+            "name": sub.get("name"),
+            "subject_code": sub.get("subject_code"),
+            "section": sub.get("section", "A"),
+            "students": student_list
+        })
+        
+    return hod_service.calculate_department_summary(subs_with_attendance)
+
+@app.get("/api/hod/defaulters-notice")
+def api_hod_defaulters_notice(current_user: dict = Depends(require_teacher)):
+    summary = api_hod_analytics(current_user)
+    html = hod_service.generate_defaulter_notice_html(summary.get("defaulters", []))
+    return Response(content=html, media_type="text/html")
+
+# 6. Group / Class Photo Attendance
+@app.post("/api/take-attendance/group-photo")
+async def api_take_group_photo_attendance(
+    subject_id: int = Form(...),
+    photo: UploadFile = File(...),
+    current_user: dict = Depends(require_teacher)
+):
+    contents = await photo.read()
+    image = Image.open(io.BytesIO(contents)).convert("RGB")
+    image_np = np.array(image)
+
+    students_res = get_all_student() or []
+    sub_students_data = supabase.table('subject_students').select('student_id').eq('subject_id', subject_id).execute()
+    enrolled_ids = {row['student_id'] for row in (sub_students_data.data or [])}
+    enrolled = [s for s in students_res if s.get('student_id') in enrolled_ids]
+
+    res = predict_group_attendance(image_np, enrolled, subject_id=subject_id)
+    return res
 
 # ================= HEALTH & OBSERVABILITY =================
 

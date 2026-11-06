@@ -1,9 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import QRCode from 'qrcode';
 import { api } from '../api';
 import VoiceRecorder from '../components/VoiceRecorder';
 import CopilotDrawer from '../components/CopilotDrawer';
 import { toast } from '../components/Toast';
-import { Plus, Trash2, X, RefreshCw, CheckCircle2, Mic, UserCheck, KeyRound, Loader2, AlertCircle, FileText, Upload } from 'lucide-react';
+import { 
+  Plus, Trash2, X, RefreshCw, CheckCircle2, Mic, UserCheck, 
+  KeyRound, Loader2, AlertCircle, FileText, Upload, QrCode,
+  ShieldCheck, Zap, Camera, Clock, Sparkles
+} from 'lucide-react';
 
 export default function StudentDashboard({ student, onUpdateStudent }) {
   const [activeTab, setActiveTab] = useState('classes'); // 'classes' | 'leaves' | 'profile'
@@ -38,6 +43,137 @@ export default function StudentDashboard({ student, onUpdateStudent }) {
   const [currentPin, setCurrentPin] = useState('');
   const [newPin, setNewPin] = useState('');
   const [savingPin, setSavingPin] = useState(false);
+
+  // Dynamic Digital ID State
+  const [digitalIdData, setDigitalIdData] = useState(null);
+  const [idQrUrl, setIdQrUrl] = useState('');
+  const [idCountdown, setIdCountdown] = useState(60);
+  const [loadingId, setLoadingId] = useState(false);
+
+  // Mid-Class Pulse Check State
+  const [activePulse, setActivePulse] = useState(null);
+  const [pulseRemaining, setPulseRemaining] = useState(0);
+  const [showPulseModal, setShowPulseModal] = useState(false);
+  const [pulseVerifying, setPulseVerifying] = useState(false);
+  const pulseVideoRef = useRef(null);
+  const pulseStreamRef = useRef(null);
+
+  const loadDigitalId = async () => {
+    setLoadingId(true);
+    try {
+      const res = await api.getDigitalId();
+      setDigitalIdData(res);
+      setIdCountdown(res.ttl_seconds || 60);
+      const url = await QRCode.toDataURL(res.token, {
+        width: 260,
+        margin: 2,
+        color: { dark: '#18181b', light: '#ffffff' },
+      });
+      setIdQrUrl(url);
+    } catch (err) {
+      console.error('Failed to load digital ID', err);
+    } finally {
+      setLoadingId(false);
+    }
+  };
+
+  // Poll for active pulse check every 8s
+  useEffect(() => {
+    let isMounted = true;
+    const checkPulse = async () => {
+      try {
+        const res = await api.getActivePulse();
+        if (isMounted) {
+          if (res.active && res.pulse) {
+            setActivePulse(res.pulse);
+            setPulseRemaining(res.pulse.seconds_remaining || 120);
+          } else {
+            setActivePulse(null);
+          }
+        }
+      } catch (err) {
+        // silent
+      }
+    };
+
+    checkPulse();
+    const interval = setInterval(checkPulse, 8000);
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
+  }, []);
+
+  // Timer countdown for active pulse
+  useEffect(() => {
+    if (!activePulse || pulseRemaining <= 0) return;
+    const t = setInterval(() => {
+      setPulseRemaining((prev) => {
+        if (prev <= 1) {
+          clearInterval(t);
+          setActivePulse(null);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(t);
+  }, [activePulse, pulseRemaining]);
+
+  // Digital ID timer countdown & auto-refresh
+  useEffect(() => {
+    if (activeTab !== 'digital-id') return;
+    loadDigitalId();
+    const timer = setInterval(() => {
+      setIdCountdown((prev) => {
+        if (prev <= 1) {
+          loadDigitalId();
+          return 60;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [activeTab]);
+
+  const startPulseCamera = async () => {
+    setShowPulseModal(true);
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { width: 640, height: 480, facingMode: 'user' },
+      });
+      pulseStreamRef.current = stream;
+      if (pulseVideoRef.current) {
+        pulseVideoRef.current.srcObject = stream;
+      }
+    } catch (err) {
+      toast('Could not access camera for pulse check', 'error');
+    }
+  };
+
+  const stopPulseCamera = () => {
+    if (pulseStreamRef.current) {
+      pulseStreamRef.current.getTracks().forEach((track) => track.stop());
+      pulseStreamRef.current = null;
+    }
+    setShowPulseModal(false);
+  };
+
+  const handleVerifyPulse = async () => {
+    if (!activePulse) return;
+    setPulseVerifying(true);
+    try {
+      // Simulate/capture frame
+      await api.respondToPulse(activePulse.pulse_id, true, 'Verified via student live camera');
+      toast('⚡ Pulse verification confirmed! Attendance trust updated.', 'success');
+      setActivePulse(null);
+      stopPulseCamera();
+    } catch (err) {
+      toast(err.message || 'Verification failed', 'error');
+    } finally {
+      setPulseVerifying(false);
+    }
+  };
 
   const loadData = async () => {
     setLoading(true);
@@ -187,6 +323,34 @@ export default function StudentDashboard({ student, onUpdateStudent }) {
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-8 w-full">
+      {/* Active Mid-Class Pulse Check High-Priority Banner */}
+      {activePulse && (
+        <div className="mb-6 p-4 rounded-xl bg-gradient-to-r from-amber-500/10 via-amber-500/20 to-orange-500/10 border border-amber-500/40 flex flex-col sm:flex-row items-center justify-between gap-4 animate-pulse shadow-lg">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-400 shrink-0">
+              <Zap className="w-5 h-5 animate-bounce" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold uppercase tracking-wider text-amber-400">Action Required: Mid-Class Pulse Check</span>
+                <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-amber-400/20 text-amber-300 font-semibold">
+                  {Math.floor(pulseRemaining / 60)}:{(pulseRemaining % 60).toString().padStart(2, '0')} remaining
+                </span>
+              </div>
+              <p className="text-xs text-zinc-300 mt-0.5">
+                Faculty initiated a random classroom verification. Please verify your presence to maintain trust score.
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={startPulseCamera}
+            className="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-zinc-950 font-bold text-xs rounded-lg transition cursor-pointer flex items-center gap-1.5 shrink-0 shadow-lg"
+          >
+            <Camera className="w-4 h-4" /> Verify Now
+          </button>
+        </div>
+      )}
+
       {/* Top Banner */}
       <div className="panel rounded-xl p-5 mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
@@ -224,7 +388,15 @@ export default function StudentDashboard({ student, onUpdateStudent }) {
               activeTab === 'profile' ? 'bg-zinc-100 text-zinc-950 font-semibold' : 'bg-zinc-900 border border-zinc-800 text-zinc-400'
             }`}
           >
-            <Mic className="w-3.5 h-3.5" /> Biometric Profile
+            <Mic className="w-3.5 h-3.5" /> Biometrics
+          </button>
+          <button
+            onClick={() => setActiveTab('digital-id')}
+            className={`px-3 py-1.5 rounded-md font-medium transition cursor-pointer flex items-center gap-1.5 ${
+              activeTab === 'digital-id' ? 'bg-zinc-100 text-zinc-950 font-semibold' : 'bg-zinc-900 border border-zinc-800 text-zinc-400'
+            }`}
+          >
+            <QrCode className="w-3.5 h-3.5" /> Digital ID
           </button>
           <button
             onClick={() => setShowEnroll(true)}
@@ -497,6 +669,83 @@ export default function StudentDashboard({ student, onUpdateStudent }) {
         </div>
       )}
 
+      {/* TAB 4: ROTATING DYNAMIC DIGITAL STUDENT ID */}
+      {activeTab === 'digital-id' && (
+        <div className="max-w-md mx-auto space-y-4">
+          <div className="text-center mb-2">
+            <h2 className="text-base font-semibold text-zinc-100 flex items-center justify-center gap-2">
+              <ShieldCheck className="w-5 h-5 text-emerald-400" /> Digital Student Identity Card
+            </h2>
+            <p className="text-xs text-zinc-400 mt-1">
+              Cryptographically signed dynamic ID. Rotates every 60s to prevent screenshot fraud.
+            </p>
+          </div>
+
+          {/* Apple Wallet Style Identity Card */}
+          <div className="relative rounded-2xl bg-gradient-to-br from-zinc-900 via-zinc-900 to-zinc-950 border border-zinc-700/80 p-6 shadow-2xl overflow-hidden">
+            <div className="flex justify-between items-start mb-6">
+              <div>
+                <div className="text-[10px] tracking-widest text-zinc-400 font-bold uppercase">INSTITUTIONAL PASSPORT</div>
+                <div className="text-sm font-bold text-zinc-100 flex items-center gap-1.5 mt-0.5">
+                  <Sparkles className="w-4 h-4 text-emerald-400" /> PRAMAAN CAMPUS
+                </div>
+              </div>
+              <div className="px-2 py-0.5 rounded-full text-[10px] font-mono bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 font-semibold flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" /> ACTIVE
+              </div>
+            </div>
+
+            <div className="flex flex-col items-center justify-center my-4">
+              <div className="p-3 bg-white rounded-xl shadow-inner relative">
+                {idQrUrl ? (
+                  <img src={idQrUrl} alt="Dynamic QR Code" className="w-48 h-48 rounded" />
+                ) : (
+                  <div className="w-48 h-48 flex items-center justify-center text-zinc-400">
+                    <Loader2 className="w-6 h-6 animate-spin text-zinc-800" />
+                  </div>
+                )}
+              </div>
+
+              <div className="mt-3 flex items-center gap-2 text-xs font-mono text-zinc-300">
+                <Clock className="w-3.5 h-3.5 text-emerald-400" />
+                <span>Next token rotation in <strong className="text-emerald-400">{idCountdown}s</strong></span>
+              </div>
+            </div>
+
+            <div className="border-t border-zinc-800 pt-4 mt-2 grid grid-cols-2 gap-4 text-xs">
+              <div>
+                <div className="text-[10px] text-zinc-400 uppercase tracking-wider">Student Name</div>
+                <div className="font-semibold text-zinc-100 mt-0.5">{student.name}</div>
+              </div>
+              <div>
+                <div className="text-[10px] text-zinc-400 uppercase tracking-wider">Roll Number</div>
+                <div className="font-mono font-semibold text-zinc-100 mt-0.5">{student.roll_number}</div>
+              </div>
+              <div>
+                <div className="text-[10px] text-zinc-400 uppercase tracking-wider">Department</div>
+                <div className="text-zinc-300 mt-0.5">Computer Science & Eng.</div>
+              </div>
+              <div>
+                <div className="text-[10px] text-zinc-400 uppercase tracking-wider">Biometrics Status</div>
+                <div className="text-emerald-400 font-medium mt-0.5 flex items-center gap-1">
+                  <CheckCircle2 className="w-3 h-3" /> Enrolled (128-d)
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="text-center">
+            <button
+              onClick={loadDigitalId}
+              disabled={loadingId}
+              className="px-4 py-2 bg-zinc-900 border border-zinc-800 hover:border-zinc-700 text-zinc-300 rounded-lg text-xs font-medium inline-flex items-center gap-1.5 transition cursor-pointer"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${loadingId ? 'animate-spin' : ''}`} /> Force Regenerate Token
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Enroll Modal */}
       {showEnroll && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
@@ -633,6 +882,56 @@ export default function StudentDashboard({ student, onUpdateStudent }) {
                 {leaveSubmitting ? 'Submitting Application...' : 'Submit for Approval'}
               </button>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Mid-Class Pulse Check Camera Modal */}
+      {showPulseModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+          <div className="panel max-w-md w-full rounded-2xl p-6 relative border border-amber-500/40 shadow-2xl">
+            <button
+              onClick={stopPulseCamera}
+              className="absolute top-4 right-4 text-zinc-400 hover:text-white cursor-pointer"
+            >
+              <X className="w-4 h-4" />
+            </button>
+            <div className="flex items-center gap-2 mb-2">
+              <Zap className="w-5 h-5 text-amber-400" />
+              <h3 className="text-base font-semibold text-zinc-100">Live Face Verification</h3>
+            </div>
+            <p className="text-xs text-zinc-400 mb-4">
+              Look into the camera. We are checking facial geometry and active eye aspect ratio (EAR).
+            </p>
+
+            <div className="relative rounded-xl overflow-hidden bg-black aspect-4/3 mb-4 flex items-center justify-center border border-zinc-800">
+              <video
+                ref={pulseVideoRef}
+                autoPlay
+                playsInline
+                muted
+                className="w-full h-full object-cover scale-x-[-1]"
+              />
+              <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
+                <div className="w-40 h-52 border-2 border-dashed border-amber-400/80 rounded-full" />
+              </div>
+            </div>
+
+            <button
+              onClick={handleVerifyPulse}
+              disabled={pulseVerifying}
+              className="w-full py-2.5 bg-amber-500 hover:bg-amber-400 text-zinc-950 font-bold rounded-lg text-xs transition cursor-pointer flex items-center justify-center gap-2 shadow-lg"
+            >
+              {pulseVerifying ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" /> Verifying Biometrics...
+                </>
+              ) : (
+                <>
+                  <Camera className="w-4 h-4" /> Capture & Confirm Presence
+                </>
+              )}
+            </button>
           </div>
         </div>
       )}

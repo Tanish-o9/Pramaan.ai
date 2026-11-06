@@ -32,7 +32,12 @@ import {
   AlertTriangle,
   Flame,
   Check,
-  XCircle
+  XCircle,
+  LayoutGrid,
+  Zap,
+  Printer,
+  Sparkles,
+  Volume2
 } from 'lucide-react';
 
 export default function FacultyDashboard({ teacher }) {
@@ -55,7 +60,7 @@ export default function FacultyDashboard({ teacher }) {
   const [reviewRemarks, setReviewRemarks] = useState({});
 
   // Attendance Mode
-  const [mode, setMode] = useState('photos'); // 'photos' | 'video' | 'voice' | 'manual'
+  const [mode, setMode] = useState('photos'); // 'photos' | 'group_photo' | 'voice_command' | 'video' | 'voice' | 'manual'
   const [photoFiles, setPhotoFiles] = useState([]);
   const [videoFile, setVideoFile] = useState(null);
   const [voiceFile, setVoiceFile] = useState(null);
@@ -65,6 +70,31 @@ export default function FacultyDashboard({ teacher }) {
   const [saving, setSaving] = useState(false);
   const [sortByLowestTrust, setSortByLowestTrust] = useState(true);
   const [expandedId, setExpandedId] = useState(null);
+
+  // Group Photo Mode State
+  const [groupPhotoFile, setGroupPhotoFile] = useState(null);
+  const [groupScanResult, setGroupScanResult] = useState(null);
+
+  // Voice Command Roll-Call State
+  const [voiceTranscript, setVoiceTranscript] = useState('');
+  const [isListening, setIsListening] = useState(false);
+  const [voiceCommandSummary, setVoiceCommandSummary] = useState('');
+
+  // Mid-Class Pulse Check State
+  const [showPulseModal, setShowPulseModal] = useState(false);
+  const [pulseSampleSize, setPulseSampleSize] = useState(3);
+  const [activePulseSession, setActivePulseSession] = useState(null);
+  const [pulseTriggering, setPulseTriggering] = useState(false);
+  const [pulseCountdown, setPulseCountdown] = useState(0);
+
+  // Classroom Seat Map State
+  const [seatmapData, setSeatmapData] = useState(null);
+  const [loadingSeatmap, setLoadingSeatmap] = useState(false);
+  const [seatmapOrderBy, setSeatmapOrderBy] = useState('roll');
+
+  // HoD Analytics State
+  const [hodSummary, setHodSummary] = useState(null);
+  const [loadingHod, setLoadingHod] = useState(false);
 
   // Enrolled Students modal / drawer in Subjects tab
   const [viewStudentsSub, setViewStudentsSub] = useState(null);
@@ -293,6 +323,178 @@ export default function FacultyDashboard({ teacher }) {
     }
   };
 
+  // Voice Command Web Speech & API
+  const startSpeechRecognition = () => {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      toast('Speech recognition not supported in browser. Please type command.', 'info');
+      return;
+    }
+    const recog = new SpeechRecognition();
+    recog.lang = 'en-IN';
+    recog.continuous = false;
+    recog.interimResults = false;
+    recog.onstart = () => setIsListening(true);
+    recog.onend = () => setIsListening(false);
+    recog.onresult = (event) => {
+      const transcript = event.results[0][0].transcript;
+      setVoiceTranscript(transcript);
+      executeVoiceCommand(transcript);
+    };
+    recog.onerror = (e) => {
+      setIsListening(false);
+      toast('Speech recognition error: ' + (e.error || 'Check microphone permission'), 'error');
+    };
+    recog.start();
+  };
+
+  const executeVoiceCommand = async (transcriptText) => {
+    if (!transcriptText || !selectedSubId) return;
+    setScanning(true);
+    try {
+      const res = await api.processVoiceCommand(Number(selectedSubId), transcriptText);
+      setVoiceCommandSummary(res.summary);
+      const presentIds = new Set(res.present_students.map((s) => s.student_id));
+      const enrolled = await api.getSubjectStudents(Number(selectedSubId));
+      const newReview = (enrolled || []).map((st) => {
+        const isPresent = presentIds.has(st.student_id);
+        return {
+          student_id: st.student_id,
+          name: st.name,
+          roll_number: st.roll_number,
+          is_present: isPresent,
+          confidence: isPresent ? 98.0 : 0.0,
+          trust_score: isPresent ? 95 : 0,
+          verification_status: isPresent ? 'auto_accepted' : 'flagged',
+          trust_breakdown: {
+            method: 'voice_command_ai',
+            transcript: transcriptText,
+            is_present: isPresent
+          }
+        };
+      });
+      setReview(newReview);
+      toast(`Voice roll-call: ${res.present_count} present, ${res.absent_count} absent`, 'success');
+    } catch (err) {
+      toast(err.message || 'Voice command parsing failed', 'error');
+    } finally {
+      setScanning(false);
+    }
+  };
+
+  // Group / Class Photo Scan
+  const handleGroupPhotoScan = async () => {
+    if (!groupPhotoFile || !selectedSubId) return;
+    setScanning(true);
+    try {
+      const res = await api.takeGroupPhotoAttendance(Number(selectedSubId), groupPhotoFile);
+      setGroupScanResult(res);
+      const recognizedMap = new Map((res.recognized || []).map((r) => [r.student_id, r]));
+      const enrolled = await api.getSubjectStudents(Number(selectedSubId));
+      const newReview = (enrolled || []).map((st) => {
+        const match = recognizedMap.get(st.student_id);
+        const isPresent = Boolean(match);
+        return {
+          student_id: st.student_id,
+          name: st.name,
+          roll_number: st.roll_number,
+          is_present: isPresent,
+          confidence: match ? match.confidence : 0.0,
+          trust_score: match ? Math.min(100, Math.round(match.confidence + 10)) : 0,
+          verification_status: match ? 'auto_accepted' : 'flagged',
+          trust_breakdown: {
+            method: 'group_photo_dlib',
+            bounding_box: match ? match.bounding_box : null,
+            distance: match ? match.distance : null
+          }
+        };
+      });
+      setReview(newReview);
+      toast(`Classroom photo: ${res.recognized_count} students recognized (${res.total_faces_detected} faces found)`, 'success');
+    } catch (err) {
+      toast(err.message || 'Group photo scan failed', 'error');
+    } finally {
+      setScanning(false);
+    }
+  };
+
+  // Trigger Mid-Class Pulse Check
+  const handleTriggerPulse = async () => {
+    if (!selectedSubId) return;
+    setPulseTriggering(true);
+    try {
+      const res = await api.triggerPulseCheck(Number(selectedSubId), pulseSampleSize);
+      setActivePulseSession(res);
+      setPulseCountdown(res.duration_sec || 120);
+      toast(`⚡ Mid-class pulse check triggered for ${res.selected_count} students!`, 'success');
+    } catch (err) {
+      toast(err.message || 'Failed to trigger pulse check', 'error');
+    } finally {
+      setPulseTriggering(false);
+    }
+  };
+
+  // Pulse session countdown interval
+  useEffect(() => {
+    if (!activePulseSession || pulseCountdown <= 0) return;
+    const interval = setInterval(() => {
+      setPulseCountdown((prev) => {
+        if (prev <= 1) {
+          clearInterval(interval);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [activePulseSession, pulseCountdown]);
+
+  // Load Seat Map
+  const loadSeatmap = async () => {
+    if (!selectedSubId) return;
+    setLoadingSeatmap(true);
+    try {
+      const res = await api.getSeatmap(Number(selectedSubId));
+      setSeatmapData(res);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoadingSeatmap(false);
+    }
+  };
+
+  const handleAutoArrangeSeatmap = async (orderBy) => {
+    if (!selectedSubId) return;
+    try {
+      const res = await api.autoArrangeSeatmap(Number(selectedSubId), orderBy);
+      setSeatmapData(res);
+      toast(`Seating auto-arranged by ${orderBy === 'roll' ? 'Roll Number' : 'Name'}!`, 'success');
+    } catch (err) {
+      toast(err.message || 'Failed to auto-arrange', 'error');
+    }
+  };
+
+  // Load HoD Analytics
+  const loadHodAnalytics = async () => {
+    setLoadingHod(true);
+    try {
+      const res = await api.getHodAnalytics();
+      setHodSummary(res);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoadingHod(false);
+    }
+  };
+
+  useEffect(() => {
+    if (tab === 'seatmap') {
+      loadSeatmap();
+    } else if (tab === 'analytics') {
+      loadHodAnalytics();
+    }
+  }, [tab, selectedSubId]);
+
   // Save AI Settings
   const handleSaveSettings = async (e) => {
     e.preventDefault();
@@ -347,6 +549,12 @@ export default function FacultyDashboard({ teacher }) {
             className={`px-3 py-1.5 rounded-md font-medium transition cursor-pointer ${tab === 'attendance' ? 'bg-zinc-100 text-zinc-950 font-semibold' : 'bg-zinc-900 border border-zinc-800 text-zinc-400'}`}
           >
             Take Attendance
+          </button>
+          <button
+            onClick={() => setTab('seatmap')}
+            className={`px-3 py-1.5 rounded-md font-medium transition cursor-pointer flex items-center gap-1.5 ${tab === 'seatmap' ? 'bg-zinc-100 text-zinc-950 font-semibold' : 'bg-zinc-900 border border-zinc-800 text-zinc-400'}`}
+          >
+            <LayoutGrid className="w-3.5 h-3.5 text-cyan-400" /> Seat Map
           </button>
           <button
             onClick={() => setTab('analytics')}
@@ -412,22 +620,31 @@ export default function FacultyDashboard({ teacher }) {
               </div>
 
               {selectedSubId && (
-                <button
-                  onClick={() => {
-                    const sub = subjects.find((s) => s.subject_id === Number(selectedSubId));
-                    if (sub) setKioskSubject(sub);
-                  }}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-emerald-600/90 hover:bg-emerald-500 text-white font-medium text-xs shadow-sm transition cursor-pointer"
-                  title="Launch hands-free classroom door kiosk"
-                >
-                  <Video className="w-3.5 h-3.5" /> Launch Kiosk
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setShowPulseModal(true)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-amber-600/90 hover:bg-amber-500 text-white font-medium text-xs shadow-sm transition cursor-pointer"
+                    title="Trigger mid-lecture surprise pulse check"
+                  >
+                    <Zap className="w-3.5 h-3.5" /> Pulse Check
+                  </button>
+                  <button
+                    onClick={() => {
+                      const sub = subjects.find((s) => s.subject_id === Number(selectedSubId));
+                      if (sub) setKioskSubject(sub);
+                    }}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-emerald-600/90 hover:bg-emerald-500 text-white font-medium text-xs shadow-sm transition cursor-pointer"
+                    title="Launch hands-free classroom door kiosk"
+                  >
+                    <Video className="w-3.5 h-3.5" /> Launch Kiosk
+                  </button>
+                </div>
               )}
             </div>
           </div>
 
           {/* Mode Selector */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-6 text-xs">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 mb-6 text-xs">
             <button
               onClick={() => { setMode('photos'); setReview(null); }}
               className={`p-3 rounded-lg border flex flex-col items-center gap-1.5 transition cursor-pointer ${
@@ -435,7 +652,25 @@ export default function FacultyDashboard({ teacher }) {
               }`}
             >
               <Camera className="w-4 h-4 text-sky-400" />
-              <span>Multi-Photo AI</span>
+              <span>Multi-Photo</span>
+            </button>
+            <button
+              onClick={() => { setMode('group_photo'); setReview(null); }}
+              className={`p-3 rounded-lg border flex flex-col items-center gap-1.5 transition cursor-pointer ${
+                mode === 'group_photo' ? 'bg-zinc-900 border-zinc-600 text-zinc-100 font-semibold' : 'panel border-zinc-800 text-zinc-400'
+              }`}
+            >
+              <Sparkles className="w-4 h-4 text-cyan-400" />
+              <span>Class Photo</span>
+            </button>
+            <button
+              onClick={() => { setMode('voice_command'); setReview(null); }}
+              className={`p-3 rounded-lg border flex flex-col items-center gap-1.5 transition cursor-pointer ${
+                mode === 'voice_command' ? 'bg-zinc-900 border-zinc-600 text-zinc-100 font-semibold' : 'panel border-zinc-800 text-zinc-400'
+              }`}
+            >
+              <Volume2 className="w-4 h-4 text-emerald-400" />
+              <span>Voice AI</span>
             </button>
             <button
               onClick={() => { setMode('video'); setReview(null); }}
@@ -453,7 +688,7 @@ export default function FacultyDashboard({ teacher }) {
               }`}
             >
               <Mic className="w-4 h-4 text-amber-400" />
-              <span>Voice Roll Call</span>
+              <span>Voice Match</span>
             </button>
             <button
               onClick={() => { setMode('manual'); setReview(null); }}
@@ -462,9 +697,101 @@ export default function FacultyDashboard({ teacher }) {
               }`}
             >
               <CheckSquare className="w-4 h-4 text-purple-400" />
-              <span>Manual Roster</span>
+              <span>Manual</span>
             </button>
           </div>
+
+          {/* Mode Inputs */}
+          {mode === 'group_photo' && (
+            <div className="border border-dashed border-zinc-800 p-8 rounded-xl text-center">
+              <Sparkles className="w-8 h-8 text-cyan-400 mx-auto mb-2" />
+              <h3 className="text-sm font-semibold text-zinc-100 mb-1">Classroom Pan / Wide Group Photo</h3>
+              <p className="text-xs text-zinc-400 mb-3 max-w-md mx-auto">
+                Upload a single wide-angle photo of the entire classroom. Our pipeline detects every face in the frame simultaneously and maps them to enrolled student embeddings.
+              </p>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={(e) => setGroupPhotoFile(e.target.files[0])}
+                className="text-xs text-zinc-400 file:mr-3 file:py-1.5 file:px-3 file:rounded file:border-0 file:bg-zinc-800 file:text-zinc-200 cursor-pointer"
+              />
+              {groupPhotoFile && (
+                <div className="mt-4">
+                  <button
+                    onClick={handleGroupPhotoScan}
+                    disabled={scanning}
+                    className="px-4 py-2 bg-cyan-500 hover:bg-cyan-400 text-zinc-950 font-semibold rounded text-xs transition cursor-pointer disabled:opacity-50 inline-flex items-center gap-1.5 shadow"
+                  >
+                    {scanning ? (
+                      <>
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" /> Detecting All Faces in Classroom...
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="w-3.5 h-3.5" /> Scan Entire Class Photo
+                      </>
+                    )}
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+
+          {mode === 'voice_command' && (
+            <div className="border border-dashed border-zinc-800 p-8 rounded-xl text-center">
+              <Volume2 className="w-8 h-8 text-emerald-400 mx-auto mb-2" />
+              <h3 className="text-sm font-semibold text-zinc-100 mb-1">Teacher Voice-Command Roll-Call (AI)</h3>
+              <p className="text-xs text-zinc-400 mb-4 max-w-lg mx-auto">
+                Speak naturally in English or Hinglish (e.g. <em>"Mark all present except roll 12 and 24"</em> or <em>"Roll 5, 8 absent baaki sab present"</em>).
+              </p>
+
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-4">
+                <button
+                  type="button"
+                  onClick={startSpeechRecognition}
+                  disabled={scanning || isListening}
+                  className={`px-5 py-2.5 rounded-xl font-bold text-xs transition cursor-pointer flex items-center gap-2 shadow-lg ${
+                    isListening 
+                      ? 'bg-rose-500 text-white animate-pulse' 
+                      : 'bg-emerald-600 hover:bg-emerald-500 text-white'
+                  }`}
+                >
+                  <Mic className={`w-4 h-4 ${isListening ? 'animate-bounce' : ''}`} />
+                  {isListening ? 'Listening to speech...' : 'Push to Speak Command'}
+                </button>
+              </div>
+
+              {/* Or manual transcript input */}
+              <div className="max-w-md mx-auto flex gap-2">
+                <input
+                  type="text"
+                  value={voiceTranscript}
+                  onChange={(e) => setVoiceTranscript(e.target.value)}
+                  placeholder="Or type: 'Mark all present except roll 12, 15'"
+                  className="w-full px-3 py-2 bg-zinc-900 border border-zinc-700 rounded-lg text-xs text-zinc-200 outline-none"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      executeVoiceCommand(voiceTranscript);
+                    }
+                  }}
+                />
+                <button
+                  onClick={() => executeVoiceCommand(voiceTranscript)}
+                  disabled={scanning || !voiceTranscript.trim()}
+                  className="px-4 py-2 bg-zinc-100 hover:bg-white text-zinc-950 font-bold rounded-lg text-xs transition cursor-pointer shrink-0 disabled:opacity-50"
+                >
+                  {scanning ? 'Parsing...' : 'Apply'}
+                </button>
+              </div>
+
+              {voiceCommandSummary && (
+                <div className="mt-4 p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs max-w-md mx-auto text-left flex items-start gap-2">
+                  <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5" />
+                  <span>{voiceCommandSummary}</span>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Mode Inputs */}
           {mode === 'photos' && (
@@ -751,7 +1078,100 @@ export default function FacultyDashboard({ teacher }) {
         </div>
       )}
 
-      {/* 2. AT-RISK PREDICTION & ANOMALY RADAR (ML) */}
+      {/* 2. CLASSROOM SEAT MAP GRID VIEW */}
+      {tab === 'seatmap' && (
+        <div className="panel rounded-xl p-6 space-y-6">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div>
+              <h2 className="text-sm font-semibold text-zinc-100 flex items-center gap-2">
+                <LayoutGrid className="w-4 h-4 text-cyan-400" /> Classroom Seat Map & Spatial Attendance
+              </h2>
+              <p className="text-xs text-zinc-400 mt-0.5">
+                Visual desk matrix displaying real-time presence and seating distribution.
+              </p>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => handleAutoArrangeSeatmap('roll')}
+                className="px-3 py-1.5 bg-zinc-900 border border-zinc-700 hover:border-zinc-500 text-zinc-200 text-xs rounded-md transition cursor-pointer"
+              >
+                Auto-Arrange (Roll No)
+              </button>
+              <button
+                onClick={() => handleAutoArrangeSeatmap('name')}
+                className="px-3 py-1.5 bg-zinc-900 border border-zinc-700 hover:border-zinc-500 text-zinc-200 text-xs rounded-md transition cursor-pointer"
+              >
+                Auto-Arrange (Name)
+              </button>
+              <button
+                onClick={loadSeatmap}
+                className="p-1.5 text-zinc-400 hover:text-white transition cursor-pointer"
+                title="Refresh Seat Map"
+              >
+                <RefreshCw className={`w-4 h-4 ${loadingSeatmap ? 'animate-spin' : ''}`} />
+              </button>
+            </div>
+          </div>
+
+          {/* Teacher Podium Indicator */}
+          <div className="max-w-md mx-auto py-2 px-6 rounded-lg bg-zinc-900 border border-zinc-800 text-center text-xs font-semibold uppercase tracking-wider text-zinc-400 shadow-inner">
+            Teacher Podium & Smart Board Screen
+          </div>
+
+          {/* Seating Grid */}
+          {loadingSeatmap ? (
+            <div className="py-12 flex justify-center text-zinc-400 text-xs">
+              <Loader2 className="w-5 h-5 animate-spin mr-2" /> Loading Seating Matrix...
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3 pt-2">
+              {(seatmapData?.seats || []).map((seat) => {
+                const std = seat.student;
+                const isPresent = std?.status === 'PRESENT';
+                const isVacant = !std;
+
+                return (
+                  <div
+                    key={seat.seat_id}
+                    className={`p-3 rounded-xl border text-left transition relative flex flex-col justify-between min-h-[92px] ${
+                      isVacant
+                        ? 'bg-zinc-950/60 border-dashed border-zinc-800/80 text-zinc-600'
+                        : isPresent
+                        ? 'bg-emerald-950/20 border-emerald-500/40 text-zinc-200 shadow-sm'
+                        : 'bg-rose-950/20 border-rose-500/30 text-zinc-300'
+                    }`}
+                  >
+                    <div className="flex justify-between items-start text-[10px] text-zinc-400">
+                      <span className="font-mono font-semibold">{seat.seat_id}</span>
+                      <span className={`px-1.5 py-0.2 rounded font-bold uppercase tracking-wider ${
+                        isVacant
+                          ? 'text-zinc-600'
+                          : isPresent
+                          ? 'bg-emerald-500/20 text-emerald-400'
+                          : 'bg-rose-500/20 text-rose-400'
+                      }`}>
+                        {isVacant ? 'VACANT' : isPresent ? 'PRESENT' : 'ABSENT'}
+                      </span>
+                    </div>
+
+                    {!isVacant ? (
+                      <div className="mt-2">
+                        <div className="font-semibold text-xs text-zinc-100 truncate">{std.name}</div>
+                        <div className="font-mono text-[10px] text-zinc-400">{std.roll_number}</div>
+                      </div>
+                    ) : (
+                      <div className="text-[11px] text-zinc-600 italic">Empty Desk</div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* 3. AT-RISK PREDICTION & ANOMALY RADAR (ML) */}
       {tab === 'analytics' && (
         <div className="space-y-6">
           <div className="panel rounded-xl p-5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -765,6 +1185,13 @@ export default function FacultyDashboard({ teacher }) {
             </div>
 
             <div className="flex items-center gap-3">
+              <button
+                onClick={() => window.open(api.getHodDefaultersNoticeUrl(), '_blank')}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-rose-600/90 hover:bg-rose-500 text-white font-medium text-xs shadow-sm transition cursor-pointer"
+                title="Generate printable official notice for attendance shortage"
+              >
+                <Printer className="w-3.5 h-3.5" /> Defaulter Notice (PDF)
+              </button>
               <div className="flex items-center gap-2">
                 <span className="text-xs text-zinc-400">Class:</span>
                 <select
@@ -1455,6 +1882,118 @@ export default function FacultyDashboard({ teacher }) {
               <span className="font-mono text-2xl font-bold text-zinc-100 tracking-wider my-1 block">{dynamicCode}</span>
               <span className="text-zinc-500 text-[11px]">Expires in {Math.floor(dynamicSecs / 60)}:{(dynamicSecs % 60).toString().padStart(2, '0')}</span>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Mid-Class Surprise Pulse Check Modal */}
+      {showPulseModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-xs">
+          <div className="panel max-w-md w-full rounded-2xl p-6 relative border border-amber-500/40 shadow-2xl">
+            <button
+              onClick={() => setShowPulseModal(false)}
+              className="absolute top-4 right-4 text-zinc-400 hover:text-white cursor-pointer"
+            >
+              <X className="w-4 h-4" />
+            </button>
+            <div className="flex items-center gap-2 mb-2">
+              <Zap className="w-5 h-5 text-amber-400" />
+              <h3 className="text-base font-semibold text-zinc-100">Mid-Class Pulse Check</h3>
+            </div>
+            <p className="text-xs text-zinc-400 mb-4">
+              Select random students in active lecture for surprise face + liveness verification.
+            </p>
+
+            {!activePulseSession ? (
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-xs text-zinc-300 mb-1">Random Sample Size</label>
+                  <div className="flex items-center gap-2">
+                    {[1, 3, 5, 10].map((num) => (
+                      <button
+                        key={num}
+                        type="button"
+                        onClick={() => setPulseSampleSize(num)}
+                        className={`px-3 py-1.5 rounded-lg border text-xs font-semibold cursor-pointer transition ${
+                          pulseSampleSize === num
+                            ? 'bg-amber-500/20 border-amber-500 text-amber-300'
+                            : 'bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-zinc-200'
+                        }`}
+                      >
+                        {num} Students
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="p-3 bg-zinc-900/80 rounded-xl border border-zinc-800 text-xs text-zinc-400 space-y-1">
+                  <div>• Students get a 2-minute prompt on their active dashboard.</div>
+                  <div>• Verification checks 68-point EAR geometry in real-time.</div>
+                  <div>• Missed/abandoned checks flag session trust score.</div>
+                </div>
+
+                <button
+                  onClick={handleTriggerPulse}
+                  disabled={pulseTriggering}
+                  className="w-full py-2.5 bg-amber-500 hover:bg-amber-400 text-zinc-950 font-bold rounded-xl text-xs transition cursor-pointer flex items-center justify-center gap-2 shadow-lg"
+                >
+                  {pulseTriggering ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" /> Launching Pulse Check...
+                    </>
+                  ) : (
+                    <>
+                      <Zap className="w-4 h-4" /> Trigger Random Check Now
+                    </>
+                  )}
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-xs font-medium text-amber-300">
+                    <Clock className="w-4 h-4" />
+                    <span>Time Remaining:</span>
+                  </div>
+                  <span className="font-mono font-bold text-amber-400 text-sm">
+                    {Math.floor(pulseCountdown / 60)}:{(pulseCountdown % 60).toString().padStart(2, '0')}
+                  </span>
+                </div>
+
+                <div className="space-y-2">
+                  <span className="text-xs text-zinc-400 font-medium block">Selected Targets ({activePulseSession.targets?.length || 0}):</span>
+                  <div className="space-y-1.5 max-h-56 overflow-y-auto">
+                    {activePulseSession.targets?.map((target) => (
+                      <div
+                        key={target.student_id}
+                        className="p-2.5 rounded-lg bg-zinc-900 border border-zinc-800 flex justify-between items-center text-xs"
+                      >
+                        <div>
+                          <div className="font-semibold text-zinc-200">{target.name}</div>
+                          <div className="font-mono text-[10px] text-zinc-500">{target.roll_number}</div>
+                        </div>
+                        <span className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold ${
+                          target.status === 'VERIFIED'
+                            ? 'bg-emerald-500/20 text-emerald-400'
+                            : target.status === 'FAILED'
+                            ? 'bg-rose-500/20 text-rose-400'
+                            : 'bg-amber-500/20 text-amber-400 animate-pulse'
+                        }`}>
+                          {target.status}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => setActivePulseSession(null)}
+                  className="w-full py-2 bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 text-zinc-300 text-xs font-medium rounded-lg transition cursor-pointer"
+                >
+                  Done / Close Monitor
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}

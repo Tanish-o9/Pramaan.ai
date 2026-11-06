@@ -16,8 +16,8 @@ def load_audio_16k_mono(audio_bytes: bytes):
     Safely loads audio bytes into 16kHz mono numpy float32 array.
     Supports WAV, OGG, FLAC, MP3, and WebM container formats.
     """
+    # 1. First attempt: Direct in-memory load via soundfile
     try:
-        # First attempt: direct in-memory load via soundfile
         audio, sr = sf.read(io.BytesIO(audio_bytes), dtype='float32')
         if audio.ndim > 1:
             audio = np.mean(audio, axis=1)
@@ -25,16 +25,37 @@ def load_audio_16k_mono(audio_bytes: bytes):
             audio = librosa.resample(audio, orig_sr=sr, target_sr=16000)
         return audio, 16000
     except Exception:
-        # Second attempt: librosa via tempfile for container formats like webm
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".audio") as tmp:
+        pass
+
+    # 2. Second attempt: Detect container format by magic header
+    suffix = ".wav"
+    if len(audio_bytes) >= 4:
+        if audio_bytes[:4] == b'\x1a\x45\xdf\xa3':
+            suffix = ".webm"
+        elif audio_bytes[:4] == b'OggS':
+            suffix = ".ogg"
+        elif audio_bytes[:3] == b'ID3' or audio_bytes[:2] == b'\xff\xfb':
+            suffix = ".mp3"
+        elif audio_bytes[:4] == b'fLaC':
+            suffix = ".flac"
+
+    for test_suffix in [suffix, ".wav", ".ogg", ".webm"]:
+        with tempfile.NamedTemporaryFile(delete=False, suffix=test_suffix) as tmp:
             tmp.write(audio_bytes)
             tmp_path = tmp.name
         try:
             audio, sr = librosa.load(tmp_path, sr=16000, mono=True)
             return audio, sr
+        except Exception:
+            continue
         finally:
             if os.path.exists(tmp_path):
-                os.remove(tmp_path)
+                try:
+                    os.remove(tmp_path)
+                except Exception:
+                    pass
+
+    raise ValueError("Audio format not recognised. Please speak into the mic again or upload a standard WAV file.")
 
 def get_voice_embedding(audio_bytes: bytes, min_duration: float = 2.0, min_rms: float = 0.005):
     """

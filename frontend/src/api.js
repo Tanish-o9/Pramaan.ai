@@ -309,4 +309,76 @@ export const api = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ status, remarks }),
     }),
+
+  // Dynamic Digital Student ID
+  getDigitalId: () =>
+    request('/api/student/digital-id'),
+
+  verifyDigitalId: (token) =>
+    request('/api/verify-digital-id', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token }),
+    }),
+
+  // Voice Command Roll-Call
+  processVoiceCommand: (subject_id, transcript) =>
+    request('/api/attendance/voice-command', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ subject_id, transcript }),
+    }),
+
+  // Mid-Class Random Pulse Check
+  triggerPulseCheck: (subject_id, sample_size = 3) =>
+    request('/api/pulse-check/trigger', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ subject_id, sample_size }),
+    }),
+
+  getActivePulse: () =>
+    request('/api/pulse-check/active'),
+
+  respondToPulse: (pulse_id, is_verified, remarks = '') =>
+    request('/api/pulse-check/respond', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pulse_id, is_verified, remarks }),
+    }),
+
+  getPulseStatus: (pulse_id) =>
+    request(`/api/pulse-check/status/${pulse_id}`),
+
+  getPulseHistory: (subject_id) =>
+    request(`/api/pulse-check/history/${subject_id}`),
+
+  // Classroom Seat Map
+  getSeatmap: (subject_id) =>
+    request(`/api/subjects/${subject_id}/seatmap`),
+
+  autoArrangeSeatmap: (subject_id, order_by = 'roll') =>
+    request(`/api/subjects/${subject_id}/seatmap/auto-arrange`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ order_by }),
+    }),
+
+  // HoD Governance & Defaulters
+  getHodAnalytics: () =>
+    request('/api/hod/analytics'),
+
+  getHodDefaultersNoticeUrl: () =>
+    `${BASE_URL}/api/hod/defaulters-notice`,
+
+  // Group / Class Photo Attendance
+  takeGroupPhotoAttendance: (subject_id, fileBlob) => {
+    const fd = new FormData();
+    fd.append('subject_id', subject_id);
+    fd.append('photo', fileBlob, 'group_class_photo.jpg');
+    return request('/api/take-attendance/group-photo', {
+      method: 'POST',
+      body: fd,
+    });
+  },
 };

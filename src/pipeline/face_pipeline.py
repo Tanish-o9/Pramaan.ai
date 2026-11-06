@@ -67,6 +67,76 @@ def get_face_embeddings(image_np):
     faces = detector(image_np, 1)
     return [np.array(facerec.compute_face_descriptor(image_np, sp(image_np, f), 1)) for f in faces]
 
+def get_face_embeddings_with_locations(image_np):
+    """Returns list of (embedding, bounding_box_dict) for all detected faces."""
+    detector, sp, facerec = load_dlib_model()
+    faces = detector(image_np, 1)
+    results = []
+    for f in faces:
+        emb = np.array(facerec.compute_face_descriptor(image_np, sp(image_np, f), 1))
+        box = {
+            "top": int(f.top()),
+            "right": int(f.right()),
+            "bottom": int(f.bottom()),
+            "left": int(f.left())
+        }
+        results.append((emb, box))
+    return results
+
+def predict_group_attendance(image_np, enrolled_students, match_threshold=None, subject_id=None):
+    """
+    Detects all faces in a wide group/classroom photo, matching them against enrolled students.
+    Returns matched students with confidence and bounding boxes, plus unidentified count.
+    """
+    thresh = match_threshold if match_threshold is not None else CONFIG.get("face_match_threshold", 0.60)
+    face_items = get_face_embeddings_with_locations(image_np)
+    
+    recognized_students = {}
+    unidentified_boxes = []
+
+    # Map enrolled student embeddings
+    enrolled_lookup = {}
+    for s in (enrolled_students or []):
+        emb = s.get("face_embedding")
+        if emb:
+            enrolled_lookup[s.get("student_id")] = {
+                "name": s.get("name"),
+                "roll_number": s.get("roll_number"),
+                "embedding": np.array(emb, dtype=np.float32)
+            }
+
+    for emb, box in face_items:
+        best_sid = None
+        min_dist = float("inf")
+
+        for sid, sdata in enrolled_lookup.items():
+            dist = float(np.linalg.norm(sdata["embedding"] - emb))
+            if dist < min_dist:
+                min_dist = dist
+                best_sid = sid
+
+        if best_sid is not None and min_dist <= thresh:
+            conf = max(0.0, min(100.0, round((1.0 - (min_dist / (thresh + 0.2))) * 100, 1)))
+            if best_sid not in recognized_students or conf > recognized_students[best_sid]["confidence"]:
+                recognized_students[best_sid] = {
+                    "student_id": best_sid,
+                    "name": enrolled_lookup[best_sid]["name"],
+                    "roll_number": enrolled_lookup[best_sid]["roll_number"],
+                    "confidence": conf,
+                    "distance": round(min_dist, 3),
+                    "bounding_box": box
+                }
+        else:
+            unidentified_boxes.append(box)
+
+    return {
+        "total_faces_detected": len(face_items),
+        "recognized_count": len(recognized_students),
+        "unidentified_count": len(unidentified_boxes),
+        "recognized": list(recognized_students.values()),
+        "unidentified_boxes": unidentified_boxes
+    }
+
 def get_trained_model():
     students = get_all_student() or []
     x, y = [], []

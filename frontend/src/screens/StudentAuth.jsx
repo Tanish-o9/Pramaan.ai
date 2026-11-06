@@ -17,6 +17,7 @@ export default function StudentAuth({ onAuthSuccess }) {
   const videoRef = useRef(null);
   const streamRef = useRef(null);
   const [cameraActive, setCameraActive] = useState(false);
+  const [shutterWarning, setShutterWarning] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -88,6 +89,51 @@ export default function StudentAuth({ onAuthSuccess }) {
     }
     return () => stopCamera();
   }, [tab]);
+
+  // Monitor live camera stream to detect hardware privacy shutter / closed slider
+  useEffect(() => {
+    if (!cameraActive) {
+      setShutterWarning(false);
+      return;
+    }
+
+    const checkInterval = setInterval(() => {
+      const video = videoRef.current;
+      if (!video || !video.videoWidth || !video.videoHeight) return;
+
+      try {
+        const canvas = document.createElement('canvas');
+        canvas.width = 64;
+        canvas.height = 48;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(video, 0, 0, 64, 48);
+        const imgData = ctx.getImageData(0, 0, 64, 48).data;
+
+        let sum = 0;
+        let sumSq = 0;
+        let samples = 0;
+        for (let i = 0; i < imgData.length; i += 16) {
+          const brightness = 0.299 * imgData[i] + 0.587 * imgData[i + 1] + 0.114 * imgData[i + 2];
+          sum += brightness;
+          sumSq += brightness * brightness;
+          samples++;
+        }
+        if (samples > 0) {
+          const mean = sum / samples;
+          const variance = (sumSq / samples) - (mean * mean);
+          const stdDev = Math.sqrt(Math.max(0, variance));
+
+          // Solid black, pitch dark, or uniform gray lock-screen placeholder from hardware
+          const isBlocked = mean < 12 || (stdDev < 6.0 && (mean < 65 || (mean > 105 && mean < 155)));
+          setShutterWarning(isBlocked);
+        }
+      } catch (e) {
+        // ignore
+      }
+    }, 1200);
+
+    return () => clearInterval(checkInterval);
+  }, [cameraActive]);
 
   const captureFrame = () => {
     const video = videoRef.current;
@@ -213,29 +259,45 @@ export default function StudentAuth({ onAuthSuccess }) {
   );
 
   return (
-    <div className="max-w-sm mx-auto px-4 py-8 w-full">
-      <div className="panel rounded-xl p-6 shadow-xl">
+    <div className="max-w-md mx-auto px-4 py-8 sm:py-12 w-full">
+      <div className="panel rounded-2xl p-6 sm:p-7 shadow-2xl border border-white/10 relative overflow-hidden">
+        {/* Top ambient glow */}
+        <div className="absolute -top-16 -right-16 w-36 h-36 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute -bottom-16 -left-16 w-36 h-36 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
+
         <div className="text-center mb-6">
-          <h2 className="text-base font-semibold text-zinc-100">Student Portal</h2>
-          <p className="text-xs text-zinc-400 mt-0.5">Sign in with Face ID or Roll Number</p>
+          <h2 className="text-xl font-bold tracking-tight text-zinc-100">Student Portal</h2>
+          <p className="text-xs text-zinc-400 mt-1">Sign in with Face ID or Roll Number</p>
         </div>
 
-        <div className="grid grid-cols-3 p-1 rounded-md bg-zinc-900 border border-zinc-800 text-xs mb-5">
+        <div className="grid grid-cols-3 p-1 rounded-xl bg-zinc-950/90 border border-zinc-800 text-xs mb-6 shadow-inner">
           <button
             onClick={() => { setTab('face'); setError(''); }}
-            className={`py-1.5 rounded font-medium transition cursor-pointer ${tab === 'face' ? 'bg-zinc-800 text-zinc-100' : 'text-zinc-400 hover:text-zinc-200'}`}
+            className={`py-2 rounded-lg font-semibold transition-all cursor-pointer ${
+              tab === 'face' 
+                ? 'bg-zinc-800 text-white shadow-md' 
+                : 'text-zinc-400 hover:text-zinc-200'
+            }`}
           >
             Face ID
           </button>
           <button
             onClick={() => { setTab('pin'); setError(''); }}
-            className={`py-1.5 rounded font-medium transition cursor-pointer ${tab === 'pin' ? 'bg-zinc-800 text-zinc-100' : 'text-zinc-400 hover:text-zinc-200'}`}
+            className={`py-2 rounded-lg font-semibold transition-all cursor-pointer ${
+              tab === 'pin' 
+                ? 'bg-zinc-800 text-white shadow-md' 
+                : 'text-zinc-400 hover:text-zinc-200'
+            }`}
           >
             Roll & PIN
           </button>
           <button
             onClick={() => { setTab('register'); setError(''); }}
-            className={`py-1.5 rounded font-medium transition cursor-pointer ${tab === 'register' ? 'bg-zinc-800 text-zinc-100' : 'text-zinc-400 hover:text-zinc-200'}`}
+            className={`py-2 rounded-lg font-semibold transition-all cursor-pointer ${
+              tab === 'register' 
+                ? 'bg-zinc-800 text-white shadow-md' 
+                : 'text-zinc-400 hover:text-zinc-200'
+            }`}
           >
             Register
           </button>
@@ -282,9 +344,23 @@ export default function StudentAuth({ onAuthSuccess }) {
                   <div className="absolute inset-0 border border-zinc-700/50 rounded-lg pointer-events-none flex items-center justify-center">
                     <div className="w-36 h-48 border border-zinc-400/40 rounded-full"></div>
                   </div>
+                  {shutterWarning && (
+                    <div className="absolute inset-x-3 bottom-9 p-2 rounded-lg bg-amber-500/95 text-zinc-950 text-[11px] font-semibold text-center backdrop-blur-sm shadow-xl flex items-center justify-center gap-1.5 animate-pulse z-10">
+                      <AlertCircle className="w-4 h-4 shrink-0 text-zinc-950" />
+                      <span>Laptop webcam slider/shutter band hai! Upar lens ka cover slide karein.</span>
+                    </div>
+                  )}
                   <span className="absolute bottom-2 left-2 text-[10px] px-2 py-0.5 rounded bg-zinc-900/80 text-zinc-300 border border-zinc-800 flex items-center gap-1 backdrop-blur-xs">
                     <ShieldCheck className="w-3 h-3 text-emerald-400" /> Liveness Active
                   </span>
+                  <button
+                    type="button"
+                    onClick={startCamera}
+                    title="Restart Camera"
+                    className="absolute top-2 right-2 text-zinc-400 hover:text-white p-1 rounded bg-zinc-900/80 border border-zinc-800 cursor-pointer backdrop-blur-xs text-[10px] flex items-center gap-1"
+                  >
+                    <RefreshCw className="w-3 h-3" />
+                  </button>
                 </>
               ) : (
                 <div className="text-center p-4">
@@ -304,7 +380,7 @@ export default function StudentAuth({ onAuthSuccess }) {
             <button
               onClick={() => handleFaceLogin()}
               disabled={loading || !cameraActive}
-              className="w-full py-2.5 px-3 rounded-md bg-zinc-100 text-zinc-950 hover:bg-white text-xs font-semibold flex items-center justify-center gap-1.5 transition disabled:opacity-50 cursor-pointer"
+              className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-zinc-950 text-xs font-bold flex items-center justify-center gap-2 transition-all shadow-lg shadow-emerald-500/20 active:scale-98 disabled:opacity-50 cursor-pointer"
             >
               {loading ? (
                 <>

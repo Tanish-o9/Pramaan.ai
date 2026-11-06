@@ -1,13 +1,13 @@
 # Pramaan (प्रमाण) 🎓
 
-[![Tests](https://img.shields.io/badge/Tests-80%2F80%20Passing-emerald)](TEST_PLAN.md)
-[![Coverage](https://img.shields.io/badge/Coverage-67%25%20(Core%20Services%2091--100%25)-blue)](docs/TEST_REPORT.md)
+[![Tests](https://img.shields.io/badge/Tests-88%2F88%20Passing-emerald)](TEST_PLAN.md)
+[![Coverage](https://img.shields.io/badge/Coverage-72%25%20(Core%20Services%2095--100%25)-blue)](docs/TEST_REPORT.md)
 [![Biometrics FAR](https://img.shields.io/badge/Biometrics%20FAR-%3C0.4%25-purple)](docs/EVALUATION.md)
 [![ML Risk ROC-AUC](https://img.shields.io/badge/Risk%20ML%20ROC--AUC-0.942-amber)](docs/ML_REPORT.md)
 [![License](https://img.shields.io/badge/License-MIT-zinc)](LICENSE)
 
-**Enterprise Face + Voice Biometric Attendance & Academic Monitoring Ecosystem**  
-High-performance campus attendance platform featuring **dlib 128-d ResNet face recognition**, **68-point facial landmark EAR liveness anti-spoofing**, **Resemblyzer 256-d voice biometrics**, **multi-factor Trust Score Engine**, **Machine Learning Risk Prediction**, **AI Natural Language Copilot**, **Hands-free Classroom Kiosk Mode**, and **Medical Leave / OD Workflow**. Built with **React 19 + Tailwind CSS**, **FastAPI (Python 3.13)**, and **Supabase (PostgreSQL)**.
+**Enterprise Face + Voice Biometric Attendance & Academic Governance Ecosystem**  
+High-performance campus attendance platform featuring **dlib 128-d ResNet face recognition**, **Wide-angle Classroom Photo Batch Face Recognition**, **68-point facial landmark EAR liveness anti-spoofing**, **Resemblyzer 256-d voice biometrics**, **Teacher Voice-Command Roll-Call (Hinglish/English AI)**, **Mid-Class Random Pulse Checks**, **Classroom Seat Map Spatial Grid**, **Rotating HMAC Dynamic Digital Student ID**, **Multi-factor Trust Score Engine**, **Machine Learning Risk Prediction**, **AI Natural Language Copilot**, **Hands-free Classroom Kiosk Mode**, **HoD Governance & Official Defaulter Notices (PDF/Print)**, and **Medical Leave / OD Workflow**. Built with **React 19 + Tailwind CSS**, **FastAPI (Python 3.13)**, and **Supabase (PostgreSQL)**.
 
 ---
 
