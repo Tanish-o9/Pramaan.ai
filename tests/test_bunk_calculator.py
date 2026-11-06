@@ -1,5 +1,7 @@
 import pytest
+
 from src.services.bunk_calculator import calculate_bunk_metrics
+
 
 def test_zero_classes_conducted():
     res = calculate_bunk_metrics(0, 0)

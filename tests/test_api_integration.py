@@ -1,7 +1,9 @@
 import pytest
 from fastapi.testclient import TestClient
+
 from server import app
 from src.auth import create_access_token
+
 
 @pytest.fixture
 def client():

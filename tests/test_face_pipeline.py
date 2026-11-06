@@ -1,13 +1,15 @@
-import pytest
 import numpy as np
+import pytest
+
 from src.pipeline.face_pipeline import (
+    CONFIG,
     check_liveness_landmarks,
-    get_face_embeddings,
-    get_face_config,
-    set_face_config,
     get_eye_aspect_ratio,
-    CONFIG
+    get_face_config,
+    get_face_embeddings,
+    set_face_config,
 )
+
 
 def test_face_config_get_and_set():
     orig = get_face_config()

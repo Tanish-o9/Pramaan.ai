@@ -2,8 +2,9 @@
 Bunk & Attendance Calculator Service for Pramaan.
 Computes percentage, permissible bunks, and recovery target classes to satisfy the 75% attendance rule.
 """
-from typing import Dict, Any
 import math
+from typing import Any, Dict
+
 
 def calculate_bunk_metrics(
     total_classes: int,
@@ -21,7 +22,7 @@ def calculate_bunk_metrics(
     """
     if total_classes < 0 or attended_classes < 0 or excused_classes < 0:
         raise ValueError("Class counts cannot be negative")
-    
+
     if attended_classes > total_classes:
         raise ValueError("Attended classes cannot exceed total classes conducted")
 

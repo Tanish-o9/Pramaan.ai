@@ -1,10 +1,12 @@
-import pytest
 import os
+
+import pytest
+
 
 def test_evaluation_report_exists_and_meets_quality_gates():
     report_path = "docs/EVALUATION.md"
     assert os.path.exists(report_path), "docs/EVALUATION.md must exist"
-    
+
     with open(report_path, "r", encoding="utf-8") as f:
         content = f.read()
 

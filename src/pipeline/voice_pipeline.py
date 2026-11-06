@@ -2,10 +2,12 @@ import functools
 import io
 import os
 import tempfile
+
 import librosa
 import numpy as np
 import soundfile as sf
 from resemblyzer import VoiceEncoder, preprocess_wav
+
 
 @functools.lru_cache(maxsize=1)
 def load_voice_encoder():

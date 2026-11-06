@@ -3,10 +3,13 @@ Unit & Integration Tests for Feature 1: pgvector 1:N Vector Search,
 HNSW indexing, Subject Enrollment Scoping, and Margin Ambiguity Gating.
 """
 
-import pytest
+from unittest.mock import MagicMock, patch
+
 import numpy as np
-from unittest.mock import patch, MagicMock
+import pytest
+
 from src.services.vector_search_service import VectorSearchService, vector_service
+
 
 @pytest.fixture
 def test_vectors():
@@ -47,7 +50,7 @@ def test_vectors():
 
 def test_save_embedding_dimensions(test_vectors):
     svc = VectorSearchService()
-    
+
     # Valid face (128-d)
     with patch("src.services.vector_search_service.supabase") as mock_sb:
         mock_sb.table().insert().execute.return_value.data = [{"id": 1}]
@@ -108,7 +111,7 @@ def test_search_face_no_match_above_threshold(test_vectors):
 
 def test_margin_check_rejects_ambiguous_lookalikes():
     svc = VectorSearchService()
-    
+
     # Candidate 1: Student A with distance 0.38
     # Candidate 2: Student B with distance 0.40 (margin is 0.02, < min_margin 0.05)
     candidates = [
@@ -125,7 +128,7 @@ def test_margin_check_rejects_ambiguous_lookalikes():
 
 def test_margin_check_allows_multiple_embeddings_of_same_student():
     svc = VectorSearchService()
-    
+
     # Candidate 1: Student A (Photo 1) with distance 0.25
     # Candidate 2: Student A (Photo 2) with distance 0.27
     # Both belong to the SAME student_id (201)! Margin check must NOT reject!

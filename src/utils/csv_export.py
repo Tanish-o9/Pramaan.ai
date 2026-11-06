@@ -4,7 +4,8 @@ Handles unicode names, escaping of quotes, commas, and newlines.
 """
 import csv
 import io
-from typing import List, Dict, Any
+from typing import Any, Dict, List
+
 
 def format_attendance_csv(records: List[Dict[str, Any]]) -> str:
     """

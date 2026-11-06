@@ -7,9 +7,11 @@ Equipped with strict prompt-injection defenses and role-scoped data boundaries.
 
 import re
 from collections import defaultdict
-from typing import Dict, Any, List, Optional
+from typing import Any, Dict, List, Optional
+
 from src.services.bunk_calculator import calculate_bunk_metrics
 from src.services.risk_prediction_service import risk_predictor
+
 
 class PramaanCopilot:
     """
@@ -40,7 +42,7 @@ class PramaanCopilot:
         Process incoming natural language query and return an actionable scoped response.
         """
         clean_msg = self.sanitize_input(user_message).lower()
-        
+
         if not clean_msg:
             return {
                 "reply": "Please ask a question about your attendance, subjects, or eligibility.",
@@ -128,7 +130,7 @@ class PramaanCopilot:
                     reports.append(f"• **{sub_info.get('name')}**: {m['percentage']}% ({m['bunks_allowed']} safe bunks)")
 
                 return {
-                    "reply": f"Here is your safe bunk status across all subjects:\n" + "\n".join(reports),
+                    "reply": "Here is your safe bunk status across all subjects:\n" + "\n".join(reports),
                     "intent": "bunk_summary",
                     "suggestions": ["Can I bunk DBMS?", "What happens if I miss next class?"]
                 }
@@ -156,7 +158,7 @@ class PramaanCopilot:
                 reply = "Here are the subjects needing your attention:\n\n" + "\n\n".join(risk_reports)
             else:
                 reply = f"🎉 Great job, {name}! None of your enrolled subjects are currently flagged at-risk. All subjects are above 75%."
-            
+
             return {
                 "reply": reply,
                 "intent": "risk_analysis",
@@ -192,9 +194,9 @@ class PramaanCopilot:
         if any(w in msg for w in ["leave", "medical", "duty", "od", "sick", "doctor", "certificate"]):
             return {
                 "reply": (
-                    f"To request an excused absence, go to the **Leave & OD** tab in your dashboard.\n"
-                    f"Upload your medical prescription or event certificate with reason and dates. "
-                    f"Once approved by your faculty, it waives attendance penalties in your 75% bunk calculation."
+                    "To request an excused absence, go to the **Leave & OD** tab in your dashboard.\n"
+                    "Upload your medical prescription or event certificate with reason and dates. "
+                    "Once approved by your faculty, it waives attendance penalties in your 75% bunk calculation."
                 ),
                 "intent": "leave_help",
                 "suggestions": ["Can I bunk tomorrow?", "My attendance summary"]
@@ -227,7 +229,7 @@ class PramaanCopilot:
         if any(w in msg for w in ["below 75", "shortage", "at risk", "risk", "defaulter", "kam hai", "low attendance"]):
             if not logs:
                 return {
-                    "reply": f"No attendance records have been logged yet for the selected subject.",
+                    "reply": "No attendance records have been logged yet for the selected subject.",
                     "intent": "shortage_list",
                     "suggestions": ["Class attendance overview", "Show attendance anomalies"]
                 }

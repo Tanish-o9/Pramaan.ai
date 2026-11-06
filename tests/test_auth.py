@@ -1,11 +1,11 @@
-import pytest
 from datetime import timedelta
+
+import pytest
 from fastapi import HTTPException
-from src.auth import (
-    create_access_token, create_refresh_token, decode_token,
-    require_role
-)
-from src.database.db import hash_pass, check_pass, is_default_pin
+
+from src.auth import create_access_token, create_refresh_token, decode_token, require_role
+from src.database.db import check_pass, hash_pass, is_default_pin
+
 
 def test_password_hashing():
     pwd = "secretpassword123"

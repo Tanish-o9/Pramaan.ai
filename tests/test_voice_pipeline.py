@@ -1,12 +1,11 @@
-import pytest
 import io
+
 import numpy as np
+import pytest
 import soundfile as sf
-from src.pipeline.voice_pipeline import (
-    get_voice_embedding,
-    identify_speaker,
-    load_audio_16k_mono
-)
+
+from src.pipeline.voice_pipeline import get_voice_embedding, identify_speaker, load_audio_16k_mono
+
 
 def test_silence_rejection():
     silence = np.zeros(16000 * 3, dtype=np.float32)
@@ -35,7 +34,7 @@ def test_sample_rate_resampling_to_16k_mono():
 
     buf = io.BytesIO()
     sf.write(buf, stereo, sr_orig, format='WAV')
-    
+
     # Load and resample
     audio_resampled, sr = load_audio_16k_mono(buf.getvalue())
     assert sr == 16000

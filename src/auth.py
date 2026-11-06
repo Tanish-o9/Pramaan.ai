@@ -1,7 +1,8 @@
 import os
 from datetime import datetime, timedelta, timezone
+
 import jwt
-from fastapi import Request, Response, HTTPException, Depends
+from fastapi import Depends, HTTPException, Request, Response
 
 JWT_SECRET_KEY = os.environ.get("JWT_SECRET_KEY", "presence-ai-default-ultra-secure-jwt-secret-key-32chars")
 JWT_ALGORITHM = "HS256"

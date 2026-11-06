@@ -2,7 +2,7 @@
 Trust Score Engine for Pramaan Attendance Verification.
 Computes a multi-factor confidence rating (0-100) per attendance event.
 """
-from typing import Dict, Any, Optional
+from typing import Any, Dict, Optional
 
 DEFAULT_WEIGHTS = {
     "face_match": 35.0,

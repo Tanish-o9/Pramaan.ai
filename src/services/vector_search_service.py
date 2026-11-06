@@ -5,10 +5,12 @@ subject enrollment scoping, margin ambiguity checks, and automatic in-memory fal
 """
 
 import logging
+from typing import Any, Dict, List, Optional
+
 import numpy as np
-from typing import List, Dict, Any, Optional
-from src.database.config import supabase
+
 from src.core.config import settings
+from src.database.config import supabase
 from src.database.db import get_enrolled
 
 logger = logging.getLogger(__name__)

@@ -1,7 +1,10 @@
-import pytest
 import csv
 import io
+
+import pytest
+
 from src.utils.csv_export import format_attendance_csv
+
 
 def test_csv_export_header_and_basic_row():
     records = [{

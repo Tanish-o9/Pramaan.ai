@@ -2,7 +2,8 @@
 Classroom Seat Map & Spatial Attendance Service for Pramaan / Presence.ai.
 Manages classroom layouts (rows x columns) and student desk assignments.
 """
-from typing import Dict, Any, List, Optional
+from typing import Any, Dict, List, Optional
+
 
 class SeatmapService:
     def __init__(self):
@@ -11,10 +12,10 @@ class SeatmapService:
         self._seatmaps: Dict[int, Dict[str, Any]] = {}
 
     def get_or_create_seatmap(
-        self, 
-        subject_id: int, 
-        rows: int = 5, 
-        cols: int = 6, 
+        self,
+        subject_id: int,
+        rows: int = 5,
+        cols: int = 6,
         enrolled_students: Optional[List[Dict[str, Any]]] = None
     ) -> Dict[str, Any]:
         """
@@ -87,7 +88,7 @@ class SeatmapService:
         """Automatically assigns students across desks in alphabetical or roll number order."""
         m = self.get_or_create_seatmap(subject_id, enrolled_students=enrolled_students)
         sorted_stds = sorted(
-            enrolled_students, 
+            enrolled_students,
             key=lambda x: str(x.get("roll_number" if order_by == "roll" else "name", "")).lower()
         )
 

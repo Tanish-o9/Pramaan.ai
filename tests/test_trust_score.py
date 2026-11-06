@@ -1,5 +1,7 @@
 import pytest
+
 from src.services.trust_score_service import TrustScoreEngine, trust_engine
+
 
 def test_high_trust_auto_accepted():
     engine = TrustScoreEngine()

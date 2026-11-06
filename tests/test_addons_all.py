@@ -6,12 +6,14 @@ Unit & Integration Tests for Pramaan Advanced Add-ons:
 4. Medical Leave & OD Workflow
 """
 
+from unittest.mock import MagicMock, patch
+
 import pytest
-from unittest.mock import patch, MagicMock
-from src.services.risk_prediction_service import risk_predictor, AttendanceRiskPredictor
-from src.services.ai_copilot_service import copilot, PramaanCopilot
-from src.services.leave_service import leave_service
+
+from src.services.ai_copilot_service import PramaanCopilot, copilot
 from src.services.bunk_calculator import calculate_bunk_metrics
+from src.services.leave_service import leave_service
+from src.services.risk_prediction_service import AttendanceRiskPredictor, risk_predictor
 
 # ================= 1. ML RISK PREDICTOR TESTS =================
 

@@ -3,7 +3,8 @@ Head of Department (HoD) Governance & Analytics Service for Pramaan / Presence.a
 Generates multi-section academic compliance reports and official Defaulter Notices.
 """
 from datetime import datetime, timezone
-from typing import Dict, Any, List
+from typing import Any, Dict, List
+
 
 class HodService:
     def __init__(self, institution_name: str = "Pramaan Institute of Technology", default_threshold: float = 75.0):
@@ -90,7 +91,7 @@ class HodService:
         Generates clean, printable HTML for official campus notice board.
         """
         now_str = datetime.now(timezone.utc).strftime("%d %B %Y")
-        
+
         rows_html = ""
         for i, d in enumerate(defaulters, 1):
             rows_html += f"""

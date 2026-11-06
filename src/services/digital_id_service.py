@@ -3,13 +3,15 @@ Digital ID Service for Pramaan / Presence.ai.
 Provides cryptographically signed, rotating dynamic student ID tokens
 with HMAC-SHA256 verification and anti-screenshot rotation.
 """
-import hmac
-import hashlib
-import json
 import base64
+import hashlib
+import hmac
+import json
 import time
-from typing import Dict, Any, Optional
+from typing import Any, Dict, Optional
+
 from src.core.config import settings
+
 
 class DigitalIdService:
     def __init__(self, secret_key: Optional[str] = None, token_validity_sec: int = 60):
@@ -61,7 +63,7 @@ class DigitalIdService:
                 return {"valid": False, "error": "Invalid token format"}
 
             b64_payload, signature = parts[1], parts[2]
-            
+
             # Recompute signature
             expected_sig = hmac.new(self.secret_key, b64_payload.encode("utf-8"), hashlib.sha256).hexdigest()[:24]
             if not hmac.compare_digest(signature, expected_sig):
@@ -74,11 +76,11 @@ class DigitalIdService:
 
             now = int(time.time())
             exp = payload.get("exp", 0)
-            
+
             # Allow 15s clock drift
             if now > exp + 15:
                 return {
-                    "valid": False, 
+                    "valid": False,
                     "error": f"Token expired {now - exp}s ago. Please refresh the digital ID.",
                     "student_id": payload.get("sid"),
                     "roll_number": payload.get("roll")

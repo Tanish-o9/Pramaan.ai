@@ -1,9 +1,11 @@
 import functools
 import os
+
 import dlib
-import numpy as np
 import face_recognition_models
+import numpy as np
 from sklearn.svm import SVC
+
 from src.database.db import get_all_student
 
 CONFIG = {
@@ -90,7 +92,7 @@ def predict_group_attendance(image_np, enrolled_students, match_threshold=None, 
     """
     thresh = match_threshold if match_threshold is not None else CONFIG.get("face_match_threshold", 0.60)
     face_items = get_face_embeddings_with_locations(image_np)
-    
+
     recognized_students = {}
     unidentified_boxes = []
 
@@ -191,7 +193,7 @@ def predict_attendance_with_confidence(image_np, match_threshold=None, subject_i
         pid = int(clf.predict([enc])[0]) if len(all_students) >= 2 else int(all_students[0])
         student_emb = x_train[y_train.index(pid)]
         distance = np.linalg.norm(student_emb - enc)
-        
+
         # Euclidean distance <= threshold
         if distance <= thresh:
             conf = max(0.0, min(100.0, round((1.0 - (distance / (thresh + 0.2))) * 100, 1)))

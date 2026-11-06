@@ -3,10 +3,11 @@ Mid-Class Random Pulse Check Service for Pramaan / Presence.ai.
 Triggers random liveness and face verification prompts during active lectures
 to eliminate class-abandonment proxy loopholes.
 """
-import time
 import random
+import time
 import uuid
-from typing import Dict, Any, List, Optional
+from typing import Any, Dict, List, Optional
+
 
 class PulseCheckService:
     def __init__(self, default_duration_sec: int = 120):

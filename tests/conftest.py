@@ -3,11 +3,12 @@ Global Pytest Configuration and Test Fixtures for Pramaan.
 Provides mock database storage, test client fixtures, and synthetic media paths.
 """
 import os
+from typing import Any, Dict, List
+
+import httpx
 import pytest
 import pytest_asyncio
-from typing import Dict, Any, List
 from fastapi.testclient import TestClient
-import httpx
 
 from server import app
 from src.auth import create_access_token
@@ -86,7 +87,7 @@ class MockSupabaseTable:
                 entry["id"] = len(table) + 1
             table.append(entry)
             inserted.append(entry)
-        
+
         class MockResponse:
             def __init__(self, data):
                 self.data = data

@@ -1,12 +1,15 @@
-import pytest
 import time
+
+import pytest
+
 from src.services.session_token_service import (
-    generate_session_code,
-    generate_qr_payload,
-    validate_session_code,
+    STEP_SECONDS,
     clear_used_nonces,
-    STEP_SECONDS
+    generate_qr_payload,
+    generate_session_code,
+    validate_session_code,
 )
+
 
 def setup_function():
     clear_used_nonces()

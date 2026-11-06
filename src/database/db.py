@@ -1,5 +1,7 @@
-from src.database.config import supabase
 import bcrypt
+
+from src.database.config import supabase
+
 
 # ================= Teacher Auth =================
 def check_teacher_exists(username):
@@ -29,7 +31,7 @@ def teacher_login(username, password):
         teacher = response.data[0]
         if check_pass(password, teacher.get("password")):
             return teacher
-    return None    
+    return None
 
 # ================= Student CRUD & Auth =================
 def get_all_student():

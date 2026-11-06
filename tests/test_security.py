@@ -1,10 +1,13 @@
-import pytest
-import jwt
 import io
 import time
+
+import jwt
+import pytest
 from fastapi.testclient import TestClient
+
 from server import app
-from src.auth import create_access_token, JWT_SECRET_KEY
+from src.auth import JWT_SECRET_KEY, create_access_token
+
 
 @pytest.fixture
 def client():

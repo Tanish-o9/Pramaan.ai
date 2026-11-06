@@ -6,9 +6,10 @@ and detects anomalous proxy bursts (e.g. rapid-fire attendance from identical IP
 """
 
 import math
-from datetime import datetime
 from collections import defaultdict
-from typing import List, Dict, Any, Optional
+from datetime import datetime
+from typing import Any, Dict, List, Optional
+
 
 class AttendanceRiskPredictor:
     """
@@ -33,11 +34,11 @@ class AttendanceRiskPredictor:
         Calculate end-of-term attendance risk for a single student in a subject.
         """
         term_classes = total_term_classes or self.default_term_classes
-        
+
         # Sort logs chronologically
         sorted_logs = sorted(logs, key=lambda x: x.get("timestamp", ""))
         total_held = len(sorted_logs)
-        
+
         if total_held == 0:
             return {
                 "student_id": student_id,
@@ -111,12 +112,12 @@ class AttendanceRiskPredictor:
         # Negative momentum: up to 10 pts
         pct_deficit = max(0.0, self.target_pct - current_pct)
         score_current = min(40.0, pct_deficit * 2.0)
-        
+
         proj_deficit = max(0.0, self.target_pct - projected_final_pct)
         score_proj = min(30.0, proj_deficit * 1.5)
-        
+
         score_streak = min(20.0, consecutive_streak * 6.0)
-        
+
         momentum_drop = max(0.0, current_pct - recent_pct)
         score_momentum = min(10.0, momentum_drop * 0.5)
 
@@ -149,13 +150,13 @@ class AttendanceRiskPredictor:
         # (attended + x) / (total_held + remaining) >= 0.75
         required_final_attended = math.ceil(0.75 * (total_held + remaining_classes))
         needed_from_remaining = max(0, required_final_attended - effective_attended)
-        
+
         if current_pct >= self.target_pct:
             safe_bunks = math.floor((effective_attended - 0.75 * total_held) / 0.75) if total_held > 0 else 0
             safe_bunks = max(0, safe_bunks)
             recovery_plan = f"Attendance is secure ({current_pct}%). You can safely miss up to {safe_bunks} classes without dropping below {self.target_pct}%."
         elif remaining_classes > 0 and needed_from_remaining > remaining_classes:
-            recovery_plan = f"Mathematically unable to reach 75% even with 100% future attendance. Contact faculty for medical/OD condonation."
+            recovery_plan = "Mathematically unable to reach 75% even with 100% future attendance. Contact faculty for medical/OD condonation."
         elif remaining_classes > 0 and needed_from_remaining > 0:
             recovery_plan = f"Must attend at least {needed_from_remaining} of remaining {remaining_classes} lectures to recover to 75%."
         else:
@@ -196,7 +197,7 @@ class AttendanceRiskPredictor:
             student_id = log.get("student_id")
             student_info = log.get("students", {}) or {}
             student_label = f"{student_info.get('name', f'ID {student_id}')} ({student_info.get('roll_number', 'N/A')})"
-            
+
             # Minute key
             if ts_str and len(ts_str) >= 16:
                 minute_key = ts_str[:16] # YYYY-MM-DDTHH:MM
@@ -210,7 +211,7 @@ class AttendanceRiskPredictor:
             breakdown = log.get("trust_breakdown") or {}
             ip = breakdown.get("ip") or breakdown.get("ip_address")
             device_hash = breakdown.get("device_fingerprint") or breakdown.get("device_hash")
-            
+
             if ip and ip not in ("127.0.0.1", "localhost", "unknown"):
                 ip_clusters[f"IP:{ip}"].append({
                     "log_id": log.get("id"),

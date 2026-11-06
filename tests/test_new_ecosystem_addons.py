@@ -8,12 +8,14 @@ Unit Tests for New Ecosystem Add-ons:
 """
 
 import time
+
 import pytest
+
 from src.services.digital_id_service import DigitalIdService, digital_id_service
-from src.services.voice_command_service import VoiceCommandService, voice_command_service
+from src.services.hod_service import HodService, hod_service
 from src.services.pulse_check_service import PulseCheckService, pulse_check_service
 from src.services.seatmap_service import SeatmapService, seatmap_service
-from src.services.hod_service import HodService, hod_service
+from src.services.voice_command_service import VoiceCommandService, voice_command_service
 
 # ================= 1. DIGITAL ID TESTS =================
 
@@ -35,7 +37,7 @@ def test_digital_id_generation_and_verification():
 def test_digital_id_tampered_token_rejected():
     svc = DigitalIdService()
     data = svc.generate_token(student_id=1, roll_number="21CS001", name="Alice")
-    
+
     # Tamper with the payload string
     tampered = data["token"][:-4] + "ABCD"
     verification = svc.verify_token(tampered)

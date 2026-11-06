@@ -5,7 +5,8 @@ faculty approvals/rejections, and calculates excused attendance credits.
 """
 
 from datetime import datetime, timezone
-from typing import List, Dict, Any, Optional
+from typing import Any, Dict, List, Optional
+
 from src.database.config import supabase
 
 # Local in-memory store for development/testing and fallback if table is not yet created in Supabase
@@ -50,7 +51,7 @@ class LeaveService:
         document_url: str = ""
     ) -> Dict[str, Any]:
         global _LEAVE_ID_COUNTER
-        
+
         if not reason or len(reason.strip()) < 5:
             raise ValueError("Please provide a valid reason (at least 5 characters)")
 
@@ -138,7 +139,7 @@ class LeaveService:
         Each approved leave counts as 1 or multiple excused sessions.
         """
         leaves = [
-            l for l in _LOCAL_LEAVE_STORE 
+            l for l in _LOCAL_LEAVE_STORE
             if l["student_id"] == student_id and l["subject_id"] == subject_id and l["status"] == "approved"
         ]
         # Approximation: Each approved leave grant provides 2 excused attendance credits by default

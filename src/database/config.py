@@ -1,6 +1,8 @@
 import os
 import tomllib
-from supabase import create_client, Client
+
+from supabase import Client, create_client
+
 
 def load_credentials():
     url = os.environ.get("SUPABASE_URL")

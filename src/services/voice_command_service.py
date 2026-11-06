@@ -3,7 +3,7 @@ Voice Command Roll-Call Parsing Service for Pramaan / Presence.ai.
 Supports English, Hindi, and Hinglish spoken commands to mark attendance rosters.
 """
 import re
-from typing import List, Dict, Any, Set
+from typing import Any, Dict, List, Set
 
 # Hindi number words mapping
 HINDI_NUMBER_WORDS = {
@@ -55,13 +55,13 @@ class VoiceCommandService:
 
         t = transcript.lower().strip()
         all_student_ids = {s.get("student_id") for s in enrolled_students if s.get("student_id")}
-        
+
         # Build lookup maps for matching
         # Roll number -> student_id, Suffix number -> student_id
         roll_to_id = {}
         suffix_to_id = {}
         id_to_student = {}
-        
+
         for s in enrolled_students:
             sid = s.get("student_id")
             roll = str(s.get("roll_number", "")).strip().lower()
@@ -81,9 +81,9 @@ class VoiceCommandService:
 
         # 1. Pattern: "Mark all present except ..." / "Sabhi present sirf ... absent"
         all_present_except_pattern = (
-            "all present except" in t or 
-            "sab present" in t or 
-            "sabhi present" in t or 
+            "all present except" in t or
+            "sab present" in t or
+            "sabhi present" in t or
             "all are present except" in t or
             "everyone present except" in t
         )
