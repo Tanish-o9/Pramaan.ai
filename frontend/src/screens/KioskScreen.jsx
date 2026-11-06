@@ -19,6 +19,7 @@ import {
   Upload
 } from 'lucide-react';
 import { api } from '../api';
+import { AKGEC_META, getCurrentLectureSlot } from '../akgecTimetable';
 
 export default function KioskScreen({ subject: initialSubject, onExit }) {
   const videoRef = useRef(null);
@@ -108,17 +109,35 @@ export default function KioskScreen({ subject: initialSubject, onExit }) {
       });
   }, []);
 
-  // Fresh Live Terminal Session for Selected Subject (100% Real-Time Live Only)
+  // Persistent Roster Fetching: When switching subjects, load existing marked records from database
+  const loadKioskRoster = async (subId) => {
+    if (!subId) return;
+    try {
+      const res = await api.getKioskRoster(subId);
+      if (res && res.status === 'success') {
+        const records = res.records || [];
+        setVerifiedList(records);
+        setStats({
+          markedCount: res.marked_count ?? records.length,
+          totalEnrolled: res.total_enrolled || 12,
+        });
+        // Pre-fill cooldownCache with all already marked students so they are never re-announced
+        records.forEach((r) => {
+          if (r.student_id) {
+            cooldownCache.current.set(r.student_id, Infinity);
+          }
+        });
+      }
+    } catch (err) {
+      console.error('Failed to load kiosk roster:', err);
+    }
+  };
+
   useEffect(() => {
     if (activeSubject?.subject_id) {
-      setStats({
-        markedCount: 0,
-        totalEnrolled: activeSubject.total_enrolled || 12,
-      });
-      setVerifiedList([]);
-      cooldownCache.current.clear();
+      loadKioskRoster(activeSubject.subject_id);
     }
-  }, [activeSubject]);
+  }, [activeSubject?.subject_id]);
 
   // Start Camera Stream
   const startCamera = async (facing = cameraFacing) => {
@@ -189,48 +208,72 @@ export default function KioskScreen({ subject: initialSubject, onExit }) {
           setDetectedBoxes([]);
         }
 
-        if (res.status === 'success' || res.status === 'already_marked') {
+        if (res.status === 'success') {
           const student = res.student || { name: res.name, roll_number: res.roll_number, student_id: res.student_id };
           const sid = student.student_id;
-          const now = Date.now();
-          const lastSeen = cooldownCache.current.get(sid) || 0;
 
-          // Avoid duplicate alerts within 25 seconds
-          if (now - lastSeen > 25000) {
-            cooldownCache.current.set(sid, now);
-            playSuccessChime();
-            announceStudent(student.name);
+          // Lock in cooldownCache permanently for this lecture session
+          cooldownCache.current.set(sid, Infinity);
 
-            setLastMatch({
-              name: student.name,
-              roll: student.roll_number,
-              confidence: res.confidence || 98.4,
-              trust: res.trust_score || 96,
-              isNew: res.status === 'success',
-            });
+          playSuccessChime();
+          announceStudent(student.name);
 
-            // Populate / bring student to top of verified stream sidebar immediately
-            setVerifiedList((prev) => {
-              const filtered = prev.filter((item) => item.student_id !== sid && item.roll !== student.roll_number);
-              const updated = [
-                {
-                  id: Date.now(),
-                  student_id: sid,
-                  name: student.name,
-                  roll: student.roll_number,
-                  time: 'Just now',
-                  trust: res.trust_score || (res.confidence ? Math.round(res.confidence) : 98),
-                  status: res.status === 'success' ? 'VERIFIED' : 'PRESENT'
-                },
-                ...filtered.slice(0, 19)
-              ];
-              setStats((s) => ({ ...s, markedCount: Math.max(s.markedCount + (res.status === 'success' ? 1 : 0), updated.length) }));
-              return updated;
-            });
+          setLastMatch({
+            name: student.name,
+            roll: student.roll_number,
+            confidence: res.confidence || 98.4,
+            trust: res.trust_score || 96,
+            isNew: true,
+          });
 
-            setStatusMessage(`Verified: ${student.name} (${student.roll_number})`);
-            setTimeout(() => setLastMatch(null), 4500);
-          }
+          // Bring student to top of verified stream sidebar immediately
+          setVerifiedList((prev) => {
+            const filtered = prev.filter((item) => item.student_id !== sid && item.roll !== student.roll_number);
+            const updated = [
+              {
+                id: Date.now(),
+                student_id: sid,
+                name: student.name,
+                roll: student.roll_number,
+                time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                trust: res.trust_score || (res.confidence ? Math.round(res.confidence) : 98),
+                status: 'VERIFIED'
+              },
+              ...filtered.slice(0, 19)
+            ];
+            setStats((s) => ({ ...s, markedCount: s.markedCount + 1 }));
+            return updated;
+          });
+
+          setStatusMessage(`Verified: ${student.name} (${student.roll_number})`);
+          setTimeout(() => setLastMatch(null), 4500);
+
+        } else if (res.status === 'already_marked') {
+          const student = res.student || { name: res.name, roll_number: res.roll_number, student_id: res.student_id };
+          const sid = student.student_id;
+
+          // Permanent lock for this session: NO repeated chime, NO speech announcement!
+          cooldownCache.current.set(sid, Infinity);
+
+          // Subtle status update so student knows their attendance is already captured
+          setStatusMessage(`✓ Already Marked Present: ${student.name} (${student.roll_number})`);
+
+          // Ensure student is in sidebar if not already present
+          setVerifiedList((prev) => {
+            if (prev.some((item) => item.student_id === sid || item.roll === student.roll_number)) return prev;
+            return [
+              {
+                id: Date.now(),
+                student_id: sid,
+                name: student.name,
+                roll: student.roll_number,
+                time: 'Present',
+                trust: 96,
+                status: 'VERIFIED'
+              },
+              ...prev
+            ];
+          });
         } else if (res.status === 'liveness_failed') {
           setStatusMessage('Liveness Challenge: Natural eye blink or motion required');
         } else if (res.status === 'no_face') {
@@ -463,8 +506,41 @@ export default function KioskScreen({ subject: initialSubject, onExit }) {
           </div>
         </div>
 
-        {/* Center: Subject Switcher */}
+        {/* Center: AKGEC Timetable Slot & Subject Switcher */}
         <div className="flex items-center gap-2">
+          {/* AKGEC Class Meta Tag */}
+          <div className="hidden lg:flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-zinc-900 border border-zinc-800 text-[11px] font-mono text-zinc-300">
+            <span className="w-1.5 h-1.5 rounded-full bg-cyan-400"></span>
+            <span>{AKGEC_META.section}</span>
+            <span className="text-zinc-600">•</span>
+            <span className="text-cyan-300 font-semibold">{AKGEC_META.room}</span>
+          </div>
+
+          {/* Quick Sync with Current Timetable Slot */}
+          {(() => {
+            const currentSlot = getCurrentLectureSlot();
+            if (currentSlot?.lecture && !currentSlot.lecture.isBreak) {
+              const matchedSub = subjects.find((s) => s.subject_code === currentSlot.lecture.code);
+              return (
+                <button
+                  onClick={() => {
+                    if (matchedSub) setActiveSubject(matchedSub);
+                  }}
+                  className={`hidden md:flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-[11px] font-bold border transition cursor-pointer ${
+                    activeSubject?.subject_code === currentSlot.lecture.code
+                      ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-300'
+                      : 'bg-zinc-900 hover:bg-zinc-800 border-zinc-700 text-amber-300 animate-pulse'
+                  }`}
+                  title="Click to switch to active timetable lecture"
+                >
+                  <Zap className="w-3 h-3 text-amber-400" />
+                  <span>Now: {currentSlot.lecture.code} ({currentSlot.period.slot})</span>
+                </button>
+              );
+            }
+            return null;
+          })()}
+
           {subjects.length > 0 && (
             <div className="relative">
               <select

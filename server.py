@@ -4,7 +4,7 @@ import secrets
 import tempfile
 import time
 from collections import defaultdict
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 import cv2
@@ -1060,29 +1060,39 @@ async def api_kiosk_verify(
         device_known=True
     )
 
-    now_dt = datetime.now(timezone.utc)
-    in_time_str = now_dt.strftime("%I:%M:%S %p")
-    hour = now_dt.hour
-    if 9 <= hour < 10:
-        p_num, p_slot = 1, "09:00 - 10:00 AM"
-    elif 10 <= hour < 11:
-        p_num, p_slot = 2, "10:00 - 11:00 AM"
-    elif 11 <= hour < 12:
-        p_num, p_slot = 3, "11:15 - 12:15 PM"
-    elif 13 <= hour < 14:
-        p_num, p_slot = 4, "01:00 - 02:00 PM"
-    elif 14 <= hour < 15:
-        p_num, p_slot = 5, "02:00 - 03:00 PM"
-    else:
-        p_num, p_slot = 6, "03:00 - 04:00 PM"
+    now_utc = datetime.now(timezone.utc)
+    ist_offset = timedelta(hours=5, minutes=30)
+    now_ist = now_utc + ist_offset
+    minutes = now_ist.hour * 60 + now_ist.minute
+    in_time_str = now_ist.strftime("%I:%M:%S %p")
 
-    entry_status = "LATE" if now_dt.minute > 15 else "ON_TIME"
+    # AKGEC Engineering College Periods (W.E.F. 07-09-2026)
+    if minutes < 560:
+        p_num, p_slot, start_m = 1, "08:30 - 09:20 AM", 510
+    elif minutes < 610:
+        p_num, p_slot, start_m = 2, "09:20 - 10:10 AM", 560
+    elif minutes < 660:
+        p_num, p_slot, start_m = 3, "10:10 - 11:00 AM (Break)", 610
+    elif minutes < 710:
+        p_num, p_slot, start_m = 4, "11:00 - 11:50 AM", 660
+    elif minutes < 760:
+        p_num, p_slot, start_m = 5, "11:50 - 12:40 PM", 710
+    elif minutes < 810:
+        p_num, p_slot, start_m = 6, "12:40 - 01:30 PM (Lunch)", 760
+    elif minutes < 860:
+        p_num, p_slot, start_m = 7, "01:30 - 02:20 PM", 810
+    elif minutes < 910:
+        p_num, p_slot, start_m = 8, "02:20 - 03:10 PM", 860
+    else:
+        p_num, p_slot, start_m = 9, "03:10 - 04:00 PM", 910
+
+    entry_status = "LATE" if (minutes - start_m) > 10 else "ON_TIME"
 
     log_entry = {
         "subject_id": subject_id,
         "student_id": sid,
         "is_present": True,
-        "timestamp": now_dt.isoformat(),
+        "timestamp": now_utc.isoformat(),
         "trust_score": max(85, trust_calc["trust_score"]),
         "trust_breakdown": {
             **trust_calc["breakdown"],
