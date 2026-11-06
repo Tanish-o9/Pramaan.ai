@@ -1,1 +1,53 @@
-[]
+[
+  {
+    "id": 1,
+    "student_id": 50,
+    "student_name": "Vikas",
+    "roll_number": "21EC050",
+    "subject_id": 2,
+    "subject_name": "Digital Electronics",
+    "leave_type": "medical",
+    "start_date": "2026-11-10",
+    "end_date": "2026-11-12",
+    "reason": "Severe migraine attack",
+    "document_name": "prescription.pdf",
+    "document_url": "",
+    "status": "approved",
+    "faculty_remarks": "Verified by clinic",
+    "created_at": "2026-11-06T21:34:07.402314+00:00"
+  },
+  {
+    "id": 2,
+    "student_id": 50,
+    "student_name": "Vikas",
+    "roll_number": "21EC050",
+    "subject_id": 2,
+    "subject_name": "Digital Electronics",
+    "leave_type": "medical",
+    "start_date": "2026-11-10",
+    "end_date": "2026-11-12",
+    "reason": "Severe migraine attack",
+    "document_name": "prescription.pdf",
+    "document_url": "",
+    "status": "approved",
+    "faculty_remarks": "Verified by clinic",
+    "created_at": "2026-11-06T21:38:27.414900+00:00"
+  },
+  {
+    "id": 3,
+    "student_id": 50,
+    "student_name": "Vikas",
+    "roll_number": "21EC050",
+    "subject_id": 2,
+    "subject_name": "Digital Electronics",
+    "leave_type": "medical",
+    "start_date": "2026-11-10",
+    "end_date": "2026-11-12",
+    "reason": "Severe migraine attack",
+    "document_name": "prescription.pdf",
+    "document_url": "",
+    "status": "approved",
+    "faculty_remarks": "Verified by clinic",
+    "created_at": "2026-11-06T21:40:56.463386+00:00"
+  }
+]

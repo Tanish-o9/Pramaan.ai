@@ -61,12 +61,12 @@ export default function FacultyDashboard({ teacher }) {
   const [selectedSection, setSelectedSection] = useState('CSE(AIML-2)');
   const [scopeFilter, setScopeFilter] = useState('all'); // 'all' (All classes in section) | 'my' (My assigned classes)
   const [loading, setLoading] = useState(false);
-  const sectionSliderRef = useRef(null);
+  const subjectSliderRef = useRef(null);
 
-  const scrollSectionSlider = (direction) => {
-    if (sectionSliderRef.current) {
-      const scrollAmount = direction === 'left' ? -220 : 220;
-      sectionSliderRef.current.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+  const scrollSubjectSlider = (direction) => {
+    if (subjectSliderRef.current) {
+      const scrollAmount = direction === 'left' ? -260 : 260;
+      subjectSliderRef.current.scrollBy({ left: scrollAmount, behavior: 'smooth' });
     }
   };
 
@@ -1073,9 +1073,9 @@ export default function FacultyDashboard({ teacher }) {
             </div>
           </div>
 
-          {/* 2-Step Sequential Allocation Studio: 1. Select Section -> 2. Select Subject */}
+          {/* Section Selection First -> Then Subject Slider Studio */}
           <div className="p-4 sm:p-6 rounded-2xl bg-gradient-to-r from-cyan-950/40 via-sky-950/20 to-zinc-950 border-2 border-cyan-500/40 flex flex-col gap-5 mb-6 shadow-xl shadow-cyan-500/5">
-            {/* Studio Header */}
+            {/* Header */}
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-3 border-b border-white/5">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-cyan-500/20 to-sky-500/10 border border-cyan-500/40 flex items-center justify-center text-cyan-400 shrink-0 shadow-md">
@@ -1084,147 +1084,121 @@ export default function FacultyDashboard({ teacher }) {
                 <div>
                   <h3 className="text-sm sm:text-base font-bold text-white tracking-tight flex items-center gap-2">
                     Class Attendance Setup Studio
-                    <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
-                      Step-by-Step
-                    </span>
                   </h3>
                   <p className="text-xs text-zinc-400 mt-0.5">
-                    Faculty: <strong className="text-white">{teacher?.name || 'Faculty'}</strong> • Follow Step 1 (Section) then Step 2 (Subject) to mark attendance
+                    Faculty: <strong className="text-white">{teacher?.name || 'Faculty'}</strong> • Pehle Section select karein, fir Slider se Subject lecture choose karein
                   </p>
                 </div>
               </div>
 
-              <div className="px-3 py-1.5 rounded-xl bg-zinc-950 border border-zinc-800 text-xs font-mono text-zinc-300">
-                Active: <strong className="text-cyan-400">{selectedSection}</strong> • <strong className="text-emerald-400">{visibleSubjects.find((s) => String(s.subject_id) === String(selectedSubId))?.subject_code || 'Select'}</strong>
+              {/* Quick Summary Pill */}
+              <div className="px-3.5 py-1.5 rounded-xl bg-zinc-950 border border-cyan-500/40 text-xs font-mono text-zinc-300 shadow-sm flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                <span>Sec: <strong className="text-cyan-400">{selectedSection}</strong></span>
+                <span>•</span>
+                <span>Sub: <strong className="text-emerald-400">{visibleSubjects.find((s) => String(s.subject_id) === String(selectedSubId))?.subject_code || 'Select'}</strong></span>
               </div>
             </div>
 
-            {/* ================= STEP 1: SELECT SECTION ================= */}
-            <div className="p-4 rounded-xl bg-zinc-950/90 border border-zinc-800/80 flex flex-col gap-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <span className="w-6 h-6 rounded-lg bg-cyan-500 text-zinc-950 font-black text-xs flex items-center justify-center shadow-md shadow-cyan-500/20">
-                    1
-                  </span>
-                  <div>
-                    <h4 className="text-xs font-bold text-white uppercase tracking-wider">
-                      Step 1: Pehle Section Select Karein
-                    </h4>
-                    <p className="text-[11px] text-zinc-400">Slide karke apni active class ka section choose karein</p>
-                  </div>
+            {/* ================= 1. PEHLE: SECTION SELECT KARNE KA OPTION ================= */}
+            <div className="p-4 rounded-xl bg-zinc-950/90 border border-zinc-800/80 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className="w-7 h-7 rounded-lg bg-cyan-500 text-zinc-950 font-black text-xs flex items-center justify-center shadow-md shadow-cyan-500/20 shrink-0">
+                  1
                 </div>
-
-                <div className="flex items-center gap-2">
-                  <span className="text-[11px] font-mono text-zinc-400 hidden sm:inline">
-                    Slide Sections:
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => scrollSectionSlider('left')}
-                    className="w-7 h-7 rounded-lg bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 flex items-center justify-center text-zinc-300 hover:text-white transition cursor-pointer active:scale-95"
-                    title="Slide Left"
-                  >
-                    <ChevronLeft className="w-4 h-4" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => scrollSectionSlider('right')}
-                    className="w-7 h-7 rounded-lg bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 flex items-center justify-center text-zinc-300 hover:text-white transition cursor-pointer active:scale-95"
-                    title="Slide Right"
-                  >
-                    <ChevronRight className="w-4 h-4" />
-                  </button>
+                <div>
+                  <h4 className="text-xs font-bold text-white uppercase tracking-wider">
+                    Pehle Section Select Karein
+                  </h4>
+                  <p className="text-[11px] text-zinc-400">Kis classroom section ki attendance leni hai choose karein</p>
                 </div>
               </div>
 
-              {/* Slider Track */}
-              <div
-                ref={sectionSliderRef}
-                className="flex items-center gap-2.5 overflow-x-auto pb-1.5 scroll-smooth"
-                style={{ scrollbarWidth: 'thin' }}
-              >
-                {availableSections.map((sec) => {
-                  const isSelected = selectedSection === sec;
-                  const secSubjects = subjects.filter((s) => s.section === sec);
-                  const hasMyClass = secSubjects.some((s) => s.is_my_assigned);
-                  return (
-                    <button
-                      key={sec}
-                      type="button"
-                      onClick={() => setSelectedSection(sec)}
-                      className={`px-4 py-2.5 rounded-xl border flex flex-col items-start gap-1 shrink-0 transition-all cursor-pointer text-left ${
-                        isSelected
-                          ? 'bg-gradient-to-r from-cyan-950 via-sky-950 to-zinc-900 border-2 border-cyan-400 shadow-lg shadow-cyan-500/25 ring-2 ring-cyan-400/40'
-                          : 'bg-zinc-900/60 hover:bg-zinc-900/90 border-zinc-800 hover:border-zinc-700'
-                      }`}
-                      style={{ minWidth: '155px' }}
-                    >
-                      <div className="flex items-center justify-between w-full">
-                        <span className={`text-xs font-bold font-mono ${isSelected ? 'text-cyan-300' : 'text-zinc-200'}`}>
-                          {sec}
-                        </span>
-                        {hasMyClass && (
-                          <span className="text-[10px] text-amber-400 font-bold" title="You have assigned classes here">⭐</span>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-1.5 text-[10px] text-zinc-400">
-                        <span>{secSubjects.length} subjects</span>
-                        <span>•</span>
-                        <span className="text-zinc-300 font-medium">
-                          {sec === 'CSE(AIML-2)' ? 'CL-11' : sec.includes('AIML') ? 'CL-10' : sec.includes('DS') ? 'CL-14' : 'CL-01'}
-                        </span>
-                      </div>
-                      {isSelected && (
-                        <span className="text-[9px] font-mono font-bold text-cyan-400 uppercase mt-0.5">
-                          ✓ Selected Section
-                        </span>
-                      )}
-                    </button>
-                  );
-                })}
+              <div className="flex items-center gap-3 w-full md:w-auto">
+                <div className="relative w-full md:w-72">
+                  <select
+                    value={selectedSection}
+                    onChange={(e) => setSelectedSection(e.target.value)}
+                    className="w-full px-4 py-2.5 rounded-xl text-xs font-bold cursor-pointer bg-zinc-900 border-2 border-cyan-500 hover:border-cyan-400 text-white shadow-lg shadow-cyan-500/10 focus:outline-none focus:ring-2 focus:ring-cyan-400 transition"
+                  >
+                    {availableSections.map((sec) => {
+                      const count = subjects.filter((s) => s.section === sec).length;
+                      return (
+                        <option key={sec} value={sec} className="bg-zinc-950 text-white py-1.5">
+                          🏫 Section: {sec} ({count} Subjects) {sec === 'CSE(AIML-2)' ? '• CL-11' : ''}
+                        </option>
+                      );
+                    })}
+                  </select>
+                </div>
+
+                <div className="px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-[11px] font-mono text-zinc-300 shrink-0 hidden sm:block">
+                  Venue: <strong className="text-cyan-400">{selectedSection === 'CSE(AIML-2)' ? 'CL-11' : selectedSection.includes('AIML') ? 'CL-10' : selectedSection.includes('DS') ? 'CL-14' : 'CL-01'}</strong>
+                </div>
               </div>
             </div>
 
-            {/* ================= STEP 2: SELECT SUBJECT ================= */}
+            {/* ================= 2. TAN: SUBJECT SELECT KARNE KA SLIDER ================= */}
             <div className="p-4 rounded-xl bg-zinc-950/90 border border-zinc-800/80 flex flex-col gap-3">
-              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 pb-1">
-                <div className="flex items-center gap-2">
-                  <span className="w-6 h-6 rounded-lg bg-emerald-500 text-zinc-950 font-black text-xs flex items-center justify-center shadow-md shadow-emerald-500/20">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-1 border-b border-white/5">
+                <div className="flex items-center gap-3">
+                  <div className="w-7 h-7 rounded-lg bg-emerald-500 text-zinc-950 font-black text-xs flex items-center justify-center shadow-md shadow-emerald-500/20 shrink-0">
                     2
-                  </span>
+                  </div>
                   <div>
                     <h4 className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-2">
-                      Step 2: Baad Me Subject / Lecture Select Karein
+                      Subject Select Slider
                       <span className="text-cyan-400 font-mono normal-case">({selectedSection})</span>
                     </h4>
-                    <p className="text-[11px] text-zinc-400">Chune gaye section ke active lecture ko select karein</p>
+                    <p className="text-[11px] text-zinc-400">Slider se active subject lecture card par click karein</p>
                   </div>
                 </div>
 
-                {/* Scope Filters */}
-                <div className="flex items-center gap-1.5 p-1 rounded-xl bg-zinc-900 border border-zinc-800 text-xs shrink-0">
-                  <button
-                    type="button"
-                    onClick={() => setScopeFilter('my')}
-                    className={`px-2.5 py-1 rounded-lg font-semibold transition cursor-pointer text-[11px] ${
-                      scopeFilter === 'my'
-                        ? 'bg-cyan-500 text-zinc-950 shadow-md'
-                        : 'text-zinc-400 hover:text-zinc-200'
-                    }`}
-                  >
-                    📌 My Classes ({subjects.filter((s) => s.section === selectedSection && s.is_my_assigned).length})
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setScopeFilter('all')}
-                    className={`px-2.5 py-1 rounded-lg font-semibold transition cursor-pointer text-[11px] ${
-                      scopeFilter === 'all'
-                        ? 'bg-cyan-500 text-zinc-950 shadow-md'
-                        : 'text-zinc-400 hover:text-zinc-200'
-                    }`}
-                  >
-                    📚 All {selectedSection} Classes ({subjects.filter((s) => s.section === selectedSection).length})
-                  </button>
+                {/* Scope Filter + Arrow Scroll Controls */}
+                <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-end">
+                  <div className="flex items-center gap-1.5 p-1 rounded-xl bg-zinc-900 border border-zinc-800 text-xs">
+                    <button
+                      type="button"
+                      onClick={() => setScopeFilter('my')}
+                      className={`px-2.5 py-1 rounded-lg font-semibold transition cursor-pointer text-[11px] ${
+                        scopeFilter === 'my'
+                          ? 'bg-cyan-500 text-zinc-950 shadow-md'
+                          : 'text-zinc-400 hover:text-zinc-200'
+                      }`}
+                    >
+                      📌 My Classes ({subjects.filter((s) => s.section === selectedSection && s.is_my_assigned).length})
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setScopeFilter('all')}
+                      className={`px-2.5 py-1 rounded-lg font-semibold transition cursor-pointer text-[11px] ${
+                        scopeFilter === 'all'
+                          ? 'bg-cyan-500 text-zinc-950 shadow-md'
+                          : 'text-zinc-400 hover:text-zinc-200'
+                      }`}
+                    >
+                      📚 All ({subjects.filter((s) => s.section === selectedSection).length})
+                    </button>
+                  </div>
+
+                  <div className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => scrollSubjectSlider('left')}
+                      className="w-8 h-8 rounded-lg bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 flex items-center justify-center text-zinc-300 hover:text-white transition cursor-pointer active:scale-95 shadow-sm"
+                      title="Slide Subjects Left"
+                    >
+                      <ChevronLeft className="w-4 h-4" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => scrollSubjectSlider('right')}
+                      className="w-8 h-8 rounded-lg bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 flex items-center justify-center text-zinc-300 hover:text-white transition cursor-pointer active:scale-95 shadow-sm"
+                      title="Slide Subjects Right"
+                    >
+                      <ChevronRight className="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
               </div>
 
@@ -1267,27 +1241,71 @@ export default function FacultyDashboard({ teacher }) {
                 );
               })()}
 
-              {/* Prominent Subject Dropdown + Details */}
-              <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 pt-1">
-                <div className="relative flex-1">
-                  <select
-                    value={selectedSubId}
-                    onChange={(e) => setSelectedSubId(e.target.value)}
-                    className="w-full px-4 py-3 rounded-xl text-xs font-bold cursor-pointer bg-zinc-950 border-2 border-emerald-500 hover:border-emerald-400 text-white shadow-lg shadow-emerald-500/15 focus:outline-none focus:ring-2 focus:ring-emerald-400 transition"
-                  >
-                    {visibleSubjects.map((s) => (
-                      <option key={s.subject_id} value={s.subject_id} className="bg-zinc-950 text-white py-2">
-                        📚 {s.name} ({s.subject_code} - Sec {s.section}) • Faculty: {s.faculty_name || 'Faculty'} {s.is_my_assigned ? '⭐ (Your Assigned Class)' : ''}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+              {/* The Subject Slider Cards Track */}
+              <div
+                ref={subjectSliderRef}
+                className="flex items-center gap-3 overflow-x-auto pb-2 pt-1 scroll-smooth"
+                style={{ scrollbarWidth: 'thin' }}
+              >
+                {visibleSubjects.map((s) => {
+                  const isSelected = String(s.subject_id) === String(selectedSubId);
+                  return (
+                    <button
+                      key={s.subject_id}
+                      type="button"
+                      onClick={() => setSelectedSubId(String(s.subject_id))}
+                      className={`p-3.5 rounded-xl border flex flex-col items-start gap-2 shrink-0 transition-all cursor-pointer text-left ${
+                        isSelected
+                          ? 'bg-gradient-to-tr from-emerald-950/90 via-teal-950/60 to-zinc-900 border-2 border-emerald-400 shadow-xl shadow-emerald-500/20 ring-2 ring-emerald-400/40 scale-[1.02]'
+                          : 'bg-zinc-900/60 hover:bg-zinc-900 border-zinc-800 hover:border-zinc-700'
+                      }`}
+                      style={{ minWidth: '220px', maxWidth: '240px' }}
+                    >
+                      <div className="flex items-center justify-between w-full">
+                        <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-zinc-800 text-zinc-300 border border-zinc-700">
+                          {s.subject_code}
+                        </span>
+                        {s.is_my_assigned && (
+                          <span className="text-[10px] font-bold text-amber-400 flex items-center gap-0.5" title="Your Assigned Class">
+                            ⭐ My Class
+                          </span>
+                        )}
+                      </div>
 
-                <div className="px-4 py-2.5 rounded-xl bg-zinc-900 border border-zinc-800 text-center shrink-0 flex items-center justify-center gap-2">
-                  <span className="text-[11px] text-zinc-300 font-mono">
-                    Enrolled: <strong className="text-emerald-400">{subjects.find((s) => String(s.subject_id) === String(selectedSubId))?.total_students || 12}</strong> students
-                  </span>
-                </div>
+                      <div className="w-full">
+                        <h5 className={`text-xs font-bold line-clamp-1 ${isSelected ? 'text-emerald-300' : 'text-zinc-100'}`}>
+                          {s.name}
+                        </h5>
+                        <p className="text-[11px] text-zinc-400 truncate mt-0.5">
+                          Faculty: <strong className="text-zinc-300 font-medium">{s.faculty_name || 'Faculty'}</strong>
+                        </p>
+                      </div>
+
+                      <div className="flex items-center justify-between w-full text-[10px] text-zinc-400 pt-1 border-t border-white/5 font-mono">
+                        <span>Venue: {s.venue || 'CL-11'}</span>
+                        <span className="text-emerald-400">{s.total_students || 12} Enrolled</span>
+                      </div>
+
+                      {isSelected && (
+                        <div className="w-full text-center py-1 rounded-md bg-emerald-500/20 text-emerald-300 text-[10px] font-bold font-mono">
+                          ✓ Selected Lecture
+                        </div>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Selected Subject Confirmation Bar */}
+              <div className="p-2.5 rounded-lg bg-zinc-900/60 border border-zinc-800/80 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 text-xs">
+                <span className="text-zinc-300 flex items-center gap-1.5 font-medium">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                  Currently Selected: <strong className="text-white">{visibleSubjects.find((s) => String(s.subject_id) === String(selectedSubId))?.name || 'Class'}</strong>
+                  <span className="text-zinc-400 font-mono text-[11px]">({visibleSubjects.find((s) => String(s.subject_id) === String(selectedSubId))?.subject_code})</span>
+                </span>
+                <span className="text-zinc-400 text-[11px]">
+                  Ab niche capture studio choose karke attendance mark karein 👇
+                </span>
               </div>
             </div>
           </div>
