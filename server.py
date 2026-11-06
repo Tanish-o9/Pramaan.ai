@@ -3,54 +3,77 @@ import os
 import secrets
 import tempfile
 import time
-from datetime import datetime, timezone
 from collections import defaultdict
+from datetime import datetime, timezone
+
 import cv2
 import numpy as np
 import pandas as pd
-from PIL import Image
-from pydantic import BaseModel
-from fastapi import FastAPI, UploadFile, File, Form, HTTPException, Request, Response, Depends
+from fastapi import Depends, FastAPI, File, Form, HTTPException, Request, Response, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from PIL import Image
+from pydantic import BaseModel
 from slowapi import Limiter, _rate_limit_exceeded_handler
-from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
+from slowapi.util import get_remote_address
 
+from src.auth import (
+    clear_auth_cookies,
+    create_access_token,
+    decode_token,
+    get_current_user,
+    require_any_user,
+    require_student,
+    require_teacher,
+    set_auth_cookies,
+)
 from src.database.config import supabase
 from src.database.db import (
-    teacher_login, create_teacher, check_teacher_exists,
-    student_pin_login, create_student, check_roll_exists,
-    get_teacher_subjects, create_subjects, delete_subject,
-    enroll_student_to_subject, unenroll_student_to_subject,
-    get_student_subject, get_student_attendance,
-    get_subject_attendance, update_single_attendance,
-    create_attendance, update_student_biometrics,
-    is_default_pin, update_student_pin, get_student_by_id, get_teacher_by_id,
-    get_all_student
+    check_roll_exists,
+    check_teacher_exists,
+    create_attendance,
+    create_student,
+    create_subjects,
+    create_teacher,
+    delete_subject,
+    enroll_student_to_subject,
+    get_all_student,
+    get_student_attendance,
+    get_student_by_id,
+    get_student_subject,
+    get_subject_attendance,
+    get_teacher_by_id,
+    get_teacher_subjects,
+    is_default_pin,
+    student_pin_login,
+    teacher_login,
+    unenroll_student_to_subject,
+    update_single_attendance,
+    update_student_biometrics,
+    update_student_pin,
 )
 from src.pipeline.face_pipeline import (
-    predict_attendance_with_confidence, check_liveness_landmarks,
-    get_face_embeddings, get_face_config, set_face_config,
-    predict_group_attendance
+    check_liveness_landmarks,
+    get_face_config,
+    get_face_embeddings,
+    get_face_embeddings_with_locations,
+    predict_attendance_with_confidence,
+    predict_group_attendance,
+    set_face_config,
 )
 from src.pipeline.voice_pipeline import get_voice_embedding, process_bulk_audio
-from src.services.trust_score_service import trust_engine
-from src.services.bunk_calculator import calculate_bunk_metrics
-from src.services.risk_prediction_service import risk_predictor
 from src.services.ai_copilot_service import copilot
-from src.services.leave_service import leave_service
+from src.services.bunk_calculator import calculate_bunk_metrics
 from src.services.digital_id_service import digital_id_service
-from src.services.voice_command_service import voice_command_service
-from src.services.pulse_check_service import pulse_check_service
-from src.services.seatmap_service import seatmap_service
 from src.services.hod_service import hod_service
+from src.services.leave_service import leave_service
+from src.services.pulse_check_service import pulse_check_service
+from src.services.risk_prediction_service import risk_predictor
+from src.services.seatmap_service import seatmap_service
+from src.services.trust_score_service import trust_engine
+from src.services.voice_command_service import voice_command_service
 from src.utils.csv_export import format_attendance_csv
-from src.auth import (
-    set_auth_cookies, clear_auth_cookies, decode_token,
-    create_access_token, require_teacher, require_student, require_any_user,
-    get_current_user
-)
 
 # Rate limiter setup
 limiter = Limiter(key_func=get_remote_address)
@@ -135,7 +158,7 @@ def api_teacher_login(req: TeacherAuth, request: Request, response: Response):
     t = teacher_login(req.username.strip(), req.password)
     if not t:
         raise HTTPException(401, "Invalid username or password")
-    
+
     set_auth_cookies(response, user_id=t["teachers_id"], role="teacher", extra={"name": t.get("name", ""), "username": t["username"]})
     return {"status": "success", "teacher": t}
 
@@ -153,7 +176,7 @@ def api_student_pin(req: StudentPinAuth, request: Request, response: Response):
     s = student_pin_login(req.roll_number, req.pin)
     if not s:
         raise HTTPException(401, "Invalid Roll Number or PIN")
-    
+
     must_change = is_default_pin(s.get("pin"))
     set_auth_cookies(response, user_id=s["student_id"], role="student", extra={"name": s.get("name", ""), "roll_number": s["roll_number"]})
     return {"status": "success", "student": s, "must_change_pin": must_change}
@@ -180,7 +203,7 @@ async def api_student_face(request: Request, response: Response, file: UploadFil
     res = supabase.table("students").select("*").eq("student_id", best_sid).execute()
     if not res.data:
         raise HTTPException(404, "Student record not found")
-    
+
     s = res.data[0]
     must_change = is_default_pin(s.get("pin"))
     set_auth_cookies(response, user_id=s["student_id"], role="student", extra={"name": s.get("name", ""), "roll_number": s["roll_number"]})
@@ -197,7 +220,7 @@ async def api_student_reg(
     clean_roll = roll_number.strip().upper()
     if check_roll_exists(clean_roll):
         raise HTTPException(400, "Roll Number already registered")
-    
+
     face_emb = None
     if face_image:
         contents = await face_image.read()
@@ -207,7 +230,7 @@ async def api_student_reg(
             if not embs:
                 raise HTTPException(400, "No face detected in the photo. Please ensure clear lighting and face the camera directly.")
             face_emb = embs[0].tolist() if hasattr(embs[0], 'tolist') else embs[0]
-    
+
     voice_emb = None
     if voice_audio:
         try:
@@ -238,11 +261,11 @@ def api_auth_refresh(request: Request, response: Response):
     refresh_token = request.cookies.get("refresh_token")
     if not refresh_token:
         raise HTTPException(401, "Refresh token missing")
-    
+
     payload = decode_token(refresh_token)
     if payload.get("type") != "refresh":
         raise HTTPException(401, "Invalid token type for refresh")
-    
+
     # Re-issue access token
     new_access = create_access_token(payload)
     from src.auth import ACCESS_TOKEN_EXPIRE_MINUTES, COOKIE_SECURE
@@ -269,7 +292,7 @@ def api_auth_me(current_user: dict = Depends(get_current_user)):
     record = get_teacher_by_id(user_id) if role == "teacher" else get_student_by_id(user_id)
     if not record:
         raise HTTPException(404, "User profile not found")
-    
+
     # Do not leak hashed passwords
     record.pop("password", None)
     record.pop("pin", None)
@@ -286,7 +309,7 @@ async def api_student_voice_enroll(
     audio_bytes = await file.read()
     if not audio_bytes or len(audio_bytes) < 1000:
         raise HTTPException(400, "Empty or invalid audio stream")
-    
+
     try:
         embedding = get_voice_embedding(audio_bytes)
         update_student_biometrics(student_id, voice_embedding=embedding)
@@ -409,7 +432,7 @@ async def api_teacher_face_upload(
     embs = get_face_embeddings(np_img)
     if not embs:
         raise HTTPException(400, "No clear face detected in the uploaded photo. Please try a clearer picture.")
-    
+
     emb_list = embs[0].tolist() if hasattr(embs[0], 'tolist') else embs[0]
     update_student_biometrics(student_id, face_embedding=emb_list)
     try:
@@ -440,7 +463,7 @@ async def api_analyze_photos(
     students = get_enrolled(subject_id)
     if not students:
         raise HTTPException(400, "No students enrolled in subject")
-    
+
     enrolled_with_faces = [s for s in students if s.get('face_embedding')]
     if not enrolled_with_faces:
         raise HTTPException(400, "None of the enrolled students have a registered face profile yet. Please use Manual Attendance or seed student photos.")
@@ -497,7 +520,7 @@ async def api_analyze_video(
     students = get_enrolled(subject_id)
     if not students:
         raise HTTPException(400, "No students enrolled")
-    
+
     with tempfile.NamedTemporaryFile(delete=False, suffix=".mp4") as tmp:
         tmp.write(await file.read())
         path = tmp.name
@@ -694,7 +717,7 @@ def api_get_risk_analytics(
             raise HTTPException(400, "subject_id parameter is required for faculty risk view")
         enrolled = get_enrolled(subject_id)
         logs = get_subject_attendance(subject_id)
-        
+
         logs_by_student = defaultdict(list)
         for l in logs:
             logs_by_student[l.get("student_id")].append(l)
@@ -762,7 +785,98 @@ def api_copilot_chat(req: CopilotChatReq, current_user: dict = Depends(require_a
 
     raise HTTPException(403, "Unauthorized role")
 
-# ================= CLASSROOM KIOSK MODE =================
+# ================= CLASSROOM KIOSK & LIVE CAMERA TERMINAL =================
+
+@app.get("/api/kiosk/subjects")
+def api_kiosk_subjects():
+    """Fetch public list of active subjects for kiosk / live camera terminals."""
+    res = supabase.table("subjects").select("subject_id, subject_code, name, section, teachers_id, teachers(name)").execute()
+    subs = res.data or []
+    for s in subs:
+        enrolled_res = supabase.table("subject_students").select("student_id").eq("subject_id", s["subject_id"]).execute()
+        s["total_enrolled"] = len(enrolled_res.data or [])
+        teacher_info = s.get("teachers")
+        s["teacher_name"] = teacher_info.get("name") if isinstance(teacher_info, dict) else "Faculty"
+    return {"status": "success", "subjects": subs}
+
+@app.post("/api/kiosk/quick-enroll")
+async def api_kiosk_quick_enroll(
+    student_id: int = Form(...),
+    file: UploadFile = File(...)
+):
+    """Instant 1-click face enrollment directly from live webcam for immediate recognition testing."""
+    content = await file.read()
+    if not content:
+        raise HTTPException(400, "Empty image frame")
+
+    img = Image.open(io.BytesIO(content)).convert("RGB")
+    np_img = np.array(img)
+    embs = get_face_embeddings(np_img)
+    if not embs:
+        raise HTTPException(400, "No face detected in camera frame. Center your face in good light.")
+
+    emb_list = embs[0].tolist() if hasattr(embs[0], "tolist") else embs[0]
+    update_student_biometrics(student_id, face_embedding=emb_list)
+    student = get_student_by_id(student_id)
+    s_name = student.get("name") if student else "Student"
+    return {"status": "success", "message": f"Biometrics successfully enrolled for {s_name}!"}
+
+@app.post("/api/kiosk/classroom-scan")
+async def api_kiosk_classroom_scan(
+    subject_id: int = Form(...),
+    file: UploadFile = File(...)
+):
+    """1-click panoramic classroom attendance scanning and auto-marking multiple students at once."""
+    enrolled = get_enrolled(subject_id)
+    if not enrolled:
+        return {"status": "error", "message": "No students enrolled in this subject."}
+
+    content = await file.read()
+    if not content:
+        return {"status": "error", "message": "Empty frame"}
+
+    img = Image.open(io.BytesIO(content)).convert("RGB")
+    np_img = np.array(img)
+
+    scan_res = predict_group_attendance(np_img, enrolled, subject_id=subject_id)
+
+    # Auto mark attendance for newly recognized students
+    now_ts = datetime.now(timezone.utc).isoformat()
+    logs_to_create = []
+    today_prefix = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    recent_logs = get_subject_attendance(subject_id)
+    marked_sids = {
+        l.get("student_id") for l in recent_logs
+        if l.get("is_present") and str(l.get("timestamp", "")).startswith(today_prefix)
+    }
+
+    newly_marked = []
+    for rec in scan_res.get("recognized", []):
+        sid = rec["student_id"]
+        if sid not in marked_sids:
+            logs_to_create.append({
+                "subject_id": subject_id,
+                "student_id": sid,
+                "is_present": True,
+                "timestamp": now_ts,
+                "trust_score": max(85, round(rec["confidence"])),
+                "verification_status": "auto_accepted"
+            })
+            newly_marked.append(rec)
+            marked_sids.add(sid)
+
+    if logs_to_create:
+        create_attendance(logs_to_create)
+
+    return {
+        "status": "success",
+        "total_detected": scan_res["total_faces_detected"],
+        "recognized_count": scan_res["recognized_count"],
+        "newly_marked_count": len(newly_marked),
+        "recognized": scan_res["recognized"],
+        "unidentified_count": scan_res["unidentified_count"],
+        "unidentified_boxes": scan_res["unidentified_boxes"]
+    }
 
 @app.post("/api/kiosk/verify")
 async def api_kiosk_verify(
@@ -789,21 +903,33 @@ async def api_kiosk_verify(
     if not is_live:
         return {"status": "liveness_failed", "message": liveness_msg}
 
-    # 2. Face identification
-    det, _, num_faces = predict_attendance_with_confidence(np_img, subject_id=subject_id)
-    if not det:
-        return {"status": "no_match", "message": "Face not recognized. Please face the camera directly."}
+    # 2. Face identification with spatial bounding box
+    face_items = get_face_embeddings_with_locations(np_img)
+    if not face_items:
+        return {"status": "no_face", "message": "Looking for face inside target frame..."}
 
     matched_student = None
+    matched_box = None
     best_conf = 0.0
-    for s in enrolled_with_faces:
-        sid = int(s["student_id"])
-        if sid in det and det[sid] > best_conf:
-            best_conf = det[sid]
-            matched_student = s
+    thresh = get_face_config().get("face_match_threshold", 0.60)
+
+    for emb, box in face_items:
+        for s in enrolled_with_faces:
+            s_emb = np.array(s["face_embedding"], dtype=np.float32)
+            dist = float(np.linalg.norm(s_emb - emb))
+            if dist <= thresh:
+                conf = max(0.0, min(100.0, round((1.0 - (dist / (thresh + 0.2))) * 100, 1)))
+                if conf > best_conf:
+                    best_conf = conf
+                    matched_student = s
+                    matched_box = box
 
     if not matched_student or best_conf < 50.0:
-        return {"status": "no_match", "message": "Face not recognized among enrolled students."}
+        return {
+            "status": "no_match",
+            "message": "Face detected but not recognized among enrolled students.",
+            "bounding_box": face_items[0][1] if face_items else None
+        }
 
     sid = int(matched_student["student_id"])
     s_name = matched_student.get("name", "Student")
@@ -822,6 +948,7 @@ async def api_kiosk_verify(
             "status": "already_marked",
             "student": {"student_id": sid, "name": s_name, "roll_number": s_roll},
             "confidence": round(best_conf, 1),
+            "bounding_box": matched_box,
             "message": f"Already marked present today: {s_name} ({s_roll})"
         }
 
@@ -849,6 +976,7 @@ async def api_kiosk_verify(
         "status": "success",
         "student": {"student_id": sid, "name": s_name, "roll_number": s_roll},
         "confidence": round(best_conf, 1),
+        "bounding_box": matched_box,
         "message": f"Verified & Attendance Marked: {s_name} ({s_roll})"
     }
 
@@ -1063,7 +1191,7 @@ def api_hod_analytics(current_user: dict = Depends(require_teacher)):
         sub_id = sub['subject_id']
         enrollments = supabase.table('subject_students').select('student_id').eq('subject_id', sub_id).execute().data or []
         student_ids = [e['student_id'] for e in enrollments]
-        
+
         student_list = []
         for sid in student_ids:
             s_record = get_student_by_id(sid) or {}
@@ -1074,7 +1202,7 @@ def api_hod_analytics(current_user: dict = Depends(require_teacher)):
                 "roll_number": s_record.get("roll_number", ""),
                 "logs": logs
             })
-            
+
         subs_with_attendance.append({
             "subject_id": sub_id,
             "name": sub.get("name"),
@@ -1082,7 +1210,7 @@ def api_hod_analytics(current_user: dict = Depends(require_teacher)):
             "section": sub.get("section", "A"),
             "students": student_list
         })
-        
+
     return hod_service.calculate_department_summary(subs_with_attendance)
 
 @app.get("/api/hod/defaulters-notice")

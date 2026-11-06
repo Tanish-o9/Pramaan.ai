@@ -14,25 +14,47 @@ import {
   Clock
 } from 'lucide-react';
 
-export default function Landing({ onSelectRole }) {
+export default function Landing({ onSelectRole, onOpenKiosk }) {
   return (
     <div className="max-w-5xl mx-auto px-4 py-12 sm:py-20 w-full flex flex-col items-center">
       {/* Top Shimmering Badge */}
-      <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-gradient-to-r from-cyan-500/10 via-sky-500/10 to-emerald-500/10 border border-cyan-500/30 text-xs text-cyan-300 font-medium mb-8 shadow-lg shadow-cyan-500/5 animate-pulse-glow">
+      <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-gradient-to-r from-cyan-500/10 via-sky-500/10 to-emerald-500/10 border border-cyan-500/30 text-xs text-cyan-300 font-medium mb-6 shadow-lg shadow-cyan-500/5 animate-pulse-glow">
         <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
         <span>Pramaan 2.0 • Enterprise Biometric Governance</span>
       </div>
 
       {/* Hero Headline */}
-      <div className="text-center max-w-3xl mb-12">
+      <div className="text-center max-w-3xl mb-8">
         <h1 className="text-4xl sm:text-6xl font-extrabold tracking-tight text-zinc-100 mb-5 leading-[1.15]">
           Campus attendance, <br />
-          <span className="text-gradient-cyan">automated & verified.</span>
+          <span className="text-gradient-cyan">automated via Live Camera.</span>
         </h1>
-        <p className="text-sm sm:text-base text-zinc-400 max-w-2xl mx-auto leading-relaxed">
-          Mark lecture attendance in seconds using classroom photos, video pan scans, voice commands, or hands-free door kiosks. 
-          Powered by dlib 128-d ResNet, 68-point EAR liveness, and multi-factor Trust Scoring.
+        <p className="text-sm sm:text-base text-zinc-400 max-w-2xl mx-auto leading-relaxed mb-8">
+          Continuous hands-free facial recognition, instant classroom panoramic scans, and multi-factor biometric verification. Powered by dlib 128-d ResNet, 68-point EAR liveness, and AI Trust Scoring.
         </p>
+
+        {/* Big Live Camera Hero Terminal CTA */}
+        {onOpenKiosk && (
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+            <button
+              onClick={onOpenKiosk}
+              className="w-full sm:w-auto px-8 py-4 rounded-2xl bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 hover:from-emerald-400 hover:via-teal-400 hover:to-cyan-400 text-zinc-950 font-black text-sm tracking-wide shadow-2xl shadow-emerald-500/30 flex items-center justify-center gap-3 transition-all cursor-pointer hover:scale-105 active:scale-95 group"
+            >
+              <span className="relative flex h-3 w-3">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-zinc-950 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-3 w-3 bg-zinc-950"></span>
+              </span>
+              <Camera className="w-5 h-5 text-zinc-950 group-hover:rotate-12 transition-transform" />
+              <span>Launch Live AI Camera Terminal</span>
+              <ArrowRight className="w-4 h-4 text-zinc-950 group-hover:translate-x-1 transition-transform" />
+            </button>
+
+            <div className="text-xs text-zinc-400 flex items-center gap-2">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+              <span>Zero-login required • Opens live webcam auto-scanner</span>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Role Selection Cards */}

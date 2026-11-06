@@ -278,7 +278,30 @@ export const api = {
       body: JSON.stringify({ message, subject_id }),
     }),
 
-  // Classroom Kiosk
+  // Classroom Kiosk & Live Camera Terminal
+  getKioskSubjects: () =>
+    request('/api/kiosk/subjects'),
+
+  kioskQuickEnroll: (student_id, fileBlob) => {
+    const fd = new FormData();
+    fd.append('student_id', student_id);
+    fd.append('file', fileBlob, 'webcam_enroll.jpg');
+    return request('/api/kiosk/quick-enroll', {
+      method: 'POST',
+      body: fd,
+    });
+  },
+
+  kioskClassroomScan: (subject_id, fileBlob) => {
+    const fd = new FormData();
+    fd.append('subject_id', subject_id);
+    fd.append('file', fileBlob, 'classroom_scan.jpg');
+    return request('/api/kiosk/classroom-scan', {
+      method: 'POST',
+      body: fd,
+    });
+  },
+
   verifyKioskFace: (subject_id, fileBlob) => {
     const fd = new FormData();
     fd.append('subject_id', subject_id);

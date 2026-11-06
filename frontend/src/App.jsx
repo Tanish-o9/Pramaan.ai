@@ -8,6 +8,7 @@ import FacultyAuth from './screens/FacultyAuth';
 import FacultyDashboard from './screens/FacultyDashboard';
 import StudentAuth from './screens/StudentAuth';
 import StudentDashboard from './screens/StudentDashboard';
+import KioskScreen from './screens/KioskScreen';
 import { api } from './api';
 
 export default function App() {
@@ -84,12 +85,23 @@ export default function App() {
   return (
     <div className="min-h-screen flex flex-col bg-[#09090b] text-zinc-100">
       <ToastContainer />
-      <Header user={user} role={role} onLogout={handleLogout} onBackToHome={() => !user && setRole(null)} />
+      {role !== 'kiosk' && (
+        <Header 
+          user={user} 
+          role={role} 
+          onLogout={handleLogout} 
+          onBackToHome={() => !user && setRole(null)} 
+          onOpenKiosk={() => handleRole('kiosk')}
+        />
+      )}
       
       <main className="flex-1 flex flex-col">
-        {!role && <Landing onSelectRole={handleRole} />}
+        {role === 'kiosk' && (
+          <KioskScreen onExit={() => setRole(user ? (role === 'teacher' ? 'teacher' : 'student') : null)} />
+        )}
+        {!role && <Landing onSelectRole={handleRole} onOpenKiosk={() => handleRole('kiosk')} />}
         {role === 'teacher' && !user && <FacultyAuth onAuthSuccess={handleAuth} />}
-        {role === 'teacher' && user && <FacultyDashboard teacher={user} />}
+        {role === 'teacher' && user && <FacultyDashboard teacher={user} onOpenKiosk={() => handleRole('kiosk')} />}
         {role === 'student' && !user && <StudentAuth onAuthSuccess={handleAuth} />}
         {role === 'student' && user && (
           <>
@@ -107,7 +119,7 @@ export default function App() {
         )}
       </main>
       
-      <Footer />
+      {role !== 'kiosk' && <Footer />}
     </div>
   );
 }

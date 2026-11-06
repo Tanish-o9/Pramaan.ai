@@ -1,7 +1,7 @@
 import React from 'react';
-import { LogOut, ArrowLeft, Sparkles, ShieldCheck } from 'lucide-react';
+import { LogOut, ArrowLeft, Sparkles, ShieldCheck, Camera, Radio } from 'lucide-react';
 
-export default function Header({ user, role, onLogout, onBackToHome }) {
+export default function Header({ user, role, onLogout, onBackToHome, onOpenKiosk }) {
   return (
     <header className="sticky top-0 z-40 w-full backdrop-blur-xl bg-zinc-950/70 border-b border-white/5 transition-all">
       <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
@@ -31,7 +31,24 @@ export default function Header({ user, role, onLogout, onBackToHome }) {
         </div>
 
         {/* User Status / Action Controls */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2.5 sm:gap-3">
+          {/* Quick Launch Live Camera Kiosk Button */}
+          {onOpenKiosk && (
+            <button
+              onClick={onOpenKiosk}
+              className="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-gradient-to-r from-emerald-500/15 to-teal-500/15 hover:from-emerald-500/25 hover:to-teal-500/25 border border-emerald-500/40 text-emerald-300 text-xs font-bold transition-all cursor-pointer shadow-lg shadow-emerald-500/5 active:scale-95"
+              title="Launch Live Camera Biometric Terminal"
+            >
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+              </span>
+              <Camera className="w-3.5 h-3.5 text-emerald-400" />
+              <span className="hidden sm:inline">Live Camera Terminal</span>
+              <span className="sm:hidden">Live Cam</span>
+            </button>
+          )}
+
           {user ? (
             <div className="flex items-center gap-3">
               <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-zinc-900/80 border border-zinc-800/80 text-xs text-zinc-300">
@@ -59,7 +76,7 @@ export default function Header({ user, role, onLogout, onBackToHome }) {
               <span>Back to Home</span>
             </button>
           ) : (
-            <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-[11px] text-emerald-400 font-medium">
+            <div className="hidden sm:flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-[11px] text-emerald-400 font-medium">
               <ShieldCheck className="w-3.5 h-3.5" />
               <span>Enterprise Ready</span>
             </div>

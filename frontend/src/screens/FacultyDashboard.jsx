@@ -60,7 +60,7 @@ export default function FacultyDashboard({ teacher }) {
   const [reviewRemarks, setReviewRemarks] = useState({});
 
   // Attendance Mode
-  const [mode, setMode] = useState('photos'); // 'photos' | 'group_photo' | 'voice_command' | 'video' | 'voice' | 'manual'
+  const [mode, setMode] = useState('live_camera'); // 'live_camera' | 'photos' | 'group_photo' | 'voice_command' | 'video' | 'voice' | 'manual'
   const [photoFiles, setPhotoFiles] = useState([]);
   const [videoFile, setVideoFile] = useState(null);
   const [voiceFile, setVoiceFile] = useState(null);
@@ -769,7 +769,21 @@ export default function FacultyDashboard({ teacher }) {
           </div>
 
           {/* Mode Selector */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5 mb-6 text-xs">
+          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2.5 mb-6 text-xs">
+            <button
+              onClick={() => { setMode('live_camera'); setReview(null); }}
+              className={`p-3.5 rounded-xl border flex flex-col items-center gap-2 transition cursor-pointer active:scale-98 ${
+                mode === 'live_camera' 
+                  ? 'bg-zinc-800/90 border-emerald-500/50 text-white font-bold shadow-lg shadow-emerald-500/10 ring-1 ring-emerald-500/30' 
+                  : 'bg-zinc-900/60 hover:bg-zinc-800/50 border-zinc-800 text-zinc-400'
+              }`}
+            >
+              <div className="w-8 h-8 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 relative">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping absolute top-1 right-1 opacity-75"></span>
+                <Camera className="w-4 h-4" />
+              </div>
+              <span className="font-medium text-emerald-300">Live Camera</span>
+            </button>
             <button
               onClick={() => { setMode('photos'); setReview(null); }}
               className={`p-3.5 rounded-xl border flex flex-col items-center gap-2 transition cursor-pointer active:scale-98 ${
@@ -851,6 +865,58 @@ export default function FacultyDashboard({ teacher }) {
           </div>
 
           {/* Mode Inputs */}
+          {mode === 'live_camera' && (
+            <div className="p-6 sm:p-8 rounded-2xl bg-gradient-to-b from-zinc-900/90 to-zinc-950/90 border border-emerald-500/30 text-center relative overflow-hidden shadow-2xl">
+              <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/5 rounded-full blur-3xl pointer-events-none"></div>
+
+              <div className="w-14 h-14 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 mx-auto mb-4 shadow-lg shadow-emerald-500/10">
+                <Camera className="w-7 h-7" />
+              </div>
+
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-xs text-emerald-300 font-mono mb-3">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                <span>Automated Biometric Radar Ready</span>
+              </div>
+
+              <h3 className="text-base sm:text-lg font-bold text-white mb-2">
+                Live Classroom Camera & Door Kiosk Terminal
+              </h3>
+
+              <p className="text-xs sm:text-sm text-zinc-400 mb-6 max-w-xl mx-auto leading-relaxed">
+                Transform any laptop, tablet, or classroom webcam into an autonomous biometric attendance station. Features hands-free walk-up scanning, 1-click panoramic classroom sweeps, and live audio chime confirmations.
+              </p>
+
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-3 max-w-md mx-auto">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const sub = subjects.find((s) => s.subject_id === Number(selectedSubId));
+                    if (sub) setKioskSubject(sub);
+                  }}
+                  className="w-full sm:w-auto px-6 py-3.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-zinc-950 font-extrabold text-xs tracking-wide shadow-xl shadow-emerald-500/20 flex items-center justify-center gap-2 transition-all cursor-pointer active:scale-95 group"
+                >
+                  <Camera className="w-4 h-4 text-zinc-950 group-hover:rotate-12 transition-transform" />
+                  <span>Launch Live Camera Terminal</span>
+                  <ArrowRight className="w-3.5 h-3.5 text-zinc-950 group-hover:translate-x-0.5 transition-transform" />
+                </button>
+              </div>
+
+              <div className="mt-6 pt-5 border-t border-zinc-800/80 flex flex-wrap items-center justify-center gap-4 text-[11px] font-mono text-zinc-400">
+                <span className="flex items-center gap-1.5">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" /> Continuous Auto-Scan Loop
+                </span>
+                <span className="text-zinc-600">•</span>
+                <span className="flex items-center gap-1.5">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" /> 1-Click Multi-Face Classroom Sweep
+                </span>
+                <span className="text-zinc-600">•</span>
+                <span className="flex items-center gap-1.5">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" /> Liveness Protection & Audio Chimes
+                </span>
+              </div>
+            </div>
+          )}
+
           {mode === 'group_photo' && (
             <div className="border border-dashed border-zinc-800 p-8 rounded-xl text-center">
               <Sparkles className="w-8 h-8 text-cyan-400 mx-auto mb-2" />
