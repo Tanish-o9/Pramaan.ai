@@ -13,23 +13,74 @@ from src.database.config import supabase
 _LOCAL_LEAVE_STORE: List[Dict[str, Any]] = [
     {
         "id": 1,
-        "student_id": 101,
-        "student_name": "Aarav Sharma",
-        "roll_number": "21CS001",
+        "student_id": 4,
+        "student_name": "Tanish Rajput (You)",
+        "roll_number": "25153162",
         "subject_id": 1,
-        "subject_name": "Database Management Systems",
+        "subject_name": "Deep Learning & Neural Networks",
         "leave_type": "medical",
-        "start_date": "2026-11-01",
-        "end_date": "2026-11-03",
-        "reason": "Viral fever and doctor prescribed bed rest",
-        "document_name": "medical_prescription.pdf",
+        "start_date": "2026-10-28",
+        "end_date": "2026-10-29",
+        "reason": "Acute migraine and doctor advised bed rest",
+        "document_name": "prescription_hospital.pdf",
         "document_url": "data:application/pdf;base64,JVBERi0xLjQKJ...",
         "status": "approved",
-        "faculty_remarks": "Approved. Medical slip verified.",
-        "created_at": "2026-11-01T09:00:00Z"
+        "faculty_remarks": "Approved. Medical slip verified by Dr. Tanish Rajput.",
+        "created_at": "2026-10-28T09:00:00Z"
+    },
+    {
+        "id": 2,
+        "student_id": 4,
+        "student_name": "Tanish Rajput (You)",
+        "roll_number": "25153162",
+        "subject_id": 1,
+        "subject_name": "Deep Learning & Neural Networks",
+        "leave_type": "od",
+        "start_date": "2026-11-05",
+        "end_date": "2026-11-06",
+        "reason": "Smart India Hackathon Finalist Presentation & Travel",
+        "document_name": "hackathon_invite.pdf",
+        "document_url": "data:application/pdf;base64,JVBERi0xLjQKJ...",
+        "status": "pending",
+        "faculty_remarks": "",
+        "created_at": "2026-11-05T08:30:00Z"
+    },
+    {
+        "id": 3,
+        "student_id": 1,
+        "student_name": "Rahul Sharma",
+        "roll_number": "22CS042",
+        "subject_id": 1,
+        "subject_name": "Deep Learning & Neural Networks",
+        "leave_type": "sports",
+        "start_date": "2026-11-06",
+        "end_date": "2026-11-07",
+        "reason": "State Level Inter-College Cricket Tournament Match",
+        "document_name": "sports_certificate.pdf",
+        "document_url": "data:application/pdf;base64,JVBERi0xLjQKJ...",
+        "status": "pending",
+        "faculty_remarks": "",
+        "created_at": "2026-11-06T07:15:00Z"
+    },
+    {
+        "id": 4,
+        "student_id": 2,
+        "student_name": "Priya Singh",
+        "roll_number": "22CS043",
+        "subject_id": 2,
+        "subject_name": "Computer Vision & Biometrics",
+        "leave_type": "event",
+        "start_date": "2026-11-02",
+        "end_date": "2026-11-03",
+        "reason": "Annual TechFest Coordinator Duties",
+        "document_name": "techfest_duty_slip.pdf",
+        "document_url": "data:application/pdf;base64,JVBERi0xLjQKJ...",
+        "status": "approved",
+        "faculty_remarks": "Approved. Event coordinator list verified.",
+        "created_at": "2026-11-02T10:00:00Z"
     }
 ]
-_LEAVE_ID_COUNTER = 2
+_LEAVE_ID_COUNTER = 5
 
 class LeaveService:
     """

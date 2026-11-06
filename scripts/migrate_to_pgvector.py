@@ -3,17 +3,18 @@ Migration Script: Migrate legacy embeddings from `students` table to `student_em
 Run this once after executing the SQL migration in `src/database/migrations/001_pgvector_setup.sql`.
 """
 
-import sys
 import os
+import sys
 
 # Ensure parent directory is in sys.path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from src.database.config import supabase
 
+
 def migrate_legacy_embeddings():
     print("🚀 Starting migration from students table to student_embeddings (pgvector)...")
-    
+
     try:
         res = supabase.table("students").select("student_id, name, roll_number, face_embedding, voice_embedding").execute()
         students = res.data or []

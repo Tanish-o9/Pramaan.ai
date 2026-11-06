@@ -4,9 +4,10 @@ Measures query latency p50, p95, and p99 for pgvector HNSW vs in-memory scan,
 and demonstrates the speedups achieved by subject enrollment scoping.
 """
 
-import sys
 import os
+import sys
 import time
+
 import numpy as np
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
@@ -76,7 +77,7 @@ def run_benchmark(n_vectors: int = 1000, n_queries: int = 50, scoped_subset_size
     print(f"{'Subject-Scoped Scan (60 students)':<35} | {s_stats['p50']:<9.3f} | {s_stats['p95']:<9.3f} | {s_stats['mean']:<9.3f}")
     print(f"{'pgvector HNSW (Database Index)':<35} | {h_stats['p50']:<9.3f} | {h_stats['p95']:<9.3f} | {h_stats['mean']:<9.3f}")
     print("=" * 70)
-    
+
     speedup = u_stats['p95'] / max(0.001, s_stats['p95'])
     print(f"🎯 Subject-scoping delivers a {speedup:.1f}x latency speedup and narrows search space by {(1 - scoped_subset_size/n_vectors)*100:.1f}%.")
     return u_stats, s_stats, h_stats

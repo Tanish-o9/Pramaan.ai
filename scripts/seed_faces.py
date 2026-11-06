@@ -1,17 +1,19 @@
+import glob
 import os
 import sys
-import glob
 from pathlib import Path
-from PIL import Image
+
 import numpy as np
+from PIL import Image
 
 # Ensure root dir is in sys.path
 ROOT_DIR = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT_DIR))
 
 from src.database.config import supabase
-from src.database.db import get_all_student, create_student, update_student_biometrics
+from src.database.db import create_student, get_all_student, update_student_biometrics
 from src.pipeline.face_pipeline import get_face_embeddings
+
 
 def seed_faces(seed_dir=None):
     if seed_dir is None:

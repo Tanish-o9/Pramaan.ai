@@ -2,18 +2,20 @@
 Performance, Latency & Load Testing Benchmark for Pramaan.
 Measures p50, p95, p99 latencies, throughput (RPS), and failure rates.
 """
-import time
-import sys
+import concurrent.futures
 import os
 import statistics
-import concurrent.futures
+import sys
+import time
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 from fastapi.testclient import TestClient
+
 from server import app
 from src.services.bunk_calculator import calculate_bunk_metrics
-from src.services.trust_score_service import TrustScoreEngine
 from src.services.session_token_service import generate_session_code, validate_session_code
+from src.services.trust_score_service import TrustScoreEngine
+
 
 def benchmark_services():
     client = TestClient(app)

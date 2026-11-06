@@ -3,9 +3,11 @@ Biometric Accuracy & Spoof Attack Evaluation Suite for Pramaan.
 Computes FAR, FRR, EER, and optimal thresholds for face and voice pipelines.
 Outputs formal evaluation tables into docs/EVALUATION.md.
 """
-import os
 import math
+import os
+
 import numpy as np
+
 
 def generate_evaluation_metrics():
     # 1. Face Recognition Genuine & Impostor Distribution Simulation
@@ -86,9 +88,9 @@ def generate_evaluation_metrics():
 
     md_lines.extend([
         "",
-        f"- **Optimal Operating Point:** Threshold = **0.60**",
-        f"- **False Accept Rate (FAR):** <= 0.5% at threshold 0.60",
-        f"- **Equal Error Rate (EER):** ~1.4% at threshold 0.58",
+        "- **Optimal Operating Point:** Threshold = **0.60**",
+        "- **False Accept Rate (FAR):** <= 0.5% at threshold 0.60",
+        "- **Equal Error Rate (EER):** ~1.4% at threshold 0.58",
         "",
         "## 2. Voice Biometrics Performance (Resemblyzer 256-d)",
         "",
@@ -103,8 +105,8 @@ def generate_evaluation_metrics():
 
     md_lines.extend([
         "",
-        f"- **Optimal Operating Point:** Threshold = **0.65**",
-        f"- **FAR at 0.65:** <= 0.3%",
+        "- **Optimal Operating Point:** Threshold = **0.65**",
+        "- **FAR at 0.65:** <= 0.3%",
         "",
         "## 3. Anti-Spoofing & Presentation Attack Detection (PAD)",
         "",
