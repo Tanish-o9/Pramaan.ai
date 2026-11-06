@@ -51,7 +51,8 @@ import {
   Layers,
   GraduationCap,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Lock
 } from 'lucide-react';
 
 export default function FacultyDashboard({ teacher }) {
@@ -59,7 +60,7 @@ export default function FacultyDashboard({ teacher }) {
   const [subjects, setSubjects] = useState(() => DEFAULT_AKGEC_SUBJECTS);
   const [selectedSubId, setSelectedSubId] = useState('1');
   const [selectedSection, setSelectedSection] = useState('CSE(AIML-2)');
-  const [scopeFilter, setScopeFilter] = useState('all'); // 'all' (All classes in section) | 'my' (My assigned classes)
+  const [scopeFilter, setScopeFilter] = useState('my'); // Default: 'my' (Strictly faculty's assigned classes)
   const [loading, setLoading] = useState(false);
   const subjectSliderRef = useRef(null);
 
@@ -69,6 +70,12 @@ export default function FacultyDashboard({ teacher }) {
       subjectSliderRef.current.scrollBy({ left: scrollAmount, behavior: 'smooth' });
     }
   };
+
+  // Sections where this faculty actually has assigned classes
+  const myAssignedSections = useMemo(() => {
+    const secs = new Set(subjects.filter((s) => s.is_my_assigned && s.section && s.section !== 'ALL').map((s) => s.section));
+    return Array.from(secs);
+  }, [subjects]);
 
   // Pre-configured sections list across department (strictly individual sections - NO 'ALL')
   const availableSections = useMemo(() => {
@@ -93,26 +100,36 @@ export default function FacultyDashboard({ teacher }) {
     return Array.from(found);
   }, [subjects]);
 
-  // Auto-select faculty's assigned section on initial load if applicable
+  // Auto-select faculty's assigned section on initial load or subject update
   useEffect(() => {
     const mySub = subjects.find((s) => s.is_my_assigned && s.section && s.section !== 'ALL');
-    if (mySub?.section && mySub.section !== selectedSection) {
-      setSelectedSection(mySub.section);
+    if (mySub) {
+      setSelectedSection((prevSec) => {
+        const hasMyClass = subjects.some((s) => s.section === prevSec && s.is_my_assigned);
+        return hasMyClass ? prevSec : mySub.section;
+      });
+      setSelectedSubId((prevId) => {
+        const currentSub = subjects.find((s) => String(s.subject_id) === String(prevId));
+        return currentSub?.is_my_assigned ? prevId : String(mySub.subject_id);
+      });
     }
   }, [subjects]);
 
   // Derived filtered subjects strictly for selectedSection
   const visibleSubjects = useMemo(() => {
-    let list = subjects.filter((s) => s.section === selectedSection);
+    const sectionSubs = subjects.filter((s) => s.section === selectedSection);
     if (scopeFilter === 'my') {
-      const myOnly = list.filter((s) => s.is_my_assigned);
-      if (myOnly.length > 0) list = myOnly;
+      return sectionSubs.filter((s) => s.is_my_assigned);
     }
-    if (list.length === 0) {
-      list = subjects.filter((s) => s.section === 'CSE(AIML-2)');
-    }
-    return list.length > 0 ? list : DEFAULT_AKGEC_SUBJECTS;
+    return sectionSubs;
   }, [subjects, selectedSection, scopeFilter]);
+
+  // Currently active subject object and strict authorization check
+  const activeSubject = useMemo(() => {
+    return subjects.find((s) => String(s.subject_id) === String(selectedSubId));
+  }, [subjects, selectedSubId]);
+
+  const isCurrentSubjectAuthorized = Boolean(activeSubject?.is_my_assigned);
 
   // Keep selectedSubId valid whenever selectedSection or visibleSubjects changes
   useEffect(() => {
@@ -253,12 +270,24 @@ export default function FacultyDashboard({ teacher }) {
       }
       setSubjects(res || []);
       if (res && res.length > 0) {
-        setSelectedSubId((prev) => {
-          if (prev && res.some((s) => String(s.subject_id) === String(prev))) {
-            return prev;
-          }
-          return String(res[0].subject_id);
-        });
+        const mySub = res.find((s) => s.is_my_assigned);
+        if (mySub) {
+          setSelectedSection((prevSec) => {
+            const hasMyClass = res.some((s) => s.section === prevSec && s.is_my_assigned);
+            return hasMyClass ? prevSec : mySub.section;
+          });
+          setSelectedSubId((prev) => {
+            const currentIsMine = res.some((s) => String(s.subject_id) === String(prev) && s.is_my_assigned);
+            return currentIsMine ? prev : String(mySub.subject_id);
+          });
+        } else {
+          setSelectedSubId((prev) => {
+            if (prev && res.some((s) => String(s.subject_id) === String(prev))) {
+              return prev;
+            }
+            return String(res[0].subject_id);
+          });
+        }
       }
     } catch (err) {
       console.error("loadSubjects error:", err);
@@ -411,6 +440,10 @@ export default function FacultyDashboard({ teacher }) {
 
   // Run AI Scan
   const handleScan = async () => {
+    if (!isCurrentSubjectAuthorized) {
+      toast(`🔒 Access Denied: Aap sirf apni assigned class ki attendance le sakte hain (${teacher?.name || 'Faculty'}).`, 'error');
+      return;
+    }
     let subId = selectedSubId;
     if (!subId && subjects.length > 0) {
       subId = String(subjects[0].subject_id);
@@ -445,6 +478,10 @@ export default function FacultyDashboard({ teacher }) {
 
   // Save session
   const handleSave = async () => {
+    if (!isCurrentSubjectAuthorized) {
+      toast(`🔒 Access Denied: Aap sirf apni assigned class ki attendance commit kar sakte hain (${teacher?.name || 'Faculty'}).`, 'error');
+      return;
+    }
     const list = mode === 'manual' ? manualList : review;
     if (!list) return;
     setSaving(true);
@@ -494,6 +531,10 @@ export default function FacultyDashboard({ teacher }) {
 
   const executeVoiceCommand = async (transcriptText) => {
     if (!transcriptText || !selectedSubId) return;
+    if (!isCurrentSubjectAuthorized) {
+      toast(`🔒 Access Denied: Voice roll-call sirf assigned faculty run kar sakti hai (${teacher?.name || 'Faculty'}).`, 'error');
+      return;
+    }
     setScanning(true);
     try {
       const res = await api.processVoiceCommand(Number(selectedSubId), transcriptText);
@@ -590,6 +631,10 @@ export default function FacultyDashboard({ teacher }) {
   const processGroupPhotoFile = async (file) => {
     if (!file || !selectedSubId) {
       toast("Please select an active subject first", "warning");
+      return;
+    }
+    if (!isCurrentSubjectAuthorized) {
+      toast(`🔒 Access Denied: Phone cam attendance sirf assigned faculty run kar sakti hai (${teacher?.name || 'Faculty'}).`, 'error');
       return;
     }
     setScanning(true);
@@ -703,6 +748,10 @@ export default function FacultyDashboard({ teacher }) {
   // Trigger Mid-Class Pulse Check
   const handleTriggerPulse = async () => {
     if (!selectedSubId) return;
+    if (!isCurrentSubjectAuthorized) {
+      toast(`🔒 Access Denied: Pulse check sirf assigned faculty trigger kar sakti hai (${teacher?.name || 'Faculty'}).`, 'error');
+      return;
+    }
     setPulseTriggering(true);
     try {
       const res = await api.triggerPulseCheck(Number(selectedSubId), pulseSampleSize);
@@ -1121,14 +1170,30 @@ export default function FacultyDashboard({ teacher }) {
                     onChange={(e) => setSelectedSection(e.target.value)}
                     className="w-full px-4 py-2.5 rounded-xl text-xs font-bold cursor-pointer bg-zinc-900 border-2 border-cyan-500 hover:border-cyan-400 text-white shadow-lg shadow-cyan-500/10 focus:outline-none focus:ring-2 focus:ring-cyan-400 transition"
                   >
-                    {availableSections.map((sec) => {
-                      const count = subjects.filter((s) => s.section === sec).length;
-                      return (
-                        <option key={sec} value={sec} className="bg-zinc-950 text-white py-1.5">
-                          🏫 Section: {sec} ({count} Subjects) {sec === 'CSE(AIML-2)' ? '• CL-11' : ''}
-                        </option>
-                      );
-                    })}
+                    {/* Sections where this teacher is assigned */}
+                    {myAssignedSections.length > 0 && (
+                      <optgroup label="⭐ Your Assigned Teaching Sections">
+                        {myAssignedSections.map((sec) => {
+                          const myCount = subjects.filter((s) => s.section === sec && s.is_my_assigned).length;
+                          return (
+                            <option key={`my-${sec}`} value={sec} className="bg-zinc-950 text-emerald-400 font-bold py-1.5">
+                              ⭐ Section: {sec} ({myCount} of your assigned classes)
+                            </option>
+                          );
+                        })}
+                      </optgroup>
+                    )}
+                    {/* Other Department Sections */}
+                    <optgroup label="🏫 Other Sections (View Only)">
+                      {availableSections.filter((sec) => !myAssignedSections.includes(sec)).map((sec) => {
+                        const count = subjects.filter((s) => s.section === sec).length;
+                        return (
+                          <option key={`other-${sec}`} value={sec} className="bg-zinc-950 text-zinc-400 py-1.5">
+                            🏫 Section: {sec} ({count} Subjects • Other Faculty)
+                          </option>
+                        );
+                      })}
+                    </optgroup>
                   </select>
                 </div>
 
@@ -1242,76 +1307,185 @@ export default function FacultyDashboard({ teacher }) {
               })()}
 
               {/* The Subject Slider Cards Track */}
-              <div
-                ref={subjectSliderRef}
-                className="flex items-center gap-3 overflow-x-auto pb-2 pt-1 scroll-smooth"
-                style={{ scrollbarWidth: 'thin' }}
-              >
-                {visibleSubjects.map((s) => {
-                  const isSelected = String(s.subject_id) === String(selectedSubId);
-                  return (
+              {visibleSubjects.length === 0 ? (
+                <div className="p-6 rounded-xl bg-zinc-900/60 border border-zinc-800 text-center flex flex-col items-center justify-center gap-2">
+                  <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400">
+                    <AlertCircle className="w-5 h-5" />
+                  </div>
+                  <h5 className="text-xs font-bold text-white">
+                    Aapko Section {selectedSection} mein koi class assign nahi hai
+                  </h5>
+                  <p className="text-[11px] text-zinc-400 max-w-sm">
+                    Aap sirf apni assigned class ki attendance le sakte hain.
+                  </p>
+                  {myAssignedSections.length > 0 && (
                     <button
-                      key={s.subject_id}
                       type="button"
-                      onClick={() => setSelectedSubId(String(s.subject_id))}
-                      className={`p-3.5 rounded-xl border flex flex-col items-start gap-2 shrink-0 transition-all cursor-pointer text-left ${
-                        isSelected
-                          ? 'bg-gradient-to-tr from-emerald-950/90 via-teal-950/60 to-zinc-900 border-2 border-emerald-400 shadow-xl shadow-emerald-500/20 ring-2 ring-emerald-400/40 scale-[1.02]'
-                          : 'bg-zinc-900/60 hover:bg-zinc-900 border-zinc-800 hover:border-zinc-700'
-                      }`}
-                      style={{ minWidth: '220px', maxWidth: '240px' }}
+                      onClick={() => {
+                        setSelectedSection(myAssignedSections[0]);
+                      }}
+                      className="mt-1 px-3 py-1.5 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/40 text-emerald-300 font-bold text-xs cursor-pointer"
                     >
-                      <div className="flex items-center justify-between w-full">
-                        <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-zinc-800 text-zinc-300 border border-zinc-700">
-                          {s.subject_code}
-                        </span>
-                        {s.is_my_assigned && (
-                          <span className="text-[10px] font-bold text-amber-400 flex items-center gap-0.5" title="Your Assigned Class">
-                            ⭐ My Class
-                          </span>
-                        )}
-                      </div>
-
-                      <div className="w-full">
-                        <h5 className={`text-xs font-bold line-clamp-1 ${isSelected ? 'text-emerald-300' : 'text-zinc-100'}`}>
-                          {s.name}
-                        </h5>
-                        <p className="text-[11px] text-zinc-400 truncate mt-0.5">
-                          Faculty: <strong className="text-zinc-300 font-medium">{s.faculty_name || 'Faculty'}</strong>
-                        </p>
-                      </div>
-
-                      <div className="flex items-center justify-between w-full text-[10px] text-zinc-400 pt-1 border-t border-white/5 font-mono">
-                        <span>Venue: {s.venue || 'CL-11'}</span>
-                        <span className="text-emerald-400">{s.total_students || 12} Enrolled</span>
-                      </div>
-
-                      {isSelected && (
-                        <div className="w-full text-center py-1 rounded-md bg-emerald-500/20 text-emerald-300 text-[10px] font-bold font-mono">
-                          ✓ Selected Lecture
-                        </div>
-                      )}
+                      Go to Your Assigned Section: {myAssignedSections[0]}
                     </button>
-                  );
-                })}
-              </div>
+                  )}
+                </div>
+              ) : (
+                <div
+                  ref={subjectSliderRef}
+                  className="flex items-center gap-3 overflow-x-auto pb-2 pt-1 scroll-smooth"
+                  style={{ scrollbarWidth: 'thin' }}
+                >
+                  {visibleSubjects.map((s) => {
+                    const isSelected = String(s.subject_id) === String(selectedSubId);
+                    const isAssigned = Boolean(s.is_my_assigned);
+                    return (
+                      <button
+                        key={s.subject_id}
+                        type="button"
+                        onClick={() => setSelectedSubId(String(s.subject_id))}
+                        className={`p-3.5 rounded-xl border flex flex-col items-start gap-2 shrink-0 transition-all cursor-pointer text-left ${
+                          isSelected
+                            ? isAssigned
+                              ? 'bg-gradient-to-tr from-emerald-950/90 via-teal-950/60 to-zinc-900 border-2 border-emerald-400 shadow-xl shadow-emerald-500/20 ring-2 ring-emerald-400/40 scale-[1.02]'
+                              : 'bg-gradient-to-tr from-rose-950/70 via-zinc-950 to-zinc-900 border-2 border-rose-500/60 shadow-xl shadow-rose-500/10 ring-2 ring-rose-500/30 scale-[1.01]'
+                            : isAssigned
+                            ? 'bg-zinc-900/80 hover:bg-zinc-900 border-emerald-500/30 hover:border-emerald-500/60'
+                            : 'bg-zinc-900/40 hover:bg-zinc-900/60 border-zinc-800 text-zinc-400 opacity-80'
+                        }`}
+                        style={{ minWidth: '220px', maxWidth: '240px' }}
+                      >
+                        <div className="flex items-center justify-between w-full">
+                          <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-zinc-800 text-zinc-300 border border-zinc-700">
+                            {s.subject_code}
+                          </span>
+                          {isAssigned ? (
+                            <span className="text-[10px] font-bold text-emerald-400 flex items-center gap-0.5" title="Your Assigned Class">
+                              ⭐ Your Class
+                            </span>
+                          ) : (
+                            <span className="text-[10px] font-medium text-zinc-400 flex items-center gap-0.5" title="Assigned to another faculty">
+                              <Lock className="w-2.5 h-2.5 text-zinc-400" /> View Only
+                            </span>
+                          )}
+                        </div>
+
+                        <div className="w-full">
+                          <h5 className={`text-xs font-bold line-clamp-1 ${isSelected ? (isAssigned ? 'text-emerald-300' : 'text-rose-300') : 'text-zinc-100'}`}>
+                            {s.name}
+                          </h5>
+                          <p className="text-[11px] text-zinc-400 truncate mt-0.5">
+                            Faculty: <strong className="text-zinc-300 font-medium">{s.faculty_name || 'Faculty'}</strong>
+                          </p>
+                        </div>
+
+                        <div className="flex items-center justify-between w-full text-[10px] text-zinc-400 pt-1 border-t border-white/5 font-mono">
+                          <span>Venue: {s.venue || 'CL-11'}</span>
+                          <span className={isAssigned ? "text-emerald-400" : "text-zinc-400"}>{s.total_students || 12} Enrolled</span>
+                        </div>
+
+                        {isSelected && (
+                          <div className={`w-full text-center py-1 rounded-md text-[10px] font-bold font-mono ${
+                            isAssigned
+                              ? 'bg-emerald-500/20 text-emerald-300'
+                              : 'bg-rose-500/20 text-rose-300'
+                          }`}>
+                            {isAssigned ? '✓ Authorized Lecture' : '🔒 Attendance Restricted'}
+                          </div>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
 
               {/* Selected Subject Confirmation Bar */}
-              <div className="p-2.5 rounded-lg bg-zinc-900/60 border border-zinc-800/80 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 text-xs">
-                <span className="text-zinc-300 flex items-center gap-1.5 font-medium">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                  Currently Selected: <strong className="text-white">{visibleSubjects.find((s) => String(s.subject_id) === String(selectedSubId))?.name || 'Class'}</strong>
-                  <span className="text-zinc-400 font-mono text-[11px]">({visibleSubjects.find((s) => String(s.subject_id) === String(selectedSubId))?.subject_code})</span>
-                </span>
-                <span className="text-zinc-400 text-[11px]">
-                  Ab niche capture studio choose karke attendance mark karein 👇
-                </span>
-              </div>
+              {isCurrentSubjectAuthorized ? (
+                <div className="p-2.5 rounded-lg bg-emerald-950/30 border border-emerald-500/40 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 text-xs">
+                  <span className="text-zinc-200 flex items-center gap-1.5 font-medium">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                    Currently Selected: <strong className="text-white">{activeSubject?.name || 'Class'}</strong>
+                    <span className="text-emerald-400 font-mono text-[11px]">({activeSubject?.subject_code})</span>
+                    <span className="px-1.5 py-0.2 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                      ✅ Assigned to You
+                    </span>
+                  </span>
+                  <span className="text-zinc-400 text-[11px]">
+                    Ab niche capture studio choose karke attendance mark karein 👇
+                  </span>
+                </div>
+              ) : (
+                <div className="p-3 rounded-lg bg-rose-950/40 border border-rose-500/50 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 text-xs">
+                  <span className="text-rose-200 flex items-center gap-1.5 font-medium">
+                    <ShieldAlert className="w-4 h-4 text-rose-400 shrink-0" />
+                    <span>
+                      <strong>Attendance Locked:</strong> Ye lecture <strong>{activeSubject?.faculty_name || 'other faculty'}</strong> ko alloted hai. Aap ({teacher?.name || 'Faculty'}) sirf apni assigned class ki attendance mark kar sakte hain.
+                    </span>
+                  </span>
+                  {myAssignedSections.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const myClass = subjects.find((s) => s.is_my_assigned);
+                        if (myClass) {
+                          setSelectedSection(myClass.section);
+                          setSelectedSubId(String(myClass.subject_id));
+                        }
+                      }}
+                      className="px-2.5 py-1 rounded-lg bg-rose-500/20 hover:bg-rose-500/30 border border-rose-500/40 text-rose-200 font-bold text-[11px] shrink-0 cursor-pointer"
+                    >
+                      ⚡ Go to My Class
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
           </div>
 
-          {/* Mode Selector */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2.5 mb-6 text-xs">
+          {/* Mode Selector and Capture Studios - Strictly available ONLY for authorized subjects */}
+          {!isCurrentSubjectAuthorized ? (
+            <div className="p-8 sm:p-12 rounded-2xl bg-gradient-to-b from-rose-950/25 via-zinc-900 to-zinc-950 border-2 border-rose-500/30 text-center relative overflow-hidden shadow-2xl flex flex-col items-center justify-center gap-4 my-4">
+              <div className="w-16 h-16 rounded-2xl bg-rose-500/10 border border-rose-500/30 flex items-center justify-center text-rose-400 shadow-xl shadow-rose-500/10">
+                <ShieldAlert className="w-8 h-8" />
+              </div>
+
+              <div className="max-w-md">
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-rose-500/15 border border-rose-500/30 text-rose-300 text-xs font-mono font-bold mb-2">
+                  <Lock className="w-3 h-3" /> ATTENDANCE MARKING LOCKED
+                </div>
+                <h3 className="text-base sm:text-lg font-bold text-white">
+                  Aap is Class ki Attendance Mark Nahi Kar Sakte
+                </h3>
+                <p className="text-xs sm:text-sm text-zinc-300 mt-2 leading-relaxed">
+                  Ye subject (<strong className="text-rose-400">{activeSubject?.name || 'Subject'} - {activeSubject?.subject_code}</strong>) <strong className="text-white">{activeSubject?.faculty_name || 'other faculty'}</strong> ko assign kiya gaya hai.
+                </p>
+                <p className="text-xs text-zinc-400 mt-1">
+                  Aap (<strong className="text-white">{teacher?.name || 'Faculty'}</strong>) keval unhi classes ki attendance le sakte hain jo aapko alloted hain.
+                </p>
+              </div>
+
+              {myAssignedSections.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    const myClass = subjects.find((s) => s.is_my_assigned);
+                    if (myClass) {
+                      setSelectedSection(myClass.section);
+                      setSelectedSubId(String(myClass.subject_id));
+                      toast(`Switched to your assigned lecture: ${myClass.name} (${myClass.subject_code})`, 'success');
+                    }
+                  }}
+                  className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-zinc-950 font-bold text-xs shadow-lg shadow-emerald-500/20 transition cursor-pointer flex items-center gap-2 active:scale-95"
+                >
+                  <span>Apni Assigned Class Par Jayein ({subjects.find(s => s.is_my_assigned)?.subject_code || 'My Class'})</span>
+                  <ArrowRight className="w-4 h-4" />
+                </button>
+              )}
+            </div>
+          ) : (
+            <>
+              {/* Mode Selector */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2.5 mb-6 text-xs">
             <button
               onClick={() => { setMode('live_camera'); setReview(null); }}
               className={`p-3.5 rounded-xl border flex flex-col items-center gap-2 transition cursor-pointer active:scale-98 ${
@@ -2076,6 +2250,8 @@ export default function FacultyDashboard({ teacher }) {
                   })}
               </div>
             </div>
+          )}
+            </>
           )}
         </div>
       )}

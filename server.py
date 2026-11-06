@@ -33,6 +33,7 @@ from src.database.config import supabase
 from src.database.db import (
     check_roll_exists,
     check_teacher_exists,
+    check_teacher_subject_authorized,
     create_attendance,
     create_student,
     create_subjects,
@@ -514,6 +515,13 @@ async def api_analyze_photos(
     files: list[UploadFile] = File(...),
     current_user: dict = Depends(require_teacher)
 ):
+    teacher_id = current_user.get("user_id")
+    if not check_teacher_subject_authorized(teacher_id, subject_id):
+        raise HTTPException(
+            status_code=403,
+            detail="Access Denied: You are only authorized to mark attendance for classes and subjects assigned to you."
+        )
+
     students = get_enrolled(subject_id)
     if not students:
         raise HTTPException(400, "No students enrolled in subject")
@@ -571,6 +579,13 @@ async def api_analyze_video(
     file: UploadFile = File(...),
     current_user: dict = Depends(require_teacher)
 ):
+    teacher_id = current_user.get("user_id")
+    if not check_teacher_subject_authorized(teacher_id, subject_id):
+        raise HTTPException(
+            status_code=403,
+            detail="Access Denied: You are only authorized to mark attendance for classes and subjects assigned to you."
+        )
+
     students = get_enrolled(subject_id)
     if not students:
         raise HTTPException(400, "No students enrolled")
@@ -641,6 +656,13 @@ async def api_analyze_voice(
     file: UploadFile = File(...),
     current_user: dict = Depends(require_teacher)
 ):
+    teacher_id = current_user.get("user_id")
+    if not check_teacher_subject_authorized(teacher_id, subject_id):
+        raise HTTPException(
+            status_code=403,
+            detail="Access Denied: You are only authorized to mark attendance for classes and subjects assigned to you."
+        )
+
     students = get_enrolled(subject_id)
     candidates = {s["student_id"]: s.get("voice_embedding") for s in students if s.get("voice_embedding")}
     if not candidates:
@@ -684,9 +706,16 @@ async def api_analyze_voice(
 
 @app.post("/api/attendance/log")
 def api_save_log(data: dict, current_user: dict = Depends(require_teacher)):
+    teacher_id = current_user.get("user_id")
     ts = datetime.now(timezone.utc).isoformat()
     logs = []
     for r in data.get("logs", []):
+        sub_id = r.get("subject_id")
+        if sub_id and not check_teacher_subject_authorized(teacher_id, sub_id):
+            raise HTTPException(
+                status_code=403,
+                detail=f"Access Denied: You are not authorized to mark attendance for subject ID {sub_id}. You can only mark attendance for your assigned lectures."
+            )
         is_pres = bool(r.get("is_present", False))
         trust_sc = r.get("trust_score")
         if trust_sc is None:
@@ -713,6 +742,17 @@ def api_records(subject_id: int, current_user: dict = Depends(require_teacher)):
 
 @app.post("/api/attendance/override")
 def api_override(req: OverrideReq, current_user: dict = Depends(require_teacher)):
+    teacher_id = current_user.get("user_id")
+    try:
+        log_res = supabase.table('attendance_logs').select('subject_id').eq('id', req.log_id).execute()
+        if log_res.data:
+            sub_id = log_res.data[0].get('subject_id')
+            if sub_id and not check_teacher_subject_authorized(teacher_id, sub_id):
+                raise HTTPException(403, "Access Denied: You can only modify attendance for your assigned subjects.")
+    except HTTPException:
+        raise
+    except Exception:
+        pass
     update_single_attendance(req.log_id, req.is_present, req.verification_status)
     return {"status": "success"}
 
@@ -1293,6 +1333,9 @@ def api_verify_digital_id(req: VerifyDigitalIdReq, current_user: dict = Depends(
 # 2. Voice Command Roll-Call
 @app.post("/api/attendance/voice-command")
 def api_voice_command(req: VoiceCommandReq, current_user: dict = Depends(require_teacher)):
+    teacher_id = current_user.get("user_id")
+    if not check_teacher_subject_authorized(teacher_id, req.subject_id):
+        raise HTTPException(403, "Access Denied: You can only run voice roll-call for your assigned classes.")
     students_res = get_all_student() or []
     sub_students_data = supabase.table('subject_students').select('student_id').eq('subject_id', req.subject_id).execute()
     enrolled_ids = {row['student_id'] for row in (sub_students_data.data or [])}
@@ -1302,6 +1345,9 @@ def api_voice_command(req: VoiceCommandReq, current_user: dict = Depends(require
 # 3. Mid-Class Random Pulse Check
 @app.post("/api/pulse-check/trigger")
 def api_trigger_pulse(req: TriggerPulseReq, current_user: dict = Depends(require_teacher)):
+    teacher_id = current_user.get("user_id")
+    if not check_teacher_subject_authorized(teacher_id, req.subject_id):
+        raise HTTPException(403, "Access Denied: You can only trigger pulse checks for your assigned classes.")
     students_res = get_all_student() or []
     sub_students_data = supabase.table('subject_students').select('student_id').eq('subject_id', req.subject_id).execute()
     enrolled_ids = {row['student_id'] for row in (sub_students_data.data or [])}
@@ -1388,6 +1434,12 @@ async def api_take_group_photo_attendance(
     photo: UploadFile = File(...),
     current_user: dict = Depends(require_teacher)
 ):
+    teacher_id = current_user.get("user_id")
+    if not check_teacher_subject_authorized(teacher_id, subject_id):
+        raise HTTPException(
+            status_code=403,
+            detail="Access Denied: You are only authorized to mark attendance for classes and subjects assigned to you."
+        )
     contents = await photo.read()
     image = Image.open(io.BytesIO(contents)).convert("RGB")
     image_np = np.array(image)

@@ -1,5 +1,6 @@
 import io
 import time
+from unittest.mock import patch
 
 import jwt
 import pytest
@@ -112,3 +113,44 @@ def test_student_cannot_inspect_faculty_settings(client):
     student_token = create_access_token({"user_id": 101, "role": "student"})
     res = client.get("/api/settings", headers={"Authorization": f"Bearer {student_token}"})
     assert res.status_code == 403
+
+def test_teacher_cannot_mark_attendance_for_unassigned_subject(client, monkeypatch):
+    # Subject 1 is BCS301 in CSE(AIML-2) assigned to Teacher 4 (Mr. Sharma Ji)
+    # Teacher 2 (deepu) attempting to mark attendance for Subject 1 must receive 403 Forbidden
+    deepu_token = create_access_token({"user_id": 2, "role": "teacher", "name": "deepu"})
+    payload = {
+        "logs": [
+            {
+                "subject_id": 1,
+                "student_id": 1,
+                "is_present": True
+            }
+        ]
+    }
+    res = client.post(
+        "/api/attendance/log",
+        json=payload,
+        headers={"Authorization": f"Bearer {deepu_token}"}
+    )
+    assert res.status_code == 403
+    assert "Access Denied" in res.json()["detail"]
+
+    # But teacher 2 (deepu) CAN mark attendance for their own assigned Subject 11 (BCS301 in CSE(AIML-1))
+    valid_payload = {
+        "logs": [
+            {
+                "subject_id": 11,
+                "student_id": 1,
+                "is_present": True
+            }
+        ]
+    }
+    with patch("server.create_attendance") as mock_create:
+        mock_create.return_value = [{"id": 1}]
+        valid_res = client.post(
+            "/api/attendance/log",
+            json=valid_payload,
+            headers={"Authorization": f"Bearer {deepu_token}"}
+        )
+        assert valid_res.status_code == 200
+        assert valid_res.json()["status"] == "success"

@@ -103,38 +103,38 @@ export const AKGEC_WEEKLY_SCHEDULE = {
 
 export const DEFAULT_AKGEC_SUBJECTS = [
   // CSE(AIML-2) - Official CL-11 Schedule
-  { subject_id: 1, subject_code: 'BCS301', name: 'Data Structure', section: 'CSE(AIML-2)', venue: 'CL-11', faculty_name: 'Mr. Sharma Ji', total_students: 12, is_my_assigned: true },
-  { subject_id: 2, subject_code: 'BCS302', name: 'Computer Organisation & Architecture', section: 'CSE(AIML-2)', venue: 'CL-11', faculty_name: 'Mr. Narendra Kumar', total_students: 12, is_my_assigned: true },
-  { subject_id: 3, subject_code: 'BCS303', name: 'Discrete Structure & Theory', section: 'CSE(AIML-2)', venue: 'CL-11', faculty_name: 'Ms. Ritika Dhyani', total_students: 12, is_my_assigned: true },
-  { subject_id: 4, subject_code: 'BAS301', name: 'Technical Communication', section: 'CSE(AIML-2)', venue: 'CL-11', faculty_name: 'Dr. Neetu Sharma', total_students: 12, is_my_assigned: true },
-  { subject_id: 5, subject_code: 'BCC301', name: 'Cyber Security', section: 'CSE(AIML-2)', venue: 'CL-11', faculty_name: 'Mr. Manoj Kumar', total_students: 12, is_my_assigned: true },
-  { subject_id: 6, subject_code: 'BOE304', name: 'ESE', section: 'CSE(AIML-2)', venue: 'CL-11', faculty_name: 'Dr. Tanish Rajput', total_students: 12, is_my_assigned: true },
-  { subject_id: 7, subject_code: 'BCS351', name: 'Data Structure Lab', section: 'CSE(AIML-2)', venue: 'LAB-5, LAB-4', faculty_name: 'Mr. Sharma Ji', total_students: 12, is_my_assigned: true },
-  { subject_id: 8, subject_code: 'BCS352', name: 'Computer Organisation Lab', section: 'CSE(AIML-2)', venue: 'LAB-4', faculty_name: 'Mr. Narendra Kumar', total_students: 12, is_my_assigned: true },
-  { subject_id: 9, subject_code: 'BCS353', name: 'Web Designing Workshop', section: 'CSE(AIML-2)', venue: 'LAB-5', faculty_name: 'Mr. Gaurav Kumar', total_students: 12, is_my_assigned: true },
-  { subject_id: 10, subject_code: 'BCC351', name: 'Internship Assesment/Mini Project', section: 'CSE(AIML-2)', venue: 'CL-11', faculty_name: 'Mr. Amit Goel', total_students: 12, is_my_assigned: true },
+  { subject_id: 1, subject_code: 'BCS301', name: 'Data Structure', section: 'CSE(AIML-2)', venue: 'CL-11', faculty_name: 'Mr. Sharma Ji', total_students: 12, is_my_assigned: false },
+  { subject_id: 2, subject_code: 'BCS302', name: 'Computer Organisation & Architecture', section: 'CSE(AIML-2)', venue: 'CL-11', faculty_name: 'Mr. Narendra Kumar', total_students: 12, is_my_assigned: false },
+  { subject_id: 3, subject_code: 'BCS303', name: 'Discrete Structure & Theory', section: 'CSE(AIML-2)', venue: 'CL-11', faculty_name: 'Ms. Ritika Dhyani', total_students: 12, is_my_assigned: false },
+  { subject_id: 4, subject_code: 'BAS301', name: 'Technical Communication', section: 'CSE(AIML-2)', venue: 'CL-11', faculty_name: 'Dr. Neetu Sharma', total_students: 12, is_my_assigned: false },
+  { subject_id: 5, subject_code: 'BCC301', name: 'Cyber Security', section: 'CSE(AIML-2)', venue: 'CL-11', faculty_name: 'Mr. Manoj Kumar', total_students: 12, is_my_assigned: false },
+  { subject_id: 6, subject_code: 'BOE304', name: 'ESE', section: 'CSE(AIML-2)', venue: 'CL-11', faculty_name: 'Dr. Tanish Rajput', total_students: 12, is_my_assigned: false },
+  { subject_id: 7, subject_code: 'BCS351', name: 'Data Structure Lab', section: 'CSE(AIML-2)', venue: 'LAB-5, LAB-4', faculty_name: 'Mr. Sharma Ji', total_students: 12, is_my_assigned: false },
+  { subject_id: 8, subject_code: 'BCS352', name: 'Computer Organisation Lab', section: 'CSE(AIML-2)', venue: 'LAB-4', faculty_name: 'Mr. Narendra Kumar', total_students: 12, is_my_assigned: false },
+  { subject_id: 9, subject_code: 'BCS353', name: 'Web Designing Workshop', section: 'CSE(AIML-2)', venue: 'LAB-5', faculty_name: 'Mr. Gaurav Kumar', total_students: 12, is_my_assigned: false },
+  { subject_id: 10, subject_code: 'BCC351', name: 'Internship Assesment/Mini Project', section: 'CSE(AIML-2)', venue: 'CL-11', faculty_name: 'Mr. Amit Goel', total_students: 12, is_my_assigned: false },
 
   // CSE(AIML-1)
-  { subject_id: 11, subject_code: 'BCS301', name: 'Data Structure', section: 'CSE(AIML-1)', venue: 'CL-10', faculty_name: 'deepu', total_students: 12, is_my_assigned: true },
-  { subject_id: 12, subject_code: 'BCS302', name: 'Computer Organisation & Architecture', section: 'CSE(AIML-1)', venue: 'CL-10', faculty_name: 'Mr. Narendra Kumar', total_students: 12, is_my_assigned: true },
-  { subject_id: 13, subject_code: 'BCS303', name: 'Discrete Structure & Theory', section: 'CSE(AIML-1)', venue: 'CL-10', faculty_name: 'Ms. Ritika Dhyani', total_students: 12, is_my_assigned: true },
-  { subject_id: 14, subject_code: 'BAS301', name: 'Technical Communication', section: 'CSE(AIML-1)', venue: 'CL-10', faculty_name: 'Dr. Neetu Sharma', total_students: 12, is_my_assigned: true },
-  { subject_id: 15, subject_code: 'BCS351', name: 'Data Structure Lab', section: 'CSE(AIML-1)', venue: 'LAB-5', faculty_name: 'deepu', total_students: 12, is_my_assigned: true },
-  { subject_id: 16, subject_code: 'BCC301', name: 'Cyber Security', section: 'CSE(AIML-1)', venue: 'CL-10', faculty_name: 'Mr. Manoj Kumar', total_students: 12, is_my_assigned: true },
+  { subject_id: 11, subject_code: 'BCS301', name: 'Data Structure', section: 'CSE(AIML-1)', venue: 'CL-10', faculty_name: 'deepu', total_students: 12, is_my_assigned: false },
+  { subject_id: 12, subject_code: 'BCS302', name: 'Computer Organisation & Architecture', section: 'CSE(AIML-1)', venue: 'CL-10', faculty_name: 'Mr. Narendra Kumar', total_students: 12, is_my_assigned: false },
+  { subject_id: 13, subject_code: 'BCS303', name: 'Discrete Structure & Theory', section: 'CSE(AIML-1)', venue: 'CL-10', faculty_name: 'Ms. Ritika Dhyani', total_students: 12, is_my_assigned: false },
+  { subject_id: 14, subject_code: 'BAS301', name: 'Technical Communication', section: 'CSE(AIML-1)', venue: 'CL-10', faculty_name: 'Dr. Neetu Sharma', total_students: 12, is_my_assigned: false },
+  { subject_id: 15, subject_code: 'BCS351', name: 'Data Structure Lab', section: 'CSE(AIML-1)', venue: 'LAB-5', faculty_name: 'deepu', total_students: 12, is_my_assigned: false },
+  { subject_id: 16, subject_code: 'BCC301', name: 'Cyber Security', section: 'CSE(AIML-1)', venue: 'CL-10', faculty_name: 'Mr. Manoj Kumar', total_students: 12, is_my_assigned: false },
 
   // CSE(DS-1)
-  { subject_id: 17, subject_code: 'BCS301', name: 'Data Structure', section: 'CSE(DS-1)', venue: 'CL-12', faculty_name: 'deepu', total_students: 12, is_my_assigned: true },
-  { subject_id: 18, subject_code: 'BCS302', name: 'Computer Organisation & Architecture', section: 'CSE(DS-1)', venue: 'CL-12', faculty_name: 'Mr. Narendra Kumar', total_students: 12, is_my_assigned: true },
-  { subject_id: 19, subject_code: 'BCS303', name: 'Discrete Structure & Theory', section: 'CSE(DS-1)', venue: 'CL-12', faculty_name: 'Ms. Ritika Dhyani', total_students: 12, is_my_assigned: true },
-  { subject_id: 20, subject_code: 'BAS301', name: 'Technical Communication', section: 'CSE(DS-1)', venue: 'CL-12', faculty_name: 'Dr. Neetu Sharma', total_students: 12, is_my_assigned: true },
+  { subject_id: 17, subject_code: 'BCS301', name: 'Data Structure', section: 'CSE(DS-1)', venue: 'CL-12', faculty_name: 'deepu', total_students: 12, is_my_assigned: false },
+  { subject_id: 18, subject_code: 'BCS302', name: 'Computer Organisation & Architecture', section: 'CSE(DS-1)', venue: 'CL-12', faculty_name: 'Mr. Narendra Kumar', total_students: 12, is_my_assigned: false },
+  { subject_id: 19, subject_code: 'BCS303', name: 'Discrete Structure & Theory', section: 'CSE(DS-1)', venue: 'CL-12', faculty_name: 'Ms. Ritika Dhyani', total_students: 12, is_my_assigned: false },
+  { subject_id: 20, subject_code: 'BAS301', name: 'Technical Communication', section: 'CSE(DS-1)', venue: 'CL-12', faculty_name: 'Dr. Neetu Sharma', total_students: 12, is_my_assigned: false },
 
   // CSE(DS-2)
-  { subject_id: 21, subject_code: 'BCS301', name: 'Data Structure', section: 'CSE(DS-2)', venue: 'CL-14', faculty_name: 'Mr. Sharma Ji', total_students: 12, is_my_assigned: true },
-  { subject_id: 22, subject_code: 'BCS302', name: 'Computer Organisation & Architecture', section: 'CSE(DS-2)', venue: 'CL-14', faculty_name: 'Mr. Narendra Kumar', total_students: 12, is_my_assigned: true },
+  { subject_id: 21, subject_code: 'BCS301', name: 'Data Structure', section: 'CSE(DS-2)', venue: 'CL-14', faculty_name: 'Mr. Sharma Ji', total_students: 12, is_my_assigned: false },
+  { subject_id: 22, subject_code: 'BCS302', name: 'Computer Organisation & Architecture', section: 'CSE(DS-2)', venue: 'CL-14', faculty_name: 'Mr. Narendra Kumar', total_students: 12, is_my_assigned: false },
 
   // CSE-1
-  { subject_id: 23, subject_code: 'BCS301', name: 'Data Structure', section: 'CSE-1', venue: 'CL-01', faculty_name: 'Mr. Sharma Ji', total_students: 12, is_my_assigned: true },
-  { subject_id: 24, subject_code: 'BCS302', name: 'Computer Organisation & Architecture', section: 'CSE-1', venue: 'CL-01', faculty_name: 'Mr. Narendra Kumar', total_students: 12, is_my_assigned: true },
+  { subject_id: 23, subject_code: 'BCS301', name: 'Data Structure', section: 'CSE-1', venue: 'CL-01', faculty_name: 'Mr. Sharma Ji', total_students: 12, is_my_assigned: false },
+  { subject_id: 24, subject_code: 'BCS302', name: 'Computer Organisation & Architecture', section: 'CSE-1', venue: 'CL-01', faculty_name: 'Mr. Narendra Kumar', total_students: 12, is_my_assigned: false },
 ];
 
 /**
