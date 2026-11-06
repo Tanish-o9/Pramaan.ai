@@ -21,10 +21,10 @@ jobs:
           python-version: "3.13"
           cache: "pip"
 
-      - name: Install System Dependencies (CMake, Build Essential)
+      - name: Install System Dependencies (libsndfile)
         run: |
-          sudo apt-get update
-          sudo apt-get install -y cmake build-essential libopenblas-dev liblapack-dev libsndfile1
+          sudo apt-get update -qq
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends libsndfile1
 
       - name: Install Python Dependencies
         run: |
