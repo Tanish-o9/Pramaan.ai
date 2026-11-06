@@ -147,9 +147,61 @@ class LeaveReviewReq(BaseModel):
     status: str
     remarks: str = ""
 
+# Thread-safe in-memory caching for real-time Kiosk video verification loop
+_enrolled_cache = {}  # subject_id -> (timestamp, list_of_students)
+_marked_today_cache = {}  # (subject_id, date_str) -> set of student_ids
+
 def get_enrolled(subject_id: int):
-    res = supabase.table('subject_students').select('student_id, students(*)').eq('subject_id', subject_id).execute()
-    return [r['students'] for r in (res.data or []) if r.get('students')]
+    now = time.time()
+    if subject_id in _enrolled_cache:
+        ts, cached = _enrolled_cache[subject_id]
+        if now - ts < 60.0:  # 60 second cache for high-frequency video frames
+            return cached
+
+    try:
+        res = supabase.table('subject_students').select('student_id, students(*)').eq('subject_id', subject_id).execute()
+        students = [r['students'] for r in (res.data or []) if r.get('students')]
+        _enrolled_cache[subject_id] = (now, students)
+        return students
+    except Exception as e:
+        if subject_id in _enrolled_cache:
+            return _enrolled_cache[subject_id][1]
+        print(f"Error in get_enrolled: {e}")
+        return []
+
+def is_student_marked_today(subject_id: int, student_id: int) -> bool:
+    today_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    cache_key = (subject_id, today_str)
+    if cache_key not in _marked_today_cache:
+        _marked_today_cache[cache_key] = set()
+
+    if student_id in _marked_today_cache[cache_key]:
+        return True
+
+    try:
+        res = (
+            supabase.table("attendance_logs")
+            .select("id")
+            .eq("subject_id", subject_id)
+            .eq("student_id", student_id)
+            .eq("is_present", True)
+            .gte("timestamp", f"{today_str}T00:00:00")
+            .limit(1)
+            .execute()
+        )
+        if res.data:
+            _marked_today_cache[cache_key].add(student_id)
+            return True
+    except Exception as e:
+        print(f"Error checking student attendance: {e}")
+    return False
+
+def mark_student_cached_today(subject_id: int, student_id: int):
+    today_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    cache_key = (subject_id, today_str)
+    if cache_key not in _marked_today_cache:
+        _marked_today_cache[cache_key] = set()
+    _marked_today_cache[cache_key].add(student_id)
 
 # ================= AUTHENTICATION ENDPOINTS =================
 
@@ -867,6 +919,7 @@ async def api_kiosk_quick_enroll(
             supabase.table("subject_students").insert({"subject_id": subject_id, "student_id": student_id}).execute()
 
     student = get_student_by_id(student_id)
+    _enrolled_cache.clear()
     s_name = student.get("name") if student else "Student"
     return {"status": "success", "message": f"Biometrics successfully enrolled for {s_name}!"}
 
@@ -967,13 +1020,13 @@ async def api_kiosk_verify(
             s_emb = np.array(s["face_embedding"], dtype=np.float32)
             dist = float(np.linalg.norm(s_emb - emb))
             if dist <= thresh:
-                conf = max(0.0, min(100.0, round((1.0 - (dist / (thresh + 0.2))) * 100, 1)))
+                conf = max(50.0, min(100.0, round((1.0 - (dist / thresh)) * 50.0 + 50.0, 1)))
                 if conf > best_conf:
                     best_conf = conf
                     matched_student = s
                     matched_box = box
 
-    if not matched_student or best_conf < 50.0:
+    if not matched_student:
         return {
             "status": "no_match",
             "message": "Face detected but not recognized among enrolled students.",
@@ -984,13 +1037,8 @@ async def api_kiosk_verify(
     s_name = matched_student.get("name", "Student")
     s_roll = matched_student.get("roll_number", "N/A")
 
-    # 3. Check if already marked today
-    today_prefix = datetime.now(timezone.utc).strftime("%Y-%m-%d")
-    recent_logs = get_subject_attendance(subject_id)
-    already_marked = any(
-        l.get("student_id") == sid and l.get("is_present") and str(l.get("timestamp", "")).startswith(today_prefix)
-        for l in recent_logs
-    )
+    # 3. Check if already marked today (ultra-fast cached lookup)
+    already_marked = is_student_marked_today(subject_id, sid)
 
     if already_marked:
         return {
@@ -1021,6 +1069,7 @@ async def api_kiosk_verify(
         "verification_status": "auto_accepted"
     }
     create_attendance([log_entry])
+    mark_student_cached_today(subject_id, sid)
 
     return {
         "status": "success",

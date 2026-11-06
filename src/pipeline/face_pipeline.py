@@ -118,7 +118,7 @@ def predict_group_attendance(image_np, enrolled_students, match_threshold=None, 
                 best_sid = sid
 
         if best_sid is not None and min_dist <= thresh:
-            conf = max(0.0, min(100.0, round((1.0 - (min_dist / (thresh + 0.2))) * 100, 1)))
+            conf = max(50.0, min(100.0, round((1.0 - (min_dist / thresh)) * 50.0 + 50.0, 1)))
             if best_sid not in recognized_students or conf > recognized_students[best_sid]["confidence"]:
                 recognized_students[best_sid] = {
                     "student_id": best_sid,
