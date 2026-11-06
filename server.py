@@ -1002,6 +1002,36 @@ async def api_kiosk_classroom_scan(
         "unidentified_boxes": scan_res["unidentified_boxes"]
     }
 
+def get_akgec_period_info(dt_utc: datetime) -> tuple[int, str, str, str]:
+    """Calculates AKGEC period, slot, punctuality status, and IST formatted in-time."""
+    ist_offset = timedelta(hours=5, minutes=30)
+    now_ist = dt_utc + ist_offset
+    minutes = now_ist.hour * 60 + now_ist.minute
+    in_time_str = now_ist.strftime("%I:%M:%S %p")
+
+    # AKGEC Engineering College Periods (W.E.F. 07-09-2026)
+    if minutes < 560:
+        p_num, p_slot, start_m = 1, "08:30 - 09:20 AM", 510
+    elif minutes < 610:
+        p_num, p_slot, start_m = 2, "09:20 - 10:10 AM", 560
+    elif minutes < 660:
+        p_num, p_slot, start_m = 3, "10:10 - 11:00 AM (Break)", 610
+    elif minutes < 710:
+        p_num, p_slot, start_m = 4, "11:00 - 11:50 AM", 660
+    elif minutes < 760:
+        p_num, p_slot, start_m = 5, "11:50 - 12:40 PM", 710
+    elif minutes < 810:
+        p_num, p_slot, start_m = 6, "12:40 - 01:30 PM (Lunch)", 760
+    elif minutes < 860:
+        p_num, p_slot, start_m = 7, "01:30 - 02:20 PM", 810
+    elif minutes < 910:
+        p_num, p_slot, start_m = 8, "02:20 - 03:10 PM", 860
+    else:
+        p_num, p_slot, start_m = 9, "03:10 - 04:00 PM", 910
+
+    entry_status = "LATE" if (minutes - start_m) > 10 else "ON_TIME"
+    return p_num, p_slot, entry_status, in_time_str
+
 @app.post("/api/kiosk/verify")
 async def api_kiosk_verify(
     subject_id: int = Form(...),
@@ -1082,32 +1112,7 @@ async def api_kiosk_verify(
     )
 
     now_utc = datetime.now(timezone.utc)
-    ist_offset = timedelta(hours=5, minutes=30)
-    now_ist = now_utc + ist_offset
-    minutes = now_ist.hour * 60 + now_ist.minute
-    in_time_str = now_ist.strftime("%I:%M:%S %p")
-
-    # AKGEC Engineering College Periods (W.E.F. 07-09-2026)
-    if minutes < 560:
-        p_num, p_slot, start_m = 1, "08:30 - 09:20 AM", 510
-    elif minutes < 610:
-        p_num, p_slot, start_m = 2, "09:20 - 10:10 AM", 560
-    elif minutes < 660:
-        p_num, p_slot, start_m = 3, "10:10 - 11:00 AM (Break)", 610
-    elif minutes < 710:
-        p_num, p_slot, start_m = 4, "11:00 - 11:50 AM", 660
-    elif minutes < 760:
-        p_num, p_slot, start_m = 5, "11:50 - 12:40 PM", 710
-    elif minutes < 810:
-        p_num, p_slot, start_m = 6, "12:40 - 01:30 PM (Lunch)", 760
-    elif minutes < 860:
-        p_num, p_slot, start_m = 7, "01:30 - 02:20 PM", 810
-    elif minutes < 910:
-        p_num, p_slot, start_m = 8, "02:20 - 03:10 PM", 860
-    else:
-        p_num, p_slot, start_m = 9, "03:10 - 04:00 PM", 910
-
-    entry_status = "LATE" if (minutes - start_m) > 10 else "ON_TIME"
+    p_num, p_slot, entry_status, in_time_str = get_akgec_period_info(now_utc)
 
     log_entry = {
         "subject_id": subject_id,
@@ -1393,6 +1398,54 @@ async def api_take_group_photo_attendance(
     enrolled = [s for s in students_res if s.get('student_id') in enrolled_ids]
 
     res = predict_group_attendance(image_np, enrolled, subject_id=subject_id)
+
+    # Automatically mark attendance in database for all students identified in the whole class photo
+    now_utc = datetime.now(timezone.utc)
+    today_prefix = now_utc.strftime("%Y-%m-%d")
+    p_num, p_slot, entry_status, in_time_str = get_akgec_period_info(now_utc)
+
+    recent_logs = get_subject_attendance(subject_id) or []
+    already_marked_sids = {
+        l.get("student_id") for l in recent_logs
+        if l.get("is_present") and str(l.get("timestamp", "")).startswith(today_prefix)
+    }
+
+    logs_to_create = []
+    newly_marked = []
+    for rec in res.get("recognized", []):
+        sid = rec["student_id"]
+        if sid not in already_marked_sids:
+            conf = rec.get("confidence", 95.0)
+            logs_to_create.append({
+                "subject_id": subject_id,
+                "student_id": sid,
+                "is_present": True,
+                "timestamp": now_utc.isoformat(),
+                "trust_score": max(85, min(100, round(conf))),
+                "trust_breakdown": {
+                    "source": "whole_class_photo",
+                    "period": p_num,
+                    "period_slot": p_slot,
+                    "in_time": in_time_str,
+                    "entry_status": entry_status,
+                    "confidence": round(conf, 1),
+                    "bounding_box": rec.get("bounding_box")
+                },
+                "verification_status": "auto_accepted"
+            })
+            newly_marked.append(rec)
+            already_marked_sids.add(sid)
+            mark_student_cached_today(subject_id, sid)
+
+    if logs_to_create:
+        create_attendance(logs_to_create)
+
+    res["auto_marked"] = True
+    res["newly_marked_count"] = len(logs_to_create)
+    res["newly_marked"] = newly_marked
+    res["period"] = p_num
+    res["period_slot"] = p_slot
+    res["message"] = f"Auto-marked attendance for {len(logs_to_create)} students from whole class photo!"
     return res
 
 # ================= HEALTH & OBSERVABILITY =================

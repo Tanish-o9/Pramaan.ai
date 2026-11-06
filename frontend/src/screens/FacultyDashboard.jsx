@@ -405,7 +405,7 @@ export default function FacultyDashboard({ teacher }) {
     }
   };
 
-  // Group / Class Photo Scan
+  // Group / Class Photo Scan with 100% Automatic Attendance Marking
   const handleGroupPhotoScan = async () => {
     if (!groupPhotoFile || !selectedSubId) return;
     setScanning(true);
@@ -426,14 +426,22 @@ export default function FacultyDashboard({ teacher }) {
           trust_score: match ? Math.min(100, Math.round(match.confidence + 10)) : 0,
           verification_status: match ? 'auto_accepted' : 'flagged',
           trust_breakdown: {
-            method: 'group_photo_dlib',
+            method: 'whole_class_photo_dlib',
             bounding_box: match ? match.bounding_box : null,
-            distance: match ? match.distance : null
+            distance: match ? match.distance : null,
+            source: 'Whole Class Photo'
           }
         };
       });
       setReview(newReview);
-      toast(`Classroom photo: ${res.recognized_count} students recognized (${res.total_faces_detected} faces found)`, 'success');
+
+      const newlyCount = res.newly_marked_count ?? res.recognized_count ?? 0;
+      toast(`🎉 Whole class photo processed! ${newlyCount} students auto-marked present in database!`, 'success');
+
+      // Refresh records immediately in background
+      api.getRecords(Number(selectedSubId)).then((rec) => {
+        if (rec?.records) setRecords(rec.records);
+      }).catch(() => {});
     } catch (err) {
       toast(err.message || 'Group photo scan failed', 'error');
     } finally {
@@ -973,34 +981,72 @@ export default function FacultyDashboard({ teacher }) {
           )}
 
           {mode === 'group_photo' && (
-            <div className="border border-dashed border-zinc-800 p-8 rounded-xl text-center">
-              <Sparkles className="w-8 h-8 text-cyan-400 mx-auto mb-2" />
-              <h3 className="text-sm font-semibold text-zinc-100 mb-1">Classroom Pan / Wide Group Photo</h3>
-              <p className="text-xs text-zinc-400 mb-3 max-w-md mx-auto">
-                Upload a single wide-angle photo of the entire classroom. Our pipeline detects every face in the frame simultaneously and maps them to enrolled student embeddings.
-              </p>
-              <input
-                type="file"
-                accept="image/*"
-                onChange={(e) => setGroupPhotoFile(e.target.files[0])}
-                className="text-xs text-zinc-400 file:mr-3 file:py-1.5 file:px-3 file:rounded file:border-0 file:bg-zinc-800 file:text-zinc-200 cursor-pointer"
-              />
-              {groupPhotoFile && (
-                <div className="mt-4">
+            <div className="space-y-4">
+              <div className="border border-dashed border-cyan-500/30 bg-gradient-to-b from-cyan-950/10 to-zinc-950 p-6 sm:p-8 rounded-2xl text-center relative overflow-hidden">
+                <div className="w-12 h-12 rounded-2xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400 mx-auto mb-3 shadow-inner">
+                  <Sparkles className="w-6 h-6 animate-pulse" />
+                </div>
+                <h3 className="text-base font-bold text-white mb-1">
+                  Whole Class Photo Auto-Attendance
+                </h3>
+                <p className="text-xs text-zinc-400 mb-4 max-w-lg mx-auto">
+                  Upload a single wide photo of the lecture hall. Pramaan AI's dlib 128-d multi-face radar will detect every student simultaneously, match them against your class roster, and <strong className="text-cyan-300">automatically mark their attendance in the database</strong>!
+                </p>
+
+                <div className="max-w-md mx-auto space-y-3">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => setGroupPhotoFile(e.target.files[0])}
+                    className="w-full text-xs text-zinc-400 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:bg-cyan-500/10 file:text-cyan-300 file:font-semibold file:cursor-pointer hover:file:bg-cyan-500/20 cursor-pointer border border-zinc-800 rounded-xl p-1 bg-zinc-900/60"
+                  />
+
+                  {groupPhotoFile && (
+                    <div className="pt-2">
+                      <button
+                        onClick={handleGroupPhotoScan}
+                        disabled={scanning}
+                        className="w-full py-3 bg-gradient-to-r from-cyan-500 to-sky-500 hover:from-cyan-400 hover:to-sky-400 text-zinc-950 font-bold rounded-xl text-xs transition cursor-pointer disabled:opacity-50 inline-flex items-center justify-center gap-2 shadow-lg shadow-cyan-500/20"
+                      >
+                        {scanning ? (
+                          <>
+                            <Loader2 className="w-4 h-4 animate-spin" /> Detecting Every Student in Classroom Photo...
+                          </>
+                        ) : (
+                          <>
+                            <Sparkles className="w-4 h-4" /> Auto-Mark Attendance from Whole Class Photo
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Instant Auto-Attendance Result Summary */}
+              {groupScanResult && (
+                <div className="p-4 rounded-xl border border-emerald-500/40 bg-gradient-to-r from-emerald-950/20 via-zinc-900/80 to-zinc-900/80 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 animate-in fade-in duration-200">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
+                      <CheckCircle2 className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-bold text-white">Attendance Auto-Marked!</span>
+                        <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                          SAVED TO DB
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-zinc-400 mt-0.5">
+                        Found {groupScanResult.total_faces_detected || groupScanResult.total_detected} faces • <strong className="text-emerald-400">{groupScanResult.newly_marked_count ?? groupScanResult.recognized_count} students</strong> marked present in {AKGEC_PERIODS.find((p) => p.id === groupScanResult.period)?.name || 'current period'}
+                      </p>
+                    </div>
+                  </div>
                   <button
-                    onClick={handleGroupPhotoScan}
-                    disabled={scanning}
-                    className="px-4 py-2 bg-cyan-500 hover:bg-cyan-400 text-zinc-950 font-semibold rounded text-xs transition cursor-pointer disabled:opacity-50 inline-flex items-center gap-1.5 shadow"
+                    onClick={() => setTab('logs')}
+                    className="px-3 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-medium transition cursor-pointer shrink-0"
                   >
-                    {scanning ? (
-                      <>
-                        <Loader2 className="w-3.5 h-3.5 animate-spin" /> Detecting All Faces in Classroom...
-                      </>
-                    ) : (
-                      <>
-                        <Sparkles className="w-3.5 h-3.5" /> Scan Entire Class Photo
-                      </>
-                    )}
+                    View in Logbook →
                   </button>
                 </div>
               )}
