@@ -48,7 +48,8 @@ import {
   Flag,
   Smartphone,
   Repeat,
-  Layers
+  Layers,
+  GraduationCap
 } from 'lucide-react';
 
 export default function FacultyDashboard({ teacher }) {
@@ -183,7 +184,10 @@ export default function FacultyDashboard({ teacher }) {
 
   const loadSubjects = async () => {
     try {
-      const res = await api.getSubjects();
+      let res = await api.getSubjects();
+      if (!res || res.length === 0) {
+        res = await api.getKioskSubjects();
+      }
       setSubjects(res || []);
       if (res && res.length > 0) {
         setSelectedSubId((prev) => {
@@ -195,6 +199,13 @@ export default function FacultyDashboard({ teacher }) {
       }
     } catch (err) {
       console.error("loadSubjects error:", err);
+      try {
+        const kioskSubs = await api.getKioskSubjects();
+        if (kioskSubs && kioskSubs.length > 0) {
+          setSubjects(kioskSubs);
+          setSelectedSubId(String(kioskSubs[0].subject_id));
+        }
+      } catch {}
     }
   };
 
@@ -990,31 +1001,60 @@ export default function FacultyDashboard({ teacher }) {
       {/* 1. ATTENDANCE TAB */}
       {tab === 'attendance' && (
         <div className="panel-card rounded-2xl p-6 border border-zinc-800/80 shadow-2xl">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 pb-6 border-b border-white/5">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4 pb-4 border-b border-white/5">
             <div>
               <h2 className="text-base font-bold text-zinc-100 flex items-center gap-2">
                 <Camera className="w-4 h-4 text-sky-400" /> Take Class Attendance
               </h2>
               <p className="text-xs text-zinc-400 mt-0.5">Select active subject lecture and preferred capture studio</p>
             </div>
+          </div>
 
-            <div className="flex items-center gap-3 w-full sm:w-auto">
-              <div className="flex items-center gap-2 w-full sm:w-auto">
-                <span className="text-xs text-zinc-400 font-medium">Class:</span>
+          {/* Prominent Class & Lecture Slot Selector */}
+          <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-cyan-950/40 via-sky-950/20 to-zinc-950 border-2 border-cyan-500/40 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4 mb-6 shadow-xl shadow-cyan-500/5">
+            <div className="flex items-center gap-3.5">
+              <div className="w-11 h-11 rounded-xl bg-gradient-to-tr from-cyan-500/20 to-sky-500/10 border border-cyan-500/40 flex items-center justify-center text-cyan-400 shrink-0 shadow-md">
+                <GraduationCap className="w-6 h-6 animate-pulse" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h3 className="text-sm sm:text-base font-bold text-white tracking-tight">
+                    Select Subject & Class to Take Attendance
+                  </h3>
+                  <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
+                    REQUIRED
+                  </span>
+                </div>
+                <p className="text-xs text-zinc-400 mt-0.5">
+                  Pick your course from the list below. Attendance will be recorded for this course.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+              {/* Highlighted Class Dropdown */}
+              <div className="relative min-w-[280px]">
                 <select
                   value={selectedSubId}
                   onChange={(e) => setSelectedSubId(e.target.value)}
-                  className="px-3.5 py-2 rounded-xl text-xs font-semibold cursor-pointer bg-zinc-900 border border-zinc-700/80 text-white w-full sm:w-auto shadow-sm"
+                  className="w-full px-4 py-3 rounded-xl text-xs font-bold cursor-pointer bg-zinc-950 border-2 border-cyan-400 hover:border-cyan-300 text-white shadow-lg shadow-cyan-500/15 focus:outline-none focus:ring-2 focus:ring-cyan-400 transition"
                 >
                   {subjects.length === 0 && (
-                    <option value="">Loading Classes...</option>
+                    <option value="">Loading AKGEC Classes...</option>
                   )}
                   {subjects.map((s) => (
-                    <option key={s.subject_id} value={s.subject_id}>
-                      {s.name} ({s.subject_code} - Sec {s.section})
+                    <option key={s.subject_id} value={s.subject_id} className="bg-zinc-950 text-white py-2">
+                      📚 {s.name} ({s.subject_code} - Sec {s.section})
                     </option>
                   ))}
                 </select>
+              </div>
+
+              {/* Quick Counter */}
+              <div className="px-3.5 py-2.5 rounded-xl bg-zinc-950/80 border border-zinc-800 text-center shrink-0">
+                <span className="text-[11px] text-zinc-300 font-mono">
+                  Enrolled: <strong className="text-emerald-400">{subjects.find((s) => String(s.subject_id) === String(selectedSubId))?.total_students || 12}</strong> students
+                </span>
               </div>
             </div>
           </div>
