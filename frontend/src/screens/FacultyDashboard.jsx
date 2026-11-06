@@ -49,43 +49,72 @@ import {
   Smartphone,
   Repeat,
   Layers,
-  GraduationCap
+  GraduationCap,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
 
 export default function FacultyDashboard({ teacher }) {
   const [tab, setTab] = useState('attendance'); // 'attendance' | 'analytics' | 'leaves' | 'subjects' | 'logs' | 'settings'
   const [subjects, setSubjects] = useState(() => DEFAULT_AKGEC_SUBJECTS);
   const [selectedSubId, setSelectedSubId] = useState('1');
-  const [selectedSection, setSelectedSection] = useState('ALL');
-  const [scopeFilter, setScopeFilter] = useState('all'); // 'all' (All Classes) | 'my' (My Assigned Courses)
+  const [selectedSection, setSelectedSection] = useState('CSE(AIML-2)');
+  const [scopeFilter, setScopeFilter] = useState('all'); // 'all' (All classes in section) | 'my' (My assigned classes)
   const [loading, setLoading] = useState(false);
+  const sectionSliderRef = useRef(null);
 
-  // Available unique sections from subjects
+  const scrollSectionSlider = (direction) => {
+    if (sectionSliderRef.current) {
+      const scrollAmount = direction === 'left' ? -220 : 220;
+      sectionSliderRef.current.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+    }
+  };
+
+  // Pre-configured sections list across department (strictly individual sections - NO 'ALL')
   const availableSections = useMemo(() => {
-    const defaultSecs = ['ALL', 'CSE(AIML-2)', 'CSE(AIML-1)', 'CSE(DS-1)', 'CSE(DS-2)', 'CSE-1'];
+    const defaultSecs = [
+      'CSE(AIML-2)',
+      'CSE(AIML-1)',
+      'CSE(AIML-3)',
+      'CSE(DS-1)',
+      'CSE(DS-2)',
+      'CSE-1',
+      'CSE-2',
+      'CSE-3',
+      'IT-1',
+      'IT-2',
+      'CS-1',
+      'CS-2',
+    ];
     const found = new Set(defaultSecs);
     subjects.forEach((s) => {
-      if (s.section) found.add(s.section);
+      if (s.section && s.section !== 'ALL') found.add(s.section);
     });
     return Array.from(found);
   }, [subjects]);
 
-  // Derived filtered subjects guaranteeing dropdown never appears empty
-  const visibleSubjects = useMemo(() => {
-    let list = subjects;
-    if (scopeFilter === 'my' && subjects.some((sub) => sub.is_my_assigned)) {
-      list = list.filter((s) => s.is_my_assigned);
+  // Auto-select faculty's assigned section on initial load if applicable
+  useEffect(() => {
+    const mySub = subjects.find((s) => s.is_my_assigned && s.section && s.section !== 'ALL');
+    if (mySub?.section && mySub.section !== selectedSection) {
+      setSelectedSection(mySub.section);
     }
-    if (selectedSection !== 'ALL') {
-      const secFiltered = list.filter((s) => s.section === selectedSection);
-      if (secFiltered.length > 0) {
-        list = secFiltered;
-      }
-    }
-    return list.length > 0 ? list : (subjects.length > 0 ? subjects : DEFAULT_AKGEC_SUBJECTS);
-  }, [subjects, scopeFilter, selectedSection]);
+  }, [subjects]);
 
-  // Keep selectedSubId valid if current selection is not in visibleSubjects
+  // Derived filtered subjects strictly for selectedSection
+  const visibleSubjects = useMemo(() => {
+    let list = subjects.filter((s) => s.section === selectedSection);
+    if (scopeFilter === 'my') {
+      const myOnly = list.filter((s) => s.is_my_assigned);
+      if (myOnly.length > 0) list = myOnly;
+    }
+    if (list.length === 0) {
+      list = subjects.filter((s) => s.section === 'CSE(AIML-2)');
+    }
+    return list.length > 0 ? list : DEFAULT_AKGEC_SUBJECTS;
+  }, [subjects, selectedSection, scopeFilter]);
+
+  // Keep selectedSubId valid whenever selectedSection or visibleSubjects changes
   useEffect(() => {
     if (visibleSubjects.length > 0 && !visibleSubjects.some((s) => String(s.subject_id) === String(selectedSubId))) {
       setSelectedSubId(String(visibleSubjects[0].subject_id));
@@ -1044,7 +1073,7 @@ export default function FacultyDashboard({ teacher }) {
             </div>
           </div>
 
-          {/* Prominent Class, Faculty & Multi-Section Management Studio */}
+          {/* Prominent Class, Faculty & Section Management Studio with Slider */}
           <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-cyan-950/40 via-sky-950/20 to-zinc-950 border-2 border-cyan-500/40 flex flex-col gap-4 mb-6 shadow-xl shadow-cyan-500/5">
             {/* Header + Scope Switcher */}
             <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-3 pb-3 border-b border-white/5">
@@ -1058,16 +1087,16 @@ export default function FacultyDashboard({ teacher }) {
                       Class & Lecture Allocation Studio
                     </h3>
                     <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
-                      {selectedSection === 'ALL' ? '🌐 All Department Sections' : `Section: ${selectedSection}`}
+                      Active: {selectedSection}
                     </span>
                   </div>
                   <p className="text-xs text-zinc-400 mt-0.5">
-                    Faculty: <strong className="text-white">{teacher?.name || 'Faculty'}</strong> • Select your assigned section & course below to take class attendance
+                    Faculty: <strong className="text-white">{teacher?.name || 'Faculty'}</strong> • Slide & select target classroom section to take attendance
                   </p>
                 </div>
               </div>
 
-              {/* Scope Filter Pills: My Assigned vs All Department Courses */}
+              {/* Scope Filter Pills for Active Section */}
               <div className="flex items-center gap-1.5 p-1 rounded-xl bg-zinc-950 border border-zinc-800 text-xs">
                 <button
                   type="button"
@@ -1078,7 +1107,7 @@ export default function FacultyDashboard({ teacher }) {
                       : 'text-zinc-400 hover:text-zinc-200'
                   }`}
                 >
-                  📌 My Assigned ({subjects.filter((s) => s.is_my_assigned).length})
+                  📌 My Classes ({visibleSubjects.filter((s) => s.is_my_assigned).length})
                 </button>
                 <button
                   type="button"
@@ -1089,32 +1118,86 @@ export default function FacultyDashboard({ teacher }) {
                       : 'text-zinc-400 hover:text-zinc-200'
                   }`}
                 >
-                  🌐 All Classes ({subjects.length})
+                  📚 All {selectedSection} Classes ({visibleSubjects.length})
                 </button>
               </div>
             </div>
 
-            {/* Section Switcher Pills: All Sections, CSE(AIML-2), CSE(AIML-1), CSE(DS-1), CSE(DS-2), CSE-1 */}
-            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs">
-              <span className="text-zinc-400 text-[11px] font-semibold mr-1 shrink-0">Select Section:</span>
-              {availableSections.map((sec) => (
-                <button
-                  key={sec}
-                  type="button"
-                  onClick={() => setSelectedSection(sec)}
-                  className={`px-3 py-1.5 rounded-xl font-bold text-xs transition cursor-pointer shrink-0 ${
-                    selectedSection === sec
-                      ? 'bg-gradient-to-r from-cyan-500 to-sky-500 text-zinc-950 shadow-md shadow-cyan-500/25 ring-1 ring-cyan-300'
-                      : 'bg-zinc-900/90 text-zinc-300 hover:text-white hover:bg-zinc-800 border border-zinc-800'
-                  }`}
-                >
-                  {sec === 'ALL' ? '🌐 All Sections' : sec === 'CSE(AIML-2)' ? 'CSE(AIML-2) • CL-11' : sec}
-                </button>
-              ))}
+            {/* Smooth Section Slider Carousel */}
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-zinc-300 flex items-center gap-1.5 uppercase tracking-wider">
+                  <Sliders className="w-3.5 h-3.5 text-cyan-400" />
+                  Select Target Classroom Section
+                </span>
+                <div className="flex items-center gap-2">
+                  <span className="text-[11px] font-mono text-zinc-400 hidden sm:inline">
+                    Slide to choose section:
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => scrollSectionSlider('left')}
+                    className="w-7 h-7 rounded-lg bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 flex items-center justify-center text-zinc-300 hover:text-white transition cursor-pointer active:scale-95"
+                    title="Slide Left"
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => scrollSectionSlider('right')}
+                    className="w-7 h-7 rounded-lg bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 flex items-center justify-center text-zinc-300 hover:text-white transition cursor-pointer active:scale-95"
+                    title="Slide Right"
+                  >
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Slider Track */}
+              <div
+                ref={sectionSliderRef}
+                className="flex items-center gap-2.5 overflow-x-auto pb-1.5 scroll-smooth"
+                style={{ scrollbarWidth: 'thin' }}
+              >
+                {availableSections.map((sec) => {
+                  const isSelected = selectedSection === sec;
+                  const secSubjects = subjects.filter((s) => s.section === sec);
+                  const hasMyClass = secSubjects.some((s) => s.is_my_assigned);
+                  return (
+                    <button
+                      key={sec}
+                      type="button"
+                      onClick={() => setSelectedSection(sec)}
+                      className={`px-3.5 py-2 rounded-xl border flex flex-col items-start gap-1 shrink-0 transition-all cursor-pointer text-left ${
+                        isSelected
+                          ? 'bg-gradient-to-r from-cyan-950 via-sky-950 to-zinc-900 border-2 border-cyan-400 shadow-lg shadow-cyan-500/20 ring-1 ring-cyan-400/50'
+                          : 'bg-zinc-950/80 hover:bg-zinc-900/90 border-zinc-800/80 hover:border-zinc-700'
+                      }`}
+                      style={{ minWidth: '150px' }}
+                    >
+                      <div className="flex items-center justify-between w-full">
+                        <span className={`text-xs font-bold font-mono ${isSelected ? 'text-cyan-300' : 'text-zinc-200'}`}>
+                          {sec}
+                        </span>
+                        {hasMyClass && (
+                          <span className="text-[10px] text-amber-400 font-bold" title="You have assigned classes here">⭐</span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-1.5 text-[10px] text-zinc-400">
+                        <span>{secSubjects.length} subjects</span>
+                        <span>•</span>
+                        <span className="text-zinc-300 font-medium">
+                          {sec === 'CSE(AIML-2)' ? 'CL-11' : sec.includes('AIML') ? 'CL-10' : sec.includes('DS') ? 'CL-14' : 'CL-01'}
+                        </span>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
 
             {/* Live Timetable Slot for CSE(AIML-2) */}
-            {(selectedSection === 'ALL' || selectedSection === 'CSE(AIML-2)') && (() => {
+            {selectedSection === 'CSE(AIML-2)' && (() => {
               const currentSlot = getCurrentLectureSlot();
               return (
                 <div className="p-3 rounded-xl bg-zinc-950/80 border border-zinc-800/80 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5 text-xs">
@@ -1152,12 +1235,12 @@ export default function FacultyDashboard({ teacher }) {
               );
             })()}
 
-            {/* Active Section Summary & Dropdown Selection */}
+            {/* Subject Selection for Active Section */}
             <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3 pt-1">
               <div className="flex items-center gap-2 text-xs">
                 <span className="px-3 py-1.5 rounded-xl bg-zinc-950 border border-cyan-500/40 text-cyan-300 font-mono text-[11px] font-bold flex items-center gap-2 shadow-sm">
                   <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></span>
-                  {selectedSection === 'ALL' ? 'All Sections' : `Section: ${selectedSection}`} ({visibleSubjects.length} Classes Available)
+                  Active Section: {selectedSection} ({visibleSubjects.length} Classes Available)
                 </span>
               </div>
 
