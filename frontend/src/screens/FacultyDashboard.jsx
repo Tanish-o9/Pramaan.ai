@@ -1073,66 +1073,50 @@ export default function FacultyDashboard({ teacher }) {
             </div>
           </div>
 
-          {/* Prominent Class, Faculty & Section Management Studio with Slider */}
-          <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-cyan-950/40 via-sky-950/20 to-zinc-950 border-2 border-cyan-500/40 flex flex-col gap-4 mb-6 shadow-xl shadow-cyan-500/5">
-            {/* Header + Scope Switcher */}
-            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-3 pb-3 border-b border-white/5">
+          {/* 2-Step Sequential Allocation Studio: 1. Select Section -> 2. Select Subject */}
+          <div className="p-4 sm:p-6 rounded-2xl bg-gradient-to-r from-cyan-950/40 via-sky-950/20 to-zinc-950 border-2 border-cyan-500/40 flex flex-col gap-5 mb-6 shadow-xl shadow-cyan-500/5">
+            {/* Studio Header */}
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-3 border-b border-white/5">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-cyan-500/20 to-sky-500/10 border border-cyan-500/40 flex items-center justify-center text-cyan-400 shrink-0 shadow-md">
                   <GraduationCap className="w-5 h-5 animate-pulse" />
                 </div>
                 <div>
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <h3 className="text-sm sm:text-base font-bold text-white tracking-tight">
-                      Class & Lecture Allocation Studio
-                    </h3>
+                  <h3 className="text-sm sm:text-base font-bold text-white tracking-tight flex items-center gap-2">
+                    Class Attendance Setup Studio
                     <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
-                      Active: {selectedSection}
+                      Step-by-Step
                     </span>
-                  </div>
+                  </h3>
                   <p className="text-xs text-zinc-400 mt-0.5">
-                    Faculty: <strong className="text-white">{teacher?.name || 'Faculty'}</strong> • Slide & select target classroom section to take attendance
+                    Faculty: <strong className="text-white">{teacher?.name || 'Faculty'}</strong> • Follow Step 1 (Section) then Step 2 (Subject) to mark attendance
                   </p>
                 </div>
               </div>
 
-              {/* Scope Filter Pills for Active Section */}
-              <div className="flex items-center gap-1.5 p-1 rounded-xl bg-zinc-950 border border-zinc-800 text-xs">
-                <button
-                  type="button"
-                  onClick={() => setScopeFilter('my')}
-                  className={`px-3 py-1.5 rounded-lg font-semibold transition cursor-pointer ${
-                    scopeFilter === 'my'
-                      ? 'bg-cyan-500 text-zinc-950 shadow-md'
-                      : 'text-zinc-400 hover:text-zinc-200'
-                  }`}
-                >
-                  📌 My Classes ({visibleSubjects.filter((s) => s.is_my_assigned).length})
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setScopeFilter('all')}
-                  className={`px-3 py-1.5 rounded-lg font-semibold transition cursor-pointer ${
-                    scopeFilter === 'all'
-                      ? 'bg-cyan-500 text-zinc-950 shadow-md'
-                      : 'text-zinc-400 hover:text-zinc-200'
-                  }`}
-                >
-                  📚 All {selectedSection} Classes ({visibleSubjects.length})
-                </button>
+              <div className="px-3 py-1.5 rounded-xl bg-zinc-950 border border-zinc-800 text-xs font-mono text-zinc-300">
+                Active: <strong className="text-cyan-400">{selectedSection}</strong> • <strong className="text-emerald-400">{visibleSubjects.find((s) => String(s.subject_id) === String(selectedSubId))?.subject_code || 'Select'}</strong>
               </div>
             </div>
 
-            {/* Smooth Section Slider Carousel */}
-            <div className="flex flex-col gap-2">
+            {/* ================= STEP 1: SELECT SECTION ================= */}
+            <div className="p-4 rounded-xl bg-zinc-950/90 border border-zinc-800/80 flex flex-col gap-3">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-zinc-300 flex items-center gap-1.5 uppercase tracking-wider">
-                  <Sliders className="w-3.5 h-3.5 text-cyan-400" />
-                  Select Target Classroom Section
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className="w-6 h-6 rounded-lg bg-cyan-500 text-zinc-950 font-black text-xs flex items-center justify-center shadow-md shadow-cyan-500/20">
+                    1
+                  </span>
+                  <div>
+                    <h4 className="text-xs font-bold text-white uppercase tracking-wider">
+                      Step 1: Pehle Section Select Karein
+                    </h4>
+                    <p className="text-[11px] text-zinc-400">Slide karke apni active class ka section choose karein</p>
+                  </div>
+                </div>
+
                 <div className="flex items-center gap-2">
                   <span className="text-[11px] font-mono text-zinc-400 hidden sm:inline">
-                    Slide to choose section:
+                    Slide Sections:
                   </span>
                   <button
                     type="button"
@@ -1168,12 +1152,12 @@ export default function FacultyDashboard({ teacher }) {
                       key={sec}
                       type="button"
                       onClick={() => setSelectedSection(sec)}
-                      className={`px-3.5 py-2 rounded-xl border flex flex-col items-start gap-1 shrink-0 transition-all cursor-pointer text-left ${
+                      className={`px-4 py-2.5 rounded-xl border flex flex-col items-start gap-1 shrink-0 transition-all cursor-pointer text-left ${
                         isSelected
-                          ? 'bg-gradient-to-r from-cyan-950 via-sky-950 to-zinc-900 border-2 border-cyan-400 shadow-lg shadow-cyan-500/20 ring-1 ring-cyan-400/50'
-                          : 'bg-zinc-950/80 hover:bg-zinc-900/90 border-zinc-800/80 hover:border-zinc-700'
+                          ? 'bg-gradient-to-r from-cyan-950 via-sky-950 to-zinc-900 border-2 border-cyan-400 shadow-lg shadow-cyan-500/25 ring-2 ring-cyan-400/40'
+                          : 'bg-zinc-900/60 hover:bg-zinc-900/90 border-zinc-800 hover:border-zinc-700'
                       }`}
-                      style={{ minWidth: '150px' }}
+                      style={{ minWidth: '155px' }}
                     >
                       <div className="flex items-center justify-between w-full">
                         <span className={`text-xs font-bold font-mono ${isSelected ? 'text-cyan-300' : 'text-zinc-200'}`}>
@@ -1190,77 +1174,116 @@ export default function FacultyDashboard({ teacher }) {
                           {sec === 'CSE(AIML-2)' ? 'CL-11' : sec.includes('AIML') ? 'CL-10' : sec.includes('DS') ? 'CL-14' : 'CL-01'}
                         </span>
                       </div>
+                      {isSelected && (
+                        <span className="text-[9px] font-mono font-bold text-cyan-400 uppercase mt-0.5">
+                          ✓ Selected Section
+                        </span>
+                      )}
                     </button>
                   );
                 })}
               </div>
             </div>
 
-            {/* Live Timetable Slot for CSE(AIML-2) */}
-            {selectedSection === 'CSE(AIML-2)' && (() => {
-              const currentSlot = getCurrentLectureSlot();
-              return (
-                <div className="p-3 rounded-xl bg-zinc-950/80 border border-zinc-800/80 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5 text-xs">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 flex items-center gap-1">
-                      <Clock className="w-3 h-3" /> LIVE TIMETABLE (CSE AIML-2 • Room CL-11)
-                    </span>
-                    <span className="text-zinc-300 font-medium">
-                      {currentSlot.day} • {currentSlot.period?.name} ({currentSlot.period?.slot}):
-                    </span>
-                    <strong className="text-white">
-                      {currentSlot.lecture?.code || 'Free'} • {currentSlot.lecture?.subject || 'Break/Prep'}
-                    </strong>
-                    <span className="text-zinc-400 font-mono text-[11px]">
-                      ({currentSlot.lecture?.faculty || 'No Faculty'} • {currentSlot.lecture?.venue || 'CL-11'})
-                    </span>
+            {/* ================= STEP 2: SELECT SUBJECT ================= */}
+            <div className="p-4 rounded-xl bg-zinc-950/90 border border-zinc-800/80 flex flex-col gap-3">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 pb-1">
+                <div className="flex items-center gap-2">
+                  <span className="w-6 h-6 rounded-lg bg-emerald-500 text-zinc-950 font-black text-xs flex items-center justify-center shadow-md shadow-emerald-500/20">
+                    2
+                  </span>
+                  <div>
+                    <h4 className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-2">
+                      Step 2: Baad Me Subject / Lecture Select Karein
+                      <span className="text-cyan-400 font-mono normal-case">({selectedSection})</span>
+                    </h4>
+                    <p className="text-[11px] text-zinc-400">Chune gaye section ke active lecture ko select karein</p>
                   </div>
-
-                  {currentSlot.lecture?.code && currentSlot.lecture?.code !== 'BREAK' && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const match = subjects.find((s) => s.subject_code?.toUpperCase() === currentSlot.lecture.code.toUpperCase() && s.section === 'CSE(AIML-2)');
-                        if (match) {
-                          setSelectedSubId(String(match.subject_id));
-                          toast(`⚡ Auto-selected live timetable lecture: ${match.name} (${match.subject_code})`, 'success');
-                        }
-                      }}
-                      className="px-2.5 py-1 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 text-emerald-300 font-bold text-[11px] transition cursor-pointer shrink-0"
-                    >
-                      ⚡ Auto-Select Live Slot
-                    </button>
-                  )}
                 </div>
-              );
-            })()}
 
-            {/* Subject Selection for Active Section */}
-            <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3 pt-1">
-              <div className="flex items-center gap-2 text-xs">
-                <span className="px-3 py-1.5 rounded-xl bg-zinc-950 border border-cyan-500/40 text-cyan-300 font-mono text-[11px] font-bold flex items-center gap-2 shadow-sm">
-                  <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></span>
-                  Active Section: {selectedSection} ({visibleSubjects.length} Classes Available)
-                </span>
+                {/* Scope Filters */}
+                <div className="flex items-center gap-1.5 p-1 rounded-xl bg-zinc-900 border border-zinc-800 text-xs shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setScopeFilter('my')}
+                    className={`px-2.5 py-1 rounded-lg font-semibold transition cursor-pointer text-[11px] ${
+                      scopeFilter === 'my'
+                        ? 'bg-cyan-500 text-zinc-950 shadow-md'
+                        : 'text-zinc-400 hover:text-zinc-200'
+                    }`}
+                  >
+                    📌 My Classes ({subjects.filter((s) => s.section === selectedSection && s.is_my_assigned).length})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setScopeFilter('all')}
+                    className={`px-2.5 py-1 rounded-lg font-semibold transition cursor-pointer text-[11px] ${
+                      scopeFilter === 'all'
+                        ? 'bg-cyan-500 text-zinc-950 shadow-md'
+                        : 'text-zinc-400 hover:text-zinc-200'
+                    }`}
+                  >
+                    📚 All {selectedSection} Classes ({subjects.filter((s) => s.section === selectedSection).length})
+                  </button>
+                </div>
               </div>
 
-              {/* Dropdown Selection */}
-              <div className="flex items-center gap-2.5 flex-1 lg:max-w-xl">
-                <div className="relative w-full">
+              {/* Live Timetable Slot for CSE(AIML-2) */}
+              {selectedSection === 'CSE(AIML-2)' && (() => {
+                const currentSlot = getCurrentLectureSlot();
+                return (
+                  <div className="p-3 rounded-xl bg-zinc-900/80 border border-emerald-500/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 text-xs">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 flex items-center gap-1">
+                        <Clock className="w-3 h-3" /> LIVE TIMETABLE (CSE AIML-2 • Room CL-11)
+                      </span>
+                      <span className="text-zinc-300 font-medium">
+                        {currentSlot.day} • {currentSlot.period?.name} ({currentSlot.period?.slot}):
+                      </span>
+                      <strong className="text-white">
+                        {currentSlot.lecture?.code || 'Free'} • {currentSlot.lecture?.subject || 'Break/Prep'}
+                      </strong>
+                      <span className="text-zinc-400 font-mono text-[11px]">
+                        ({currentSlot.lecture?.faculty || 'No Faculty'} • {currentSlot.lecture?.venue || 'CL-11'})
+                      </span>
+                    </div>
+
+                    {currentSlot.lecture?.code && currentSlot.lecture?.code !== 'BREAK' && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const match = subjects.find((s) => s.subject_code?.toUpperCase() === currentSlot.lecture.code.toUpperCase() && s.section === 'CSE(AIML-2)');
+                          if (match) {
+                            setSelectedSubId(String(match.subject_id));
+                            toast(`⚡ Auto-selected live timetable lecture: ${match.name} (${match.subject_code})`, 'success');
+                          }
+                        }}
+                        className="px-2.5 py-1 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/40 text-emerald-300 font-bold text-[11px] transition cursor-pointer shrink-0 shadow-sm"
+                      >
+                        ⚡ Auto-Select Live Slot
+                      </button>
+                    )}
+                  </div>
+                );
+              })()}
+
+              {/* Prominent Subject Dropdown + Details */}
+              <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 pt-1">
+                <div className="relative flex-1">
                   <select
                     value={selectedSubId}
                     onChange={(e) => setSelectedSubId(e.target.value)}
-                    className="w-full px-4 py-3 rounded-xl text-xs font-bold cursor-pointer bg-zinc-950 border-2 border-cyan-400 hover:border-cyan-300 text-white shadow-lg shadow-cyan-500/15 focus:outline-none focus:ring-2 focus:ring-cyan-400 transition"
+                    className="w-full px-4 py-3 rounded-xl text-xs font-bold cursor-pointer bg-zinc-950 border-2 border-emerald-500 hover:border-emerald-400 text-white shadow-lg shadow-emerald-500/15 focus:outline-none focus:ring-2 focus:ring-emerald-400 transition"
                   >
                     {visibleSubjects.map((s) => (
                       <option key={s.subject_id} value={s.subject_id} className="bg-zinc-950 text-white py-2">
-                        📚 {s.name} ({s.subject_code} - Sec {s.section}) • {s.faculty_name || 'Faculty'} {s.is_my_assigned ? '⭐ (Your Assigned Class)' : ''}
+                        📚 {s.name} ({s.subject_code} - Sec {s.section}) • Faculty: {s.faculty_name || 'Faculty'} {s.is_my_assigned ? '⭐ (Your Assigned Class)' : ''}
                       </option>
                     ))}
                   </select>
                 </div>
 
-                <div className="px-3.5 py-2.5 rounded-xl bg-zinc-950/90 border border-zinc-800 text-center shrink-0">
+                <div className="px-4 py-2.5 rounded-xl bg-zinc-900 border border-zinc-800 text-center shrink-0 flex items-center justify-center gap-2">
                   <span className="text-[11px] text-zinc-300 font-mono">
                     Enrolled: <strong className="text-emerald-400">{subjects.find((s) => String(s.subject_id) === String(selectedSubId))?.total_students || 12}</strong> students
                   </span>
