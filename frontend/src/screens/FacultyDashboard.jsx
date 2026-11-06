@@ -5,46 +5,46 @@ import QRCode from 'qrcode';
 import KioskScreen from './KioskScreen';
 import CopilotDrawer from '../components/CopilotDrawer';
 import { AKGEC_META, AKGEC_PERIODS, AKGEC_WEEKLY_SCHEDULE, DEFAULT_AKGEC_SUBJECTS, getCurrentLectureSlot } from '../akgecTimetable';
-import { 
-  Camera, 
-  Video, 
-  Mic, 
-  CheckSquare, 
-  Plus, 
-  Share2, 
-  Trash2, 
-  Download, 
-  Copy, 
-  Clock, 
-  X, 
-  RefreshCw, 
-  AlertCircle, 
-  Sliders, 
-  Upload, 
-  UserCheck, 
-  Users, 
-  ShieldCheck, 
-  ShieldAlert, 
-  Info, 
-  ArrowUpDown, 
-  ArrowRight, 
-  CheckCircle2, 
-  Loader2, 
-  FileText, 
-  AlertTriangle, 
-  Flame, 
-  Check, 
-  XCircle, 
-  LayoutGrid, 
-  Zap, 
-  Printer, 
-  Sparkles, 
-  Volume2, 
-  Search, 
-  MessageSquare, 
-  Send, 
-  ExternalLink, 
-  Eye, 
+import {
+  Camera,
+  Video,
+  Mic,
+  CheckSquare,
+  Plus,
+  Share2,
+  Trash2,
+  Download,
+  Copy,
+  Clock,
+  X,
+  RefreshCw,
+  AlertCircle,
+  Sliders,
+  Upload,
+  UserCheck,
+  Users,
+  ShieldCheck,
+  ShieldAlert,
+  Info,
+  ArrowUpDown,
+  ArrowRight,
+  CheckCircle2,
+  Loader2,
+  FileText,
+  AlertTriangle,
+  Flame,
+  Check,
+  XCircle,
+  LayoutGrid,
+  Zap,
+  Printer,
+  Sparkles,
+  Volume2,
+  Search,
+  MessageSquare,
+  Send,
+  ExternalLink,
+  Eye,
   Flag,
   Smartphone,
   Repeat,
@@ -52,7 +52,8 @@ import {
   GraduationCap,
   ChevronLeft,
   ChevronRight,
-  Lock
+  Lock,
+  Globe
 } from 'lucide-react';
 
 export default function FacultyDashboard({ teacher }) {
@@ -77,17 +78,17 @@ export default function FacultyDashboard({ teacher }) {
     return Array.from(secs);
   }, [subjects]);
 
-  // Pre-configured sections list across department (strictly individual sections - NO 'ALL')
+  // Pre-configured sections list across department (matches section slider ordering)
   const availableSections = useMemo(() => {
     const defaultSecs = [
       'CSE(AIML-2)',
       'CSE(AIML-1)',
-      'CSE(AIML-3)',
       'CSE(DS-1)',
       'CSE(DS-2)',
       'CSE-1',
       'CSE-2',
       'CSE-3',
+      'CSE(AIML-3)',
       'IT-1',
       'IT-2',
       'CS-1',
@@ -105,6 +106,7 @@ export default function FacultyDashboard({ teacher }) {
     const mySub = subjects.find((s) => s.is_my_assigned && s.section && s.section !== 'ALL');
     if (mySub) {
       setSelectedSection((prevSec) => {
+        if (prevSec === 'ALL') return prevSec;
         const hasMyClass = subjects.some((s) => s.section === prevSec && s.is_my_assigned);
         return hasMyClass ? prevSec : mySub.section;
       });
@@ -117,7 +119,9 @@ export default function FacultyDashboard({ teacher }) {
 
   // Derived filtered subjects strictly for selectedSection
   const visibleSubjects = useMemo(() => {
-    const sectionSubs = subjects.filter((s) => s.section === selectedSection);
+    const sectionSubs = (selectedSection === 'ALL')
+      ? subjects
+      : subjects.filter((s) => s.section === selectedSection);
     if (scopeFilter === 'my') {
       return sectionSubs.filter((s) => s.is_my_assigned);
     }
@@ -297,7 +301,7 @@ export default function FacultyDashboard({ teacher }) {
           setSubjects(kioskSubs);
           setSelectedSubId(String(kioskSubs[0].subject_id));
         }
-      } catch {}
+      } catch { }
     }
   };
 
@@ -353,8 +357,8 @@ export default function FacultyDashboard({ teacher }) {
     }
   };
 
-  useEffect(() => { 
-    loadSubjects(); 
+  useEffect(() => {
+    loadSubjects();
     loadSettings();
     loadTeacherLeaves();
   }, [teacher?.teachers_id]);
@@ -585,7 +589,7 @@ export default function FacultyDashboard({ teacher }) {
       mobileStreamRef.current = stream;
       if (mobileVideoRef.current) {
         mobileVideoRef.current.srcObject = stream;
-        mobileVideoRef.current.play().catch(() => {});
+        mobileVideoRef.current.play().catch(() => { });
       }
       setMobileCamActive(true);
     } catch (err) {
@@ -679,7 +683,7 @@ export default function FacultyDashboard({ teacher }) {
       // Refresh records immediately in background
       api.getRecords(Number(selectedSubId)).then((rec) => {
         if (rec?.records) setRecords(rec.records);
-      }).catch(() => {});
+      }).catch(() => { });
     } catch (err) {
       toast(err.message || 'Group photo scan failed', 'error');
     } finally {
@@ -724,7 +728,7 @@ export default function FacultyDashboard({ teacher }) {
         gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
         osc.start();
         osc.stop(audioCtx.currentTime + 0.2);
-      } catch {}
+      } catch { }
 
       if (navigator.vibrate) {
         navigator.vibrate([60, 40, 100]);
@@ -1025,9 +1029,8 @@ export default function FacultyDashboard({ teacher }) {
         <div className="flex items-center gap-1.5 p-1 rounded-xl bg-zinc-950/90 border border-zinc-800/90 shadow-inner">
           <button
             onClick={() => setTab('attendance')}
-            className={`px-3.5 py-2 rounded-lg font-semibold text-xs transition cursor-pointer flex items-center gap-1.5 ${
-              tab === 'attendance' ? 'bg-zinc-800 text-white shadow-sm ring-1 ring-white/10' : 'text-zinc-400 hover:text-zinc-200'
-            }`}
+            className={`px-3.5 py-2 rounded-lg font-semibold text-xs transition cursor-pointer flex items-center gap-1.5 ${tab === 'attendance' ? 'bg-zinc-800 text-white shadow-sm ring-1 ring-white/10' : 'text-zinc-400 hover:text-zinc-200'
+              }`}
           >
             <Camera className="w-3.5 h-3.5 text-sky-400" />
             <span>Take Attendance</span>
@@ -1035,9 +1038,8 @@ export default function FacultyDashboard({ teacher }) {
 
           <button
             onClick={() => setTab('seatmap')}
-            className={`px-3.5 py-2 rounded-lg font-semibold text-xs transition cursor-pointer flex items-center gap-1.5 ${
-              tab === 'seatmap' ? 'bg-zinc-800 text-white shadow-sm ring-1 ring-white/10' : 'text-zinc-400 hover:text-zinc-200'
-            }`}
+            className={`px-3.5 py-2 rounded-lg font-semibold text-xs transition cursor-pointer flex items-center gap-1.5 ${tab === 'seatmap' ? 'bg-zinc-800 text-white shadow-sm ring-1 ring-white/10' : 'text-zinc-400 hover:text-zinc-200'
+              }`}
           >
             <LayoutGrid className="w-3.5 h-3.5 text-cyan-400" />
             <span>Seat Map</span>
@@ -1045,9 +1047,8 @@ export default function FacultyDashboard({ teacher }) {
 
           <button
             onClick={() => setTab('analytics')}
-            className={`px-3.5 py-2 rounded-lg font-semibold text-xs transition cursor-pointer flex items-center gap-1.5 ${
-              tab === 'analytics' ? 'bg-zinc-800 text-white shadow-sm ring-1 ring-white/10' : 'text-zinc-400 hover:text-zinc-200'
-            }`}
+            className={`px-3.5 py-2 rounded-lg font-semibold text-xs transition cursor-pointer flex items-center gap-1.5 ${tab === 'analytics' ? 'bg-zinc-800 text-white shadow-sm ring-1 ring-white/10' : 'text-zinc-400 hover:text-zinc-200'
+              }`}
           >
             <Flame className="w-3.5 h-3.5 text-amber-400" />
             <span>AI Risk Radar</span>
@@ -1055,9 +1056,8 @@ export default function FacultyDashboard({ teacher }) {
 
           <button
             onClick={() => setTab('leaves')}
-            className={`px-3.5 py-2 rounded-lg font-semibold text-xs transition cursor-pointer flex items-center gap-1.5 ${
-              tab === 'leaves' ? 'bg-zinc-800 text-white shadow-sm ring-1 ring-white/10' : 'text-zinc-400 hover:text-zinc-200'
-            }`}
+            className={`px-3.5 py-2 rounded-lg font-semibold text-xs transition cursor-pointer flex items-center gap-1.5 ${tab === 'leaves' ? 'bg-zinc-800 text-white shadow-sm ring-1 ring-white/10' : 'text-zinc-400 hover:text-zinc-200'
+              }`}
           >
             <FileText className="w-3.5 h-3.5 text-blue-400" />
             <span>Leave Requests</span>
@@ -1070,9 +1070,8 @@ export default function FacultyDashboard({ teacher }) {
 
           <button
             onClick={() => setTab('subjects')}
-            className={`px-3.5 py-2 rounded-lg font-semibold text-xs transition cursor-pointer flex items-center gap-1.5 ${
-              tab === 'subjects' ? 'bg-zinc-800 text-white shadow-sm ring-1 ring-white/10' : 'text-zinc-400 hover:text-zinc-200'
-            }`}
+            className={`px-3.5 py-2 rounded-lg font-semibold text-xs transition cursor-pointer flex items-center gap-1.5 ${tab === 'subjects' ? 'bg-zinc-800 text-white shadow-sm ring-1 ring-white/10' : 'text-zinc-400 hover:text-zinc-200'
+              }`}
           >
             <Users className="w-3.5 h-3.5 text-emerald-400" />
             <span>Subjects & Roster</span>
@@ -1080,9 +1079,8 @@ export default function FacultyDashboard({ teacher }) {
 
           <button
             onClick={() => setTab('logs')}
-            className={`px-3.5 py-2 rounded-lg font-semibold text-xs transition cursor-pointer flex items-center gap-1.5 ${
-              tab === 'logs' ? 'bg-zinc-800 text-white shadow-sm ring-1 ring-white/10' : 'text-zinc-400 hover:text-zinc-200'
-            }`}
+            className={`px-3.5 py-2 rounded-lg font-semibold text-xs transition cursor-pointer flex items-center gap-1.5 ${tab === 'logs' ? 'bg-zinc-800 text-white shadow-sm ring-1 ring-white/10' : 'text-zinc-400 hover:text-zinc-200'
+              }`}
           >
             <Download className="w-3.5 h-3.5 text-violet-400" />
             <span>Logbook & Export</span>
@@ -1090,9 +1088,8 @@ export default function FacultyDashboard({ teacher }) {
 
           <button
             onClick={() => setTab('timetable')}
-            className={`px-3.5 py-2 rounded-lg font-semibold text-xs transition cursor-pointer flex items-center gap-1.5 ${
-              tab === 'timetable' ? 'bg-zinc-800 text-white shadow-sm ring-1 ring-white/10' : 'text-zinc-400 hover:text-zinc-200'
-            }`}
+            className={`px-3.5 py-2 rounded-lg font-semibold text-xs transition cursor-pointer flex items-center gap-1.5 ${tab === 'timetable' ? 'bg-zinc-800 text-white shadow-sm ring-1 ring-white/10' : 'text-zinc-400 hover:text-zinc-200'
+              }`}
           >
             <Clock className="w-3.5 h-3.5 text-cyan-400" />
             <span>CSE(AIML-2) Timetable</span>
@@ -1100,9 +1097,8 @@ export default function FacultyDashboard({ teacher }) {
 
           <button
             onClick={() => setTab('settings')}
-            className={`px-3.5 py-2 rounded-lg font-semibold text-xs transition cursor-pointer flex items-center gap-1.5 ${
-              tab === 'settings' ? 'bg-zinc-800 text-white shadow-sm ring-1 ring-white/10' : 'text-zinc-400 hover:text-zinc-200'
-            }`}
+            className={`px-3.5 py-2 rounded-lg font-semibold text-xs transition cursor-pointer flex items-center gap-1.5 ${tab === 'settings' ? 'bg-zinc-800 text-white shadow-sm ring-1 ring-white/10' : 'text-zinc-400 hover:text-zinc-200'
+              }`}
           >
             <Sliders className="w-3.5 h-3.5 text-zinc-400" />
             <span>Settings</span>
@@ -1149,57 +1145,54 @@ export default function FacultyDashboard({ teacher }) {
               </div>
             </div>
 
-            {/* ================= 1. PEHLE: SECTION SELECT KARNE KA OPTION ================= */}
-            <div className="p-4 rounded-xl bg-zinc-950/90 border border-zinc-800/80 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-              <div className="flex items-center gap-3">
-                <div className="w-7 h-7 rounded-lg bg-cyan-500 text-zinc-950 font-black text-xs flex items-center justify-center shadow-md shadow-cyan-500/20 shrink-0">
-                  1
-                </div>
-                <div>
-                  <h4 className="text-xs font-bold text-white uppercase tracking-wider">
-                    Pehle Section Select Karein
-                  </h4>
-                  <p className="text-[11px] text-zinc-400">Kis classroom section ki attendance leni hai choose karein</p>
-                </div>
-              </div>
+            {/* ================= 1. PEHLE: SECTION SELECT KARNE KA SLIDER (EXACT MATCH TO DESIGN) ================= */}
+            <div className="p-3.5 sm:p-4 rounded-2xl bg-zinc-950/90 border border-zinc-800/80 shadow-md">
+              <div className="flex items-center gap-2.5 overflow-x-auto no-scrollbar py-1">
+                <span className="text-xs font-semibold text-zinc-400 shrink-0 whitespace-nowrap pl-1 pr-1">
+                  Select Section:
+                </span>
 
-              <div className="flex items-center gap-3 w-full md:w-auto">
-                <div className="relative w-full md:w-72">
-                  <select
-                    value={selectedSection}
-                    onChange={(e) => setSelectedSection(e.target.value)}
-                    className="w-full px-4 py-2.5 rounded-xl text-xs font-bold cursor-pointer bg-zinc-900 border-2 border-cyan-500 hover:border-cyan-400 text-white shadow-lg shadow-cyan-500/10 focus:outline-none focus:ring-2 focus:ring-cyan-400 transition"
-                  >
-                    {/* Sections where this teacher is assigned */}
-                    {myAssignedSections.length > 0 && (
-                      <optgroup label="⭐ Your Assigned Teaching Sections">
-                        {myAssignedSections.map((sec) => {
-                          const myCount = subjects.filter((s) => s.section === sec && s.is_my_assigned).length;
-                          return (
-                            <option key={`my-${sec}`} value={sec} className="bg-zinc-950 text-emerald-400 font-bold py-1.5">
-                              ⭐ Section: {sec} ({myCount} of your assigned classes)
-                            </option>
-                          );
-                        })}
-                      </optgroup>
-                    )}
-                    {/* Other Department Sections */}
-                    <optgroup label="🏫 Other Sections (View Only)">
-                      {availableSections.filter((sec) => !myAssignedSections.includes(sec)).map((sec) => {
-                        const count = subjects.filter((s) => s.section === sec).length;
-                        return (
-                          <option key={`other-${sec}`} value={sec} className="bg-zinc-950 text-zinc-400 py-1.5">
-                            🏫 Section: {sec} ({count} Subjects • Other Faculty)
-                          </option>
-                        );
-                      })}
-                    </optgroup>
-                  </select>
-                </div>
+                {/* All Sections Pill */}
+                <button
+                  type="button"
+                  onClick={() => setSelectedSection('ALL')}
+                  className={`px-4 py-2 rounded-full text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 shrink-0 select-none ${
+                    selectedSection === 'ALL'
+                      ? 'bg-cyan-400 text-zinc-950 shadow-md shadow-cyan-400/30 font-extrabold'
+                      : 'bg-zinc-900/90 text-zinc-300 hover:text-white hover:bg-zinc-800 border border-zinc-800/80'
+                  }`}
+                >
+                  <Globe className="w-3.5 h-3.5" />
+                  <span>All Sections</span>
+                </button>
 
-                <div className="px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-[11px] font-mono text-zinc-300 shrink-0 hidden sm:block">
-                  Venue: <strong className="text-cyan-400">{selectedSection === 'CSE(AIML-2)' ? 'CL-11' : selectedSection.includes('AIML') ? 'CL-10' : selectedSection.includes('DS') ? 'CL-14' : 'CL-01'}</strong>
-                </div>
+                {/* Individual Section Pills */}
+                {availableSections.map((sec) => {
+                  const isSelected = selectedSection === sec;
+                  const isAssigned = myAssignedSections.includes(sec);
+                  const label = sec === 'CSE(AIML-2)' ? 'CSE(AIML-2) • CL-11' : sec;
+
+                  return (
+                    <button
+                      key={sec}
+                      type="button"
+                      onClick={() => setSelectedSection(sec)}
+                      className={`px-4 py-2 rounded-full text-xs font-bold transition-all cursor-pointer flex items-center gap-2 shrink-0 select-none ${
+                        isSelected
+                          ? 'bg-cyan-400 text-zinc-950 shadow-md shadow-cyan-400/30 font-extrabold'
+                          : 'bg-zinc-900/90 text-zinc-300 hover:text-white hover:bg-zinc-800 border border-zinc-800/80'
+                      }`}
+                    >
+                      <span>{label}</span>
+                      {isAssigned && (
+                        <span
+                          title="Your assigned teaching section"
+                          className={`w-1.5 h-1.5 rounded-full ${isSelected ? 'bg-zinc-950' : 'bg-emerald-400 animate-pulse'}`}
+                        />
+                      )}
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
@@ -1225,22 +1218,20 @@ export default function FacultyDashboard({ teacher }) {
                     <button
                       type="button"
                       onClick={() => setScopeFilter('my')}
-                      className={`px-2.5 py-1 rounded-lg font-semibold transition cursor-pointer text-[11px] ${
-                        scopeFilter === 'my'
+                      className={`px-2.5 py-1 rounded-lg font-semibold transition cursor-pointer text-[11px] ${scopeFilter === 'my'
                           ? 'bg-cyan-500 text-zinc-950 shadow-md'
                           : 'text-zinc-400 hover:text-zinc-200'
-                      }`}
+                        }`}
                     >
                       📌 My Classes ({subjects.filter((s) => s.section === selectedSection && s.is_my_assigned).length})
                     </button>
                     <button
                       type="button"
                       onClick={() => setScopeFilter('all')}
-                      className={`px-2.5 py-1 rounded-lg font-semibold transition cursor-pointer text-[11px] ${
-                        scopeFilter === 'all'
+                      className={`px-2.5 py-1 rounded-lg font-semibold transition cursor-pointer text-[11px] ${scopeFilter === 'all'
                           ? 'bg-cyan-500 text-zinc-950 shadow-md'
                           : 'text-zinc-400 hover:text-zinc-200'
-                      }`}
+                        }`}
                     >
                       📚 All ({subjects.filter((s) => s.section === selectedSection).length})
                     </button>
@@ -1344,15 +1335,14 @@ export default function FacultyDashboard({ teacher }) {
                         key={s.subject_id}
                         type="button"
                         onClick={() => setSelectedSubId(String(s.subject_id))}
-                        className={`p-3.5 rounded-xl border flex flex-col items-start gap-2 shrink-0 transition-all cursor-pointer text-left ${
-                          isSelected
+                        className={`p-3.5 rounded-xl border flex flex-col items-start gap-2 shrink-0 transition-all cursor-pointer text-left ${isSelected
                             ? isAssigned
                               ? 'bg-gradient-to-tr from-emerald-950/90 via-teal-950/60 to-zinc-900 border-2 border-emerald-400 shadow-xl shadow-emerald-500/20 ring-2 ring-emerald-400/40 scale-[1.02]'
                               : 'bg-gradient-to-tr from-rose-950/70 via-zinc-950 to-zinc-900 border-2 border-rose-500/60 shadow-xl shadow-rose-500/10 ring-2 ring-rose-500/30 scale-[1.01]'
                             : isAssigned
-                            ? 'bg-zinc-900/80 hover:bg-zinc-900 border-emerald-500/30 hover:border-emerald-500/60'
-                            : 'bg-zinc-900/40 hover:bg-zinc-900/60 border-zinc-800 text-zinc-400 opacity-80'
-                        }`}
+                              ? 'bg-zinc-900/80 hover:bg-zinc-900 border-emerald-500/30 hover:border-emerald-500/60'
+                              : 'bg-zinc-900/40 hover:bg-zinc-900/60 border-zinc-800 text-zinc-400 opacity-80'
+                          }`}
                         style={{ minWidth: '220px', maxWidth: '240px' }}
                       >
                         <div className="flex items-center justify-between w-full">
@@ -1385,11 +1375,10 @@ export default function FacultyDashboard({ teacher }) {
                         </div>
 
                         {isSelected && (
-                          <div className={`w-full text-center py-1 rounded-md text-[10px] font-bold font-mono ${
-                            isAssigned
+                          <div className={`w-full text-center py-1 rounded-md text-[10px] font-bold font-mono ${isAssigned
                               ? 'bg-emerald-500/20 text-emerald-300'
                               : 'bg-rose-500/20 text-rose-300'
-                          }`}>
+                            }`}>
                             {isAssigned ? '✓ Authorized Lecture' : '🔒 Attendance Restricted'}
                           </div>
                         )}
@@ -1486,771 +1475,759 @@ export default function FacultyDashboard({ teacher }) {
             <>
               {/* Mode Selector */}
               <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2.5 mb-6 text-xs">
-            <button
-              onClick={() => { setMode('live_camera'); setReview(null); }}
-              className={`p-3.5 rounded-xl border flex flex-col items-center gap-2 transition cursor-pointer active:scale-98 ${
-                mode === 'live_camera' 
-                  ? 'bg-zinc-800/90 border-emerald-500/50 text-white font-bold shadow-lg shadow-emerald-500/10 ring-1 ring-emerald-500/30' 
-                  : 'bg-zinc-900/60 hover:bg-zinc-800/50 border-zinc-800 text-zinc-400'
-              }`}
-            >
-              <div className="w-8 h-8 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 relative">
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping absolute top-1 right-1 opacity-75"></span>
-                <Camera className="w-4 h-4" />
-              </div>
-              <span className="font-medium text-emerald-300">Live Camera</span>
-            </button>
-            <button
-              onClick={() => { setMode('photos'); setReview(null); }}
-              className={`p-3.5 rounded-xl border flex flex-col items-center gap-2 transition cursor-pointer active:scale-98 ${
-                mode === 'photos' 
-                  ? 'bg-zinc-800/90 border-sky-500/50 text-white font-bold shadow-lg shadow-sky-500/10 ring-1 ring-sky-500/30' 
-                  : 'bg-zinc-900/60 hover:bg-zinc-800/50 border-zinc-800 text-zinc-400'
-              }`}
-            >
-              <div className="w-8 h-8 rounded-lg bg-sky-500/10 border border-sky-500/20 flex items-center justify-center text-sky-400">
-                <Camera className="w-4 h-4" />
-              </div>
-              <span className="font-medium">Multi-Photo</span>
-            </button>
-            <button
-              onClick={() => { setMode('group_photo'); setReview(null); startMobileCamera(); }}
-              className={`p-3.5 rounded-xl border flex flex-col items-center gap-2 transition cursor-pointer active:scale-98 ${
-                mode === 'group_photo' 
-                  ? 'bg-zinc-800/90 border-cyan-500/50 text-white font-bold shadow-lg shadow-cyan-500/10 ring-1 ring-cyan-500/30' 
-                  : 'bg-zinc-900/60 hover:bg-zinc-800/50 border-zinc-800 text-zinc-400'
-              }`}
-            >
-              <div className="w-8 h-8 rounded-lg bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400 relative">
-                <span className="w-2 h-2 rounded-full bg-cyan-400 animate-ping absolute top-1 right-1 opacity-75"></span>
-                <Smartphone className="w-4 h-4" />
-              </div>
-              <span className="font-medium text-cyan-300">Phone Cam & Snap</span>
-            </button>
-            <button
-              onClick={() => { setMode('voice_command'); setReview(null); }}
-              className={`p-3.5 rounded-xl border flex flex-col items-center gap-2 transition cursor-pointer active:scale-98 ${
-                mode === 'voice_command' 
-                  ? 'bg-zinc-800/90 border-emerald-500/50 text-white font-bold shadow-lg shadow-emerald-500/10 ring-1 ring-emerald-500/30' 
-                  : 'bg-zinc-900/60 hover:bg-zinc-800/50 border-zinc-800 text-zinc-400'
-              }`}
-            >
-              <div className="w-8 h-8 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
-                <Mic className="w-4 h-4" />
-              </div>
-              <span className="font-medium">Voice AI</span>
-            </button>
-            <button
-              onClick={() => { setMode('video'); setReview(null); }}
-              className={`p-3.5 rounded-xl border flex flex-col items-center gap-2 transition cursor-pointer active:scale-98 ${
-                mode === 'video' 
-                  ? 'bg-zinc-800/90 border-violet-500/50 text-white font-bold shadow-lg shadow-violet-500/10 ring-1 ring-violet-500/30' 
-                  : 'bg-zinc-900/60 hover:bg-zinc-800/50 border-zinc-800 text-zinc-400'
-              }`}
-            >
-              <div className="w-8 h-8 rounded-lg bg-violet-500/10 border border-violet-500/20 flex items-center justify-center text-violet-400">
-                <Video className="w-4 h-4" />
-              </div>
-              <span className="font-medium">Video Pan</span>
-            </button>
-            <button
-              onClick={() => { setMode('voice'); setReview(null); }}
-              className={`p-3.5 rounded-xl border flex flex-col items-center gap-2 transition cursor-pointer active:scale-98 ${
-                mode === 'voice' 
-                  ? 'bg-zinc-800/90 border-amber-500/50 text-white font-bold shadow-lg shadow-amber-500/10 ring-1 ring-amber-500/30' 
-                  : 'bg-zinc-900/60 hover:bg-zinc-800/50 border-zinc-800 text-zinc-400'
-              }`}
-            >
-              <div className="w-8 h-8 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400">
-                <Volume2 className="w-4 h-4" />
-              </div>
-              <span className="font-medium">Single Voice</span>
-            </button>
-            <button
-              onClick={() => { setMode('manual'); setReview(null); loadManualList(); }}
-              className={`p-3.5 rounded-xl border flex flex-col items-center gap-2 transition cursor-pointer active:scale-98 ${
-                mode === 'manual' 
-                  ? 'bg-zinc-800/90 border-rose-500/50 text-white font-bold shadow-lg shadow-rose-500/10 ring-1 ring-rose-500/30' 
-                  : 'bg-zinc-900/60 hover:bg-zinc-800/50 border-zinc-800 text-zinc-400'
-              }`}
-            >
-              <div className="w-8 h-8 rounded-lg bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-rose-400">
-                <CheckSquare className="w-4 h-4" />
-              </div>
-              <span className="font-medium">Manual</span>
-            </button>
-          </div>
-
-          {/* Mode Inputs */}
-          {mode === 'live_camera' && (
-            <div className="p-6 sm:p-8 rounded-2xl bg-gradient-to-b from-zinc-900/90 to-zinc-950/90 border border-emerald-500/30 text-center relative overflow-hidden shadow-2xl">
-              <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/5 rounded-full blur-3xl pointer-events-none"></div>
-
-              <div className="w-14 h-14 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 mx-auto mb-4 shadow-lg shadow-emerald-500/10">
-                <Camera className="w-7 h-7" />
-              </div>
-
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-xs text-emerald-300 font-mono mb-3">
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                <span>Automated Biometric Radar Ready</span>
-              </div>
-
-              <h3 className="text-base sm:text-lg font-bold text-white mb-2">
-                Live Classroom Camera & Door Kiosk Terminal
-              </h3>
-
-              <p className="text-xs sm:text-sm text-zinc-400 mb-6 max-w-xl mx-auto leading-relaxed">
-                Transform any laptop, tablet, or classroom webcam into an autonomous biometric attendance station. Features hands-free walk-up scanning, 1-click panoramic classroom sweeps, and live audio chime confirmations.
-              </p>
-
-              <div className="flex flex-col sm:flex-row items-center justify-center gap-3 max-w-md mx-auto">
                 <button
-                  type="button"
-                  onClick={() => {
-                    const sub = subjects.find((s) => s.subject_id === Number(selectedSubId));
-                    if (sub) setKioskSubject(sub);
-                  }}
-                  className="w-full sm:w-auto px-6 py-3.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-zinc-950 font-extrabold text-xs tracking-wide shadow-xl shadow-emerald-500/20 flex items-center justify-center gap-2 transition-all cursor-pointer active:scale-95 group"
+                  onClick={() => { setMode('live_camera'); setReview(null); }}
+                  className={`p-3.5 rounded-xl border flex flex-col items-center gap-2 transition cursor-pointer active:scale-98 ${mode === 'live_camera'
+                      ? 'bg-zinc-800/90 border-emerald-500/50 text-white font-bold shadow-lg shadow-emerald-500/10 ring-1 ring-emerald-500/30'
+                      : 'bg-zinc-900/60 hover:bg-zinc-800/50 border-zinc-800 text-zinc-400'
+                    }`}
                 >
-                  <Camera className="w-4 h-4 text-zinc-950 group-hover:rotate-12 transition-transform" />
-                  <span>Launch Live Camera Terminal</span>
-                  <ArrowRight className="w-3.5 h-3.5 text-zinc-950 group-hover:translate-x-0.5 transition-transform" />
+                  <div className="w-8 h-8 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 relative">
+                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping absolute top-1 right-1 opacity-75"></span>
+                    <Camera className="w-4 h-4" />
+                  </div>
+                  <span className="font-medium text-emerald-300">Live Camera</span>
+                </button>
+                <button
+                  onClick={() => { setMode('photos'); setReview(null); }}
+                  className={`p-3.5 rounded-xl border flex flex-col items-center gap-2 transition cursor-pointer active:scale-98 ${mode === 'photos'
+                      ? 'bg-zinc-800/90 border-sky-500/50 text-white font-bold shadow-lg shadow-sky-500/10 ring-1 ring-sky-500/30'
+                      : 'bg-zinc-900/60 hover:bg-zinc-800/50 border-zinc-800 text-zinc-400'
+                    }`}
+                >
+                  <div className="w-8 h-8 rounded-lg bg-sky-500/10 border border-sky-500/20 flex items-center justify-center text-sky-400">
+                    <Camera className="w-4 h-4" />
+                  </div>
+                  <span className="font-medium">Multi-Photo</span>
+                </button>
+                <button
+                  onClick={() => { setMode('group_photo'); setReview(null); startMobileCamera(); }}
+                  className={`p-3.5 rounded-xl border flex flex-col items-center gap-2 transition cursor-pointer active:scale-98 ${mode === 'group_photo'
+                      ? 'bg-zinc-800/90 border-cyan-500/50 text-white font-bold shadow-lg shadow-cyan-500/10 ring-1 ring-cyan-500/30'
+                      : 'bg-zinc-900/60 hover:bg-zinc-800/50 border-zinc-800 text-zinc-400'
+                    }`}
+                >
+                  <div className="w-8 h-8 rounded-lg bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400 relative">
+                    <span className="w-2 h-2 rounded-full bg-cyan-400 animate-ping absolute top-1 right-1 opacity-75"></span>
+                    <Smartphone className="w-4 h-4" />
+                  </div>
+                  <span className="font-medium text-cyan-300">Phone Cam & Snap</span>
+                </button>
+                <button
+                  onClick={() => { setMode('voice_command'); setReview(null); }}
+                  className={`p-3.5 rounded-xl border flex flex-col items-center gap-2 transition cursor-pointer active:scale-98 ${mode === 'voice_command'
+                      ? 'bg-zinc-800/90 border-emerald-500/50 text-white font-bold shadow-lg shadow-emerald-500/10 ring-1 ring-emerald-500/30'
+                      : 'bg-zinc-900/60 hover:bg-zinc-800/50 border-zinc-800 text-zinc-400'
+                    }`}
+                >
+                  <div className="w-8 h-8 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
+                    <Mic className="w-4 h-4" />
+                  </div>
+                  <span className="font-medium">Voice AI</span>
+                </button>
+                <button
+                  onClick={() => { setMode('video'); setReview(null); }}
+                  className={`p-3.5 rounded-xl border flex flex-col items-center gap-2 transition cursor-pointer active:scale-98 ${mode === 'video'
+                      ? 'bg-zinc-800/90 border-violet-500/50 text-white font-bold shadow-lg shadow-violet-500/10 ring-1 ring-violet-500/30'
+                      : 'bg-zinc-900/60 hover:bg-zinc-800/50 border-zinc-800 text-zinc-400'
+                    }`}
+                >
+                  <div className="w-8 h-8 rounded-lg bg-violet-500/10 border border-violet-500/20 flex items-center justify-center text-violet-400">
+                    <Video className="w-4 h-4" />
+                  </div>
+                  <span className="font-medium">Video Pan</span>
+                </button>
+                <button
+                  onClick={() => { setMode('voice'); setReview(null); }}
+                  className={`p-3.5 rounded-xl border flex flex-col items-center gap-2 transition cursor-pointer active:scale-98 ${mode === 'voice'
+                      ? 'bg-zinc-800/90 border-amber-500/50 text-white font-bold shadow-lg shadow-amber-500/10 ring-1 ring-amber-500/30'
+                      : 'bg-zinc-900/60 hover:bg-zinc-800/50 border-zinc-800 text-zinc-400'
+                    }`}
+                >
+                  <div className="w-8 h-8 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400">
+                    <Volume2 className="w-4 h-4" />
+                  </div>
+                  <span className="font-medium">Single Voice</span>
+                </button>
+                <button
+                  onClick={() => { setMode('manual'); setReview(null); loadManualList(); }}
+                  className={`p-3.5 rounded-xl border flex flex-col items-center gap-2 transition cursor-pointer active:scale-98 ${mode === 'manual'
+                      ? 'bg-zinc-800/90 border-rose-500/50 text-white font-bold shadow-lg shadow-rose-500/10 ring-1 ring-rose-500/30'
+                      : 'bg-zinc-900/60 hover:bg-zinc-800/50 border-zinc-800 text-zinc-400'
+                    }`}
+                >
+                  <div className="w-8 h-8 rounded-lg bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-rose-400">
+                    <CheckSquare className="w-4 h-4" />
+                  </div>
+                  <span className="font-medium">Manual</span>
                 </button>
               </div>
 
-              <div className="mt-6 pt-5 border-t border-zinc-800/80 flex flex-wrap items-center justify-center gap-4 text-[11px] font-mono text-zinc-400">
-                <span className="flex items-center gap-1.5">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" /> Continuous Auto-Scan Loop
-                </span>
-                <span className="text-zinc-600">•</span>
-                <span className="flex items-center gap-1.5">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" /> 1-Click Multi-Face Classroom Sweep
-                </span>
-                <span className="text-zinc-600">•</span>
-                <span className="flex items-center gap-1.5">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" /> Liveness Protection & Audio Chimes
-                </span>
-              </div>
-            </div>
-          )}
+              {/* Mode Inputs */}
+              {mode === 'live_camera' && (
+                <div className="p-6 sm:p-8 rounded-2xl bg-gradient-to-b from-zinc-900/90 to-zinc-950/90 border border-emerald-500/30 text-center relative overflow-hidden shadow-2xl">
+                  <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/5 rounded-full blur-3xl pointer-events-none"></div>
 
-          {mode === 'group_photo' && (
-            <div className="space-y-5">
-              {/* Top Feature Banner */}
-              <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-cyan-950/40 via-sky-950/20 to-zinc-950 border border-cyan-500/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                <div className="flex items-center gap-3.5">
-                  <div className="w-11 h-11 rounded-xl bg-gradient-to-tr from-cyan-500/20 to-sky-500/10 border border-cyan-500/40 flex items-center justify-center text-cyan-400 shrink-0 shadow-lg shadow-cyan-500/10">
-                    <Smartphone className="w-5 h-5 animate-pulse" />
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <h3 className="text-sm sm:text-base font-bold text-white tracking-tight">
-                        Faculty Mobile Live Attendance
-                      </h3>
-                      <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-cyan-500/15 text-cyan-300 border border-cyan-500/30">
-                        INSTANT AI SYNC
-                      </span>
-                    </div>
-                    <p className="text-xs text-zinc-400 mt-0.5 max-w-xl">
-                      Point phone back camera at lecture hall rows and tap <strong>Snap</strong> anytime. Pramaan AI detects every face simultaneously and marks attendance directly in the database.
-                    </p>
-                  </div>
-                </div>
-
-                {/* Session Counter Pill */}
-                <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-zinc-900/90 border border-zinc-800 text-xs shrink-0">
-                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                  <span className="text-zinc-300">
-                    Marked: <strong className="text-emerald-400">{groupScanResult?.total_marked_today || sessionAccumulated.length}</strong> students
-                  </span>
-                </div>
-              </div>
-
-              {/* Live Viewfinder & Camera Frame */}
-              <div className="relative rounded-2xl overflow-hidden bg-black border border-cyan-500/30 shadow-2xl shadow-cyan-500/5">
-                {/* Viewfinder Top Control Overlay */}
-                <div className="absolute top-3 left-3 right-3 z-20 flex items-center justify-between gap-2 pointer-events-auto">
-                  <div className="flex items-center gap-2">
-                    <span className="px-2.5 py-1 rounded-full text-[11px] font-bold font-mono tracking-wide bg-black/70 backdrop-blur-md border border-cyan-500/30 text-cyan-300 flex items-center gap-1.5 shadow-md">
-                      <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping"></span>
-                      <span>{facingMode === 'environment' ? 'REAR WIDE CAM' : 'FRONT CAM'}</span>
-                    </span>
-                    <span className="hidden sm:inline-flex px-2.5 py-1 rounded-full text-[11px] font-medium bg-black/60 backdrop-blur-md border border-zinc-800 text-zinc-300">
-                      {AKGEC_META.room} • {AKGEC_PERIODS.find((p) => p.id === selectedPeriod)?.name || 'Period'}
-                    </span>
+                  <div className="w-14 h-14 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 mx-auto mb-4 shadow-lg shadow-emerald-500/10">
+                    <Camera className="w-7 h-7" />
                   </div>
 
-                  <div className="flex items-center gap-2">
+                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-xs text-emerald-300 font-mono mb-3">
+                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                    <span>Automated Biometric Radar Ready</span>
+                  </div>
+
+                  <h3 className="text-base sm:text-lg font-bold text-white mb-2">
+                    Live Classroom Camera & Door Kiosk Terminal
+                  </h3>
+
+                  <p className="text-xs sm:text-sm text-zinc-400 mb-6 max-w-xl mx-auto leading-relaxed">
+                    Transform any laptop, tablet, or classroom webcam into an autonomous biometric attendance station. Features hands-free walk-up scanning, 1-click panoramic classroom sweeps, and live audio chime confirmations.
+                  </p>
+
+                  <div className="flex flex-col sm:flex-row items-center justify-center gap-3 max-w-md mx-auto">
                     <button
-                      onClick={toggleCameraFacing}
-                      className="px-3 py-1.5 rounded-xl bg-zinc-900/80 hover:bg-zinc-800/90 backdrop-blur-md border border-zinc-700 text-zinc-200 text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer shadow-lg active:scale-95"
-                      title="Switch Front/Back Camera"
+                      type="button"
+                      onClick={() => {
+                        const sub = subjects.find((s) => s.subject_id === Number(selectedSubId));
+                        if (sub) setKioskSubject(sub);
+                      }}
+                      className="w-full sm:w-auto px-6 py-3.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-zinc-950 font-extrabold text-xs tracking-wide shadow-xl shadow-emerald-500/20 flex items-center justify-center gap-2 transition-all cursor-pointer active:scale-95 group"
                     >
-                      <Repeat className="w-3.5 h-3.5 text-cyan-400" />
-                      <span>Flip Cam</span>
-                    </button>
-                    <button
-                      onClick={() => mobileCamActive ? stopMobileCamera() : startMobileCamera()}
-                      className="px-3 py-1.5 rounded-xl bg-zinc-900/80 hover:bg-zinc-800/90 backdrop-blur-md border border-zinc-700 text-zinc-200 text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer shadow-lg active:scale-95"
-                      title="Toggle Camera Stream"
-                    >
-                      <Camera className="w-3.5 h-3.5 text-emerald-400" />
-                      <span>{mobileCamActive ? 'Pause' : 'Start'}</span>
+                      <Camera className="w-4 h-4 text-zinc-950 group-hover:rotate-12 transition-transform" />
+                      <span>Launch Live Camera Terminal</span>
+                      <ArrowRight className="w-3.5 h-3.5 text-zinc-950 group-hover:translate-x-0.5 transition-transform" />
                     </button>
                   </div>
-                </div>
 
-                {/* Video Stream Element */}
-                <div className="relative w-full aspect-[4/3] sm:aspect-[16/9] max-h-[460px] bg-zinc-950 flex items-center justify-center overflow-hidden">
-                  <video
-                    ref={mobileVideoRef}
-                    autoPlay
-                    playsInline
-                    muted
-                    className="w-full h-full object-cover"
-                  />
-
-                  {/* Targeting Reticle Corners Overlay */}
-                  <div className="absolute inset-8 sm:inset-12 pointer-events-none border border-cyan-500/20 rounded-2xl flex flex-col justify-between">
-                    <div className="flex justify-between items-start">
-                      <div className="w-6 h-6 border-t-2 border-l-2 border-cyan-400 rounded-tl-lg"></div>
-                      <div className="w-6 h-6 border-t-2 border-r-2 border-cyan-400 rounded-tr-lg"></div>
-                    </div>
-                    <div className="text-center">
-                      <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-black/60 backdrop-blur-md border border-cyan-500/30 text-[11px] text-cyan-300 font-medium">
-                        <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
-                        <span>Aim at classroom benches & tap shutter below</span>
-                      </div>
-                    </div>
-                    <div className="flex justify-between items-end">
-                      <div className="w-6 h-6 border-b-2 border-l-2 border-cyan-400 rounded-bl-lg"></div>
-                      <div className="w-6 h-6 border-b-2 border-r-2 border-cyan-400 rounded-br-lg"></div>
-                    </div>
-                  </div>
-
-                  {/* Camera Paused / Error Placeholder */}
-                  {!mobileCamActive && (
-                    <div className="absolute inset-0 bg-zinc-950/90 flex flex-col items-center justify-center p-6 text-center z-10">
-                      <div className="w-14 h-14 rounded-2xl bg-zinc-900 border border-zinc-800 flex items-center justify-center text-zinc-400 mb-3 shadow-inner">
-                        <Camera className="w-7 h-7 text-zinc-500" />
-                      </div>
-                      <h4 className="text-sm font-bold text-zinc-200 mb-1">Live Camera Feed Standby</h4>
-                      <p className="text-xs text-zinc-400 max-w-sm mb-4">
-                        Enable live viewfinder or use your phone's native camera app directly.
-                      </p>
-                      <button
-                        onClick={() => startMobileCamera()}
-                        className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-sky-500 hover:from-cyan-400 hover:to-sky-400 text-zinc-950 font-bold text-xs transition cursor-pointer shadow-lg shadow-cyan-500/20 active:scale-95"
-                      >
-                        Start Live Camera Stream
-                      </button>
-                    </div>
-                  )}
-
-                  {/* Scanning Processing Spinner Overlay */}
-                  {scanning && (
-                    <div className="absolute inset-0 bg-black/75 backdrop-blur-sm flex flex-col items-center justify-center p-6 text-center z-30 animate-in fade-in duration-150">
-                      <div className="relative mb-3">
-                        <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-cyan-500 to-emerald-400 p-[2px] animate-spin">
-                          <div className="w-full h-full bg-zinc-950 rounded-[14px] flex items-center justify-center">
-                            <Sparkles className="w-7 h-7 text-cyan-400" />
-                          </div>
-                        </div>
-                      </div>
-                      <h4 className="text-sm font-bold text-white mb-1">Pramaan AI Multi-Face Radar Active</h4>
-                      <p className="text-xs text-cyan-300 font-mono">
-                        Running 128-d ResNet matching & saving attendance into Supabase database...
-                      </p>
-                    </div>
-                  )}
-                </div>
-
-                {/* Shutter & Quick Controls Bar */}
-                <div className="p-3 sm:p-4 bg-zinc-950 border-t border-zinc-800 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
-                  {/* Big Primary Shutter Button */}
-                  <button
-                    onClick={captureLiveShutter}
-                    disabled={scanning || !selectedSubId}
-                    className="flex-1 py-4 px-6 rounded-2xl bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 hover:from-emerald-400 hover:via-teal-400 hover:to-cyan-400 text-zinc-950 font-black text-sm tracking-wide shadow-xl shadow-emerald-500/25 flex items-center justify-center gap-3 active:scale-98 transition-all cursor-pointer disabled:opacity-50 group"
-                  >
-                    <span className="relative flex h-3 w-3">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-zinc-950 opacity-75"></span>
-                      <span className="relative inline-flex rounded-full h-3 w-3 bg-zinc-950"></span>
+                  <div className="mt-6 pt-5 border-t border-zinc-800/80 flex flex-wrap items-center justify-center gap-4 text-[11px] font-mono text-zinc-400">
+                    <span className="flex items-center gap-1.5">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" /> Continuous Auto-Scan Loop
                     </span>
-                    <Camera className="w-5 h-5 text-zinc-950 group-hover:rotate-12 transition-transform" />
-                    <span>{scansCount > 0 ? "📸 Snap Next Row / Angle" : "📸 Capture & Mark Attendance Now"}</span>
-                  </button>
-
-                  <div className="flex items-center gap-2">
-                    {/* Native Phone Camera App Trigger */}
-                    <label className="flex-1 sm:flex-initial py-3.5 px-4 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 hover:border-cyan-500/50 text-cyan-300 font-bold text-xs flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-95 shadow-md">
-                      <Smartphone className="w-4 h-4 text-cyan-400" />
-                      <span>Phone Camera App</span>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        capture="environment"
-                        onChange={(e) => {
-                          if (e.target.files?.[0]) {
-                            processGroupPhotoFile(e.target.files[0]);
-                          }
-                        }}
-                        className="hidden"
-                      />
-                    </label>
-
-                    {/* Storage / Gallery Upload */}
-                    <label className="py-3.5 px-3.5 rounded-xl bg-zinc-900/60 hover:bg-zinc-800 border border-zinc-800 text-zinc-400 hover:text-zinc-200 text-xs font-semibold flex items-center justify-center gap-1.5 cursor-pointer transition-all" title="Upload Photo from Gallery">
-                      <Upload className="w-4 h-4" />
-                      <span className="hidden md:inline">Upload</span>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={(e) => {
-                          if (e.target.files?.[0]) {
-                            processGroupPhotoFile(e.target.files[0]);
-                          }
-                        }}
-                        className="hidden"
-                      />
-                    </label>
+                    <span className="text-zinc-600">•</span>
+                    <span className="flex items-center gap-1.5">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" /> 1-Click Multi-Face Classroom Sweep
+                    </span>
+                    <span className="text-zinc-600">•</span>
+                    <span className="flex items-center gap-1.5">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" /> Liveness Protection & Audio Chimes
+                    </span>
                   </div>
                 </div>
-              </div>
+              )}
 
-              {/* Instant Auto-Attendance Result Summary */}
-              {groupScanResult && (
-                <div className="space-y-4 animate-in fade-in duration-200">
-                  <div className="p-4 sm:p-5 rounded-2xl border border-emerald-500/40 bg-gradient-to-r from-emerald-950/30 via-zinc-900/90 to-zinc-900/90 shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+              {mode === 'group_photo' && (
+                <div className="space-y-5">
+                  {/* Top Feature Banner */}
+                  <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-cyan-950/40 via-sky-950/20 to-zinc-950 border border-cyan-500/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                     <div className="flex items-center gap-3.5">
-                      <div className="w-12 h-12 rounded-xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400 shrink-0 shadow-lg shadow-emerald-500/10">
-                        <CheckCircle2 className="w-6 h-6" />
+                      <div className="w-11 h-11 rounded-xl bg-gradient-to-tr from-cyan-500/20 to-sky-500/10 border border-cyan-500/40 flex items-center justify-center text-cyan-400 shrink-0 shadow-lg shadow-cyan-500/10">
+                        <Smartphone className="w-5 h-5 animate-pulse" />
                       </div>
                       <div>
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="text-sm font-bold text-white">Live Attendance Successfully Marked!</span>
-                          <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                            SAVED IN SUPABASE DB
+                        <div className="flex items-center gap-2">
+                          <h3 className="text-sm sm:text-base font-bold text-white tracking-tight">
+                            Faculty Mobile Live Attendance
+                          </h3>
+                          <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-cyan-500/15 text-cyan-300 border border-cyan-500/30">
+                            INSTANT AI SYNC
                           </span>
                         </div>
-                        <p className="text-xs text-zinc-300 mt-1">
-                          Detected <strong className="text-white">{groupScanResult.total_faces_detected || groupScanResult.total_detected || 0} faces</strong> • <strong className="text-emerald-400">+{groupScanResult.newly_marked_count ?? groupScanResult.recognized_count ?? 0} students</strong> marked present in {AKGEC_PERIODS.find((p) => p.id === groupScanResult.period)?.name || 'current period'} ({groupScanResult.total_marked_today || (groupScanResult.recognized || []).length} total present today).
-                        </p>
-                        <p className="text-[11px] text-cyan-300 mt-1 flex items-center gap-1.5 font-medium">
-                          <Layers className="w-3.5 h-3.5" />
-                          <span>Tip: You can point at back rows or side benches and tap <strong>Snap Next Row / Angle</strong> — new students will be added without overwriting!</span>
+                        <p className="text-xs text-zinc-400 mt-0.5 max-w-xl">
+                          Point phone back camera at lecture hall rows and tap <strong>Snap</strong> anytime. Pramaan AI detects every face simultaneously and marks attendance directly in the database.
                         </p>
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-2 w-full md:w-auto shrink-0">
-                      <button
-                        onClick={() => setTab('logs')}
-                        className="flex-1 md:flex-initial px-4 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-semibold transition cursor-pointer flex items-center justify-center gap-2 shadow-md"
-                      >
-                        <span>View Official Logbook</span>
-                        <ArrowRight className="w-3.5 h-3.5" />
-                      </button>
+                    {/* Session Counter Pill */}
+                    <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-zinc-900/90 border border-zinc-800 text-xs shrink-0">
+                      <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                      <span className="text-zinc-300">
+                        Marked: <strong className="text-emerald-400">{groupScanResult?.total_marked_today || sessionAccumulated.length}</strong> students
+                      </span>
                     </div>
                   </div>
 
-                  {/* Recognized Students Card Roster */}
-                  {(groupScanResult.recognized || []).length > 0 && (
-                    <div className="p-4 sm:p-5 rounded-2xl bg-zinc-950/80 border border-zinc-800/80">
-                      <div className="flex items-center justify-between mb-3">
-                        <div className="flex items-center gap-2">
-                          <UserCheck className="w-4 h-4 text-emerald-400" />
-                          <h4 className="text-xs font-bold text-zinc-200 uppercase tracking-wider">
-                            Recognized Students in This Photo ({(groupScanResult.recognized || []).length})
-                          </h4>
-                        </div>
-                        <span className="text-[11px] font-mono text-zinc-400">
-                          128-d Euclidean ResNet Match
+                  {/* Live Viewfinder & Camera Frame */}
+                  <div className="relative rounded-2xl overflow-hidden bg-black border border-cyan-500/30 shadow-2xl shadow-cyan-500/5">
+                    {/* Viewfinder Top Control Overlay */}
+                    <div className="absolute top-3 left-3 right-3 z-20 flex items-center justify-between gap-2 pointer-events-auto">
+                      <div className="flex items-center gap-2">
+                        <span className="px-2.5 py-1 rounded-full text-[11px] font-bold font-mono tracking-wide bg-black/70 backdrop-blur-md border border-cyan-500/30 text-cyan-300 flex items-center gap-1.5 shadow-md">
+                          <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping"></span>
+                          <span>{facingMode === 'environment' ? 'REAR WIDE CAM' : 'FRONT CAM'}</span>
+                        </span>
+                        <span className="hidden sm:inline-flex px-2.5 py-1 rounded-full text-[11px] font-medium bg-black/60 backdrop-blur-md border border-zinc-800 text-zinc-300">
+                          {AKGEC_META.room} • {AKGEC_PERIODS.find((p) => p.id === selectedPeriod)?.name || 'Period'}
                         </span>
                       </div>
 
-                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
-                        {(groupScanResult.recognized || []).map((st) => (
-                          <div
-                            key={st.student_id}
-                            className="p-3 rounded-xl bg-zinc-900/80 border border-emerald-500/25 flex items-center justify-between gap-3 shadow-sm hover:border-emerald-500/40 transition"
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={toggleCameraFacing}
+                          className="px-3 py-1.5 rounded-xl bg-zinc-900/80 hover:bg-zinc-800/90 backdrop-blur-md border border-zinc-700 text-zinc-200 text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer shadow-lg active:scale-95"
+                          title="Switch Front/Back Camera"
+                        >
+                          <Repeat className="w-3.5 h-3.5 text-cyan-400" />
+                          <span>Flip Cam</span>
+                        </button>
+                        <button
+                          onClick={() => mobileCamActive ? stopMobileCamera() : startMobileCamera()}
+                          className="px-3 py-1.5 rounded-xl bg-zinc-900/80 hover:bg-zinc-800/90 backdrop-blur-md border border-zinc-700 text-zinc-200 text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer shadow-lg active:scale-95"
+                          title="Toggle Camera Stream"
+                        >
+                          <Camera className="w-3.5 h-3.5 text-emerald-400" />
+                          <span>{mobileCamActive ? 'Pause' : 'Start'}</span>
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Video Stream Element */}
+                    <div className="relative w-full aspect-[4/3] sm:aspect-[16/9] max-h-[460px] bg-zinc-950 flex items-center justify-center overflow-hidden">
+                      <video
+                        ref={mobileVideoRef}
+                        autoPlay
+                        playsInline
+                        muted
+                        className="w-full h-full object-cover"
+                      />
+
+                      {/* Targeting Reticle Corners Overlay */}
+                      <div className="absolute inset-8 sm:inset-12 pointer-events-none border border-cyan-500/20 rounded-2xl flex flex-col justify-between">
+                        <div className="flex justify-between items-start">
+                          <div className="w-6 h-6 border-t-2 border-l-2 border-cyan-400 rounded-tl-lg"></div>
+                          <div className="w-6 h-6 border-t-2 border-r-2 border-cyan-400 rounded-tr-lg"></div>
+                        </div>
+                        <div className="text-center">
+                          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-black/60 backdrop-blur-md border border-cyan-500/30 text-[11px] text-cyan-300 font-medium">
+                            <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
+                            <span>Aim at classroom benches & tap shutter below</span>
+                          </div>
+                        </div>
+                        <div className="flex justify-between items-end">
+                          <div className="w-6 h-6 border-b-2 border-l-2 border-cyan-400 rounded-bl-lg"></div>
+                          <div className="w-6 h-6 border-b-2 border-r-2 border-cyan-400 rounded-br-lg"></div>
+                        </div>
+                      </div>
+
+                      {/* Camera Paused / Error Placeholder */}
+                      {!mobileCamActive && (
+                        <div className="absolute inset-0 bg-zinc-950/90 flex flex-col items-center justify-center p-6 text-center z-10">
+                          <div className="w-14 h-14 rounded-2xl bg-zinc-900 border border-zinc-800 flex items-center justify-center text-zinc-400 mb-3 shadow-inner">
+                            <Camera className="w-7 h-7 text-zinc-500" />
+                          </div>
+                          <h4 className="text-sm font-bold text-zinc-200 mb-1">Live Camera Feed Standby</h4>
+                          <p className="text-xs text-zinc-400 max-w-sm mb-4">
+                            Enable live viewfinder or use your phone's native camera app directly.
+                          </p>
+                          <button
+                            onClick={() => startMobileCamera()}
+                            className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-sky-500 hover:from-cyan-400 hover:to-sky-400 text-zinc-950 font-bold text-xs transition cursor-pointer shadow-lg shadow-cyan-500/20 active:scale-95"
                           >
-                            <div className="flex items-center gap-2.5 min-w-0">
-                              <div className="w-9 h-9 rounded-lg bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-xs font-bold text-emerald-300 shrink-0">
-                                {st.name ? st.name.slice(0, 2).toUpperCase() : 'ST'}
+                            Start Live Camera Stream
+                          </button>
+                        </div>
+                      )}
+
+                      {/* Scanning Processing Spinner Overlay */}
+                      {scanning && (
+                        <div className="absolute inset-0 bg-black/75 backdrop-blur-sm flex flex-col items-center justify-center p-6 text-center z-30 animate-in fade-in duration-150">
+                          <div className="relative mb-3">
+                            <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-cyan-500 to-emerald-400 p-[2px] animate-spin">
+                              <div className="w-full h-full bg-zinc-950 rounded-[14px] flex items-center justify-center">
+                                <Sparkles className="w-7 h-7 text-cyan-400" />
                               </div>
-                              <div className="min-w-0">
-                                <div className="text-xs font-bold text-zinc-100 truncate">{st.name}</div>
-                                <div className="text-[10px] text-zinc-400 font-mono">Roll: {st.roll_number || st.student_id}</div>
-                              </div>
-                            </div>
-                            <div className="text-right shrink-0">
-                              <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
-                                {Math.round(st.confidence || 95)}% MATCH
-                              </span>
-                              <div className="text-[9px] text-zinc-500 font-mono mt-0.5">AUTO-MARKED</div>
                             </div>
                           </div>
-                        ))}
+                          <h4 className="text-sm font-bold text-white mb-1">Pramaan AI Multi-Face Radar Active</h4>
+                          <p className="text-xs text-cyan-300 font-mono">
+                            Running 128-d ResNet matching & saving attendance into Supabase database...
+                          </p>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Shutter & Quick Controls Bar */}
+                    <div className="p-3 sm:p-4 bg-zinc-950 border-t border-zinc-800 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+                      {/* Big Primary Shutter Button */}
+                      <button
+                        onClick={captureLiveShutter}
+                        disabled={scanning || !selectedSubId}
+                        className="flex-1 py-4 px-6 rounded-2xl bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 hover:from-emerald-400 hover:via-teal-400 hover:to-cyan-400 text-zinc-950 font-black text-sm tracking-wide shadow-xl shadow-emerald-500/25 flex items-center justify-center gap-3 active:scale-98 transition-all cursor-pointer disabled:opacity-50 group"
+                      >
+                        <span className="relative flex h-3 w-3">
+                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-zinc-950 opacity-75"></span>
+                          <span className="relative inline-flex rounded-full h-3 w-3 bg-zinc-950"></span>
+                        </span>
+                        <Camera className="w-5 h-5 text-zinc-950 group-hover:rotate-12 transition-transform" />
+                        <span>{scansCount > 0 ? "📸 Snap Next Row / Angle" : "📸 Capture & Mark Attendance Now"}</span>
+                      </button>
+
+                      <div className="flex items-center gap-2">
+                        {/* Native Phone Camera App Trigger */}
+                        <label className="flex-1 sm:flex-initial py-3.5 px-4 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 hover:border-cyan-500/50 text-cyan-300 font-bold text-xs flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-95 shadow-md">
+                          <Smartphone className="w-4 h-4 text-cyan-400" />
+                          <span>Phone Camera App</span>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            capture="environment"
+                            onChange={(e) => {
+                              if (e.target.files?.[0]) {
+                                processGroupPhotoFile(e.target.files[0]);
+                              }
+                            }}
+                            className="hidden"
+                          />
+                        </label>
+
+                        {/* Storage / Gallery Upload */}
+                        <label className="py-3.5 px-3.5 rounded-xl bg-zinc-900/60 hover:bg-zinc-800 border border-zinc-800 text-zinc-400 hover:text-zinc-200 text-xs font-semibold flex items-center justify-center gap-1.5 cursor-pointer transition-all" title="Upload Photo from Gallery">
+                          <Upload className="w-4 h-4" />
+                          <span className="hidden md:inline">Upload</span>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={(e) => {
+                              if (e.target.files?.[0]) {
+                                processGroupPhotoFile(e.target.files[0]);
+                              }
+                            }}
+                            className="hidden"
+                          />
+                        </label>
                       </div>
+                    </div>
+                  </div>
+
+                  {/* Instant Auto-Attendance Result Summary */}
+                  {groupScanResult && (
+                    <div className="space-y-4 animate-in fade-in duration-200">
+                      <div className="p-4 sm:p-5 rounded-2xl border border-emerald-500/40 bg-gradient-to-r from-emerald-950/30 via-zinc-900/90 to-zinc-900/90 shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                        <div className="flex items-center gap-3.5">
+                          <div className="w-12 h-12 rounded-xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400 shrink-0 shadow-lg shadow-emerald-500/10">
+                            <CheckCircle2 className="w-6 h-6" />
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="text-sm font-bold text-white">Live Attendance Successfully Marked!</span>
+                              <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                                SAVED IN SUPABASE DB
+                              </span>
+                            </div>
+                            <p className="text-xs text-zinc-300 mt-1">
+                              Detected <strong className="text-white">{groupScanResult.total_faces_detected || groupScanResult.total_detected || 0} faces</strong> • <strong className="text-emerald-400">+{groupScanResult.newly_marked_count ?? groupScanResult.recognized_count ?? 0} students</strong> marked present in {AKGEC_PERIODS.find((p) => p.id === groupScanResult.period)?.name || 'current period'} ({groupScanResult.total_marked_today || (groupScanResult.recognized || []).length} total present today).
+                            </p>
+                            <p className="text-[11px] text-cyan-300 mt-1 flex items-center gap-1.5 font-medium">
+                              <Layers className="w-3.5 h-3.5" />
+                              <span>Tip: You can point at back rows or side benches and tap <strong>Snap Next Row / Angle</strong> — new students will be added without overwriting!</span>
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2 w-full md:w-auto shrink-0">
+                          <button
+                            onClick={() => setTab('logs')}
+                            className="flex-1 md:flex-initial px-4 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-semibold transition cursor-pointer flex items-center justify-center gap-2 shadow-md"
+                          >
+                            <span>View Official Logbook</span>
+                            <ArrowRight className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Recognized Students Card Roster */}
+                      {(groupScanResult.recognized || []).length > 0 && (
+                        <div className="p-4 sm:p-5 rounded-2xl bg-zinc-950/80 border border-zinc-800/80">
+                          <div className="flex items-center justify-between mb-3">
+                            <div className="flex items-center gap-2">
+                              <UserCheck className="w-4 h-4 text-emerald-400" />
+                              <h4 className="text-xs font-bold text-zinc-200 uppercase tracking-wider">
+                                Recognized Students in This Photo ({(groupScanResult.recognized || []).length})
+                              </h4>
+                            </div>
+                            <span className="text-[11px] font-mono text-zinc-400">
+                              128-d Euclidean ResNet Match
+                            </span>
+                          </div>
+
+                          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+                            {(groupScanResult.recognized || []).map((st) => (
+                              <div
+                                key={st.student_id}
+                                className="p-3 rounded-xl bg-zinc-900/80 border border-emerald-500/25 flex items-center justify-between gap-3 shadow-sm hover:border-emerald-500/40 transition"
+                              >
+                                <div className="flex items-center gap-2.5 min-w-0">
+                                  <div className="w-9 h-9 rounded-lg bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-xs font-bold text-emerald-300 shrink-0">
+                                    {st.name ? st.name.slice(0, 2).toUpperCase() : 'ST'}
+                                  </div>
+                                  <div className="min-w-0">
+                                    <div className="text-xs font-bold text-zinc-100 truncate">{st.name}</div>
+                                    <div className="text-[10px] text-zinc-400 font-mono">Roll: {st.roll_number || st.student_id}</div>
+                                  </div>
+                                </div>
+                                <div className="text-right shrink-0">
+                                  <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                                    {Math.round(st.confidence || 95)}% MATCH
+                                  </span>
+                                  <div className="text-[9px] text-zinc-500 font-mono mt-0.5">AUTO-MARKED</div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
               )}
-            </div>
-          )}
 
-          {mode === 'voice_command' && (
-            <div className="border border-dashed border-zinc-800 p-8 rounded-xl text-center">
-              <Volume2 className="w-8 h-8 text-emerald-400 mx-auto mb-2" />
-              <h3 className="text-sm font-semibold text-zinc-100 mb-1">Teacher Voice-Command Roll-Call (AI)</h3>
-              <p className="text-xs text-zinc-400 mb-4 max-w-lg mx-auto">
-                Speak naturally in English or Hinglish (e.g. <em>"Mark all present except roll 12 and 24"</em> or <em>"Roll 5, 8 absent baaki sab present"</em>).
-              </p>
+              {mode === 'voice_command' && (
+                <div className="border border-dashed border-zinc-800 p-8 rounded-xl text-center">
+                  <Volume2 className="w-8 h-8 text-emerald-400 mx-auto mb-2" />
+                  <h3 className="text-sm font-semibold text-zinc-100 mb-1">Teacher Voice-Command Roll-Call (AI)</h3>
+                  <p className="text-xs text-zinc-400 mb-4 max-w-lg mx-auto">
+                    Speak naturally in English or Hinglish (e.g. <em>"Mark all present except roll 12 and 24"</em> or <em>"Roll 5, 8 absent baaki sab present"</em>).
+                  </p>
 
-              <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-4">
-                <button
-                  type="button"
-                  onClick={startSpeechRecognition}
-                  disabled={scanning || isListening}
-                  className={`px-5 py-2.5 rounded-xl font-bold text-xs transition cursor-pointer flex items-center gap-2 shadow-lg ${
-                    isListening 
-                      ? 'bg-rose-500 text-white animate-pulse' 
-                      : 'bg-emerald-600 hover:bg-emerald-500 text-white'
-                  }`}
-                >
-                  <Mic className={`w-4 h-4 ${isListening ? 'animate-bounce' : ''}`} />
-                  {isListening ? 'Listening to speech...' : 'Push to Speak Command'}
-                </button>
-              </div>
+                  <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-4">
+                    <button
+                      type="button"
+                      onClick={startSpeechRecognition}
+                      disabled={scanning || isListening}
+                      className={`px-5 py-2.5 rounded-xl font-bold text-xs transition cursor-pointer flex items-center gap-2 shadow-lg ${isListening
+                          ? 'bg-rose-500 text-white animate-pulse'
+                          : 'bg-emerald-600 hover:bg-emerald-500 text-white'
+                        }`}
+                    >
+                      <Mic className={`w-4 h-4 ${isListening ? 'animate-bounce' : ''}`} />
+                      {isListening ? 'Listening to speech...' : 'Push to Speak Command'}
+                    </button>
+                  </div>
 
-              {/* Or manual transcript input */}
-              <div className="max-w-md mx-auto flex gap-2">
-                <input
-                  type="text"
-                  value={voiceTranscript}
-                  onChange={(e) => setVoiceTranscript(e.target.value)}
-                  placeholder="Or type: 'Mark all present except roll 12, 15'"
-                  className="w-full px-3 py-2 bg-zinc-900 border border-zinc-700 rounded-lg text-xs text-zinc-200 outline-none"
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      executeVoiceCommand(voiceTranscript);
-                    }
-                  }}
-                />
-                <button
-                  onClick={() => executeVoiceCommand(voiceTranscript)}
-                  disabled={scanning || !voiceTranscript.trim()}
-                  className="px-4 py-2 bg-zinc-100 hover:bg-white text-zinc-950 font-bold rounded-lg text-xs transition cursor-pointer shrink-0 disabled:opacity-50"
-                >
-                  {scanning ? 'Parsing...' : 'Apply'}
-                </button>
-              </div>
+                  {/* Or manual transcript input */}
+                  <div className="max-w-md mx-auto flex gap-2">
+                    <input
+                      type="text"
+                      value={voiceTranscript}
+                      onChange={(e) => setVoiceTranscript(e.target.value)}
+                      placeholder="Or type: 'Mark all present except roll 12, 15'"
+                      className="w-full px-3 py-2 bg-zinc-900 border border-zinc-700 rounded-lg text-xs text-zinc-200 outline-none"
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          executeVoiceCommand(voiceTranscript);
+                        }
+                      }}
+                    />
+                    <button
+                      onClick={() => executeVoiceCommand(voiceTranscript)}
+                      disabled={scanning || !voiceTranscript.trim()}
+                      className="px-4 py-2 bg-zinc-100 hover:bg-white text-zinc-950 font-bold rounded-lg text-xs transition cursor-pointer shrink-0 disabled:opacity-50"
+                    >
+                      {scanning ? 'Parsing...' : 'Apply'}
+                    </button>
+                  </div>
 
-              {voiceCommandSummary && (
-                <div className="mt-4 p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs max-w-md mx-auto text-left flex items-start gap-2">
-                  <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5" />
-                  <span>{voiceCommandSummary}</span>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Mode Inputs */}
-          {mode === 'photos' && (
-            <div className="border border-dashed border-zinc-800 p-8 rounded-xl text-center">
-              <Camera className="w-8 h-8 text-zinc-500 mx-auto mb-2" />
-              <p className="text-xs text-zinc-400 mb-3">Upload 1 or more photos of the classroom. dlib detects all faces and cross-verifies against enrolled profiles.</p>
-              <input
-                type="file"
-                multiple
-                accept="image/*"
-                onChange={(e) => setPhotoFiles(Array.from(e.target.files))}
-                className="text-xs text-zinc-400 file:mr-3 file:py-1.5 file:px-3 file:rounded file:border-0 file:bg-zinc-800 file:text-zinc-200 cursor-pointer"
-              />
-              {photoFiles.length > 0 && (
-                <div className="mt-4 flex flex-col items-center gap-2">
-                  <button
-                    onClick={handleScan}
-                    disabled={scanning}
-                    className="px-6 py-3 bg-gradient-to-r from-sky-500 to-cyan-500 hover:from-sky-400 hover:to-cyan-400 text-zinc-950 font-bold rounded-xl text-xs transition cursor-pointer disabled:opacity-50 inline-flex items-center gap-2 shadow-lg shadow-sky-500/20"
-                  >
-                    {scanning ? (
-                      <>
-                        <Loader2 className="w-4 h-4 animate-spin" /> Detecting Faces with dlib 128-d ResNet...
-                      </>
-                    ) : (
-                      <>
-                        <Camera className="w-4 h-4" /> Scan {photoFiles.length} Photo(s) Now
-                      </>
-                    )}
-                  </button>
-                  {!selectedSubId && (
-                    <p className="text-[11px] text-amber-400">Please select an active Class above first.</p>
+                  {voiceCommandSummary && (
+                    <div className="mt-4 p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs max-w-md mx-auto text-left flex items-start gap-2">
+                      <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5" />
+                      <span>{voiceCommandSummary}</span>
+                    </div>
                   )}
                 </div>
               )}
-            </div>
-          )}
 
-          {mode === 'video' && (
-            <div className="border border-dashed border-zinc-800 p-8 rounded-xl text-center">
-              <Video className="w-8 h-8 text-zinc-500 mx-auto mb-2" />
-              <p className="text-xs text-zinc-400 mb-3">Upload classroom panning video (mp4). OpenCV extracts keyframes every 1s for moving student recognition.</p>
-              <input
-                type="file"
-                accept="video/*"
-                onChange={(e) => setVideoFile(e.target.files[0])}
-                className="text-xs text-zinc-400 file:mr-3 file:py-1.5 file:px-3 file:rounded file:border-0 file:bg-zinc-800 file:text-zinc-200 cursor-pointer"
-              />
-              {videoFile && (
-                <button
-                  onClick={handleScan}
-                  disabled={scanning}
-                  className="mt-4 px-4 py-2 bg-zinc-100 text-zinc-950 font-semibold rounded text-xs hover:bg-white transition cursor-pointer disabled:opacity-50"
-                >
-                  {scanning ? 'Extracting Keyframes...' : 'Analyze Video Keyframes'}
-                </button>
-              )}
-            </div>
-          )}
-
-          {mode === 'voice' && (
-            <div className="border border-dashed border-zinc-800 p-8 rounded-xl text-center">
-              <Mic className="w-8 h-8 text-zinc-500 mx-auto mb-2" />
-              <p className="text-xs text-zinc-400 mb-3">Upload audio roll call recording. Resemblyzer speaker verification checks candidate vectors.</p>
-              <input
-                type="file"
-                accept="audio/*"
-                onChange={(e) => setVoiceFile(e.target.files[0])}
-                className="text-xs text-zinc-400 file:mr-3 file:py-1.5 file:px-3 file:rounded file:border-0 file:bg-zinc-800 file:text-zinc-200 cursor-pointer"
-              />
-              {voiceFile && (
-                <button
-                  onClick={handleScan}
-                  disabled={scanning}
-                  className="mt-4 px-4 py-2 bg-zinc-100 text-zinc-950 font-semibold rounded text-xs hover:bg-white transition cursor-pointer disabled:opacity-50"
-                >
-                  {scanning ? 'Matching Voice Utterances...' : 'Verify Voice Biomarkers'}
-                </button>
-              )}
-            </div>
-          )}
-
-          {mode === 'manual' && (
-            <div>
-              <div className="flex justify-between items-center mb-3">
-                <span className="text-xs text-zinc-400">Enrolled Students ({manualList.length})</span>
-                <div className="flex gap-2">
-                  <button onClick={() => setManualList((l) => l.map((s) => ({ ...s, is_present: true })))} className="text-[11px] text-zinc-400 hover:text-zinc-200 cursor-pointer">
-                    All Present
-                  </button>
-                  <button onClick={() => setManualList((l) => l.map((s) => ({ ...s, is_present: false })))} className="text-[11px] text-zinc-400 hover:text-zinc-200 cursor-pointer">
-                    All Absent
-                  </button>
+              {/* Mode Inputs */}
+              {mode === 'photos' && (
+                <div className="border border-dashed border-zinc-800 p-8 rounded-xl text-center">
+                  <Camera className="w-8 h-8 text-zinc-500 mx-auto mb-2" />
+                  <p className="text-xs text-zinc-400 mb-3">Upload 1 or more photos of the classroom. dlib detects all faces and cross-verifies against enrolled profiles.</p>
+                  <input
+                    type="file"
+                    multiple
+                    accept="image/*"
+                    onChange={(e) => setPhotoFiles(Array.from(e.target.files))}
+                    className="text-xs text-zinc-400 file:mr-3 file:py-1.5 file:px-3 file:rounded file:border-0 file:bg-zinc-800 file:text-zinc-200 cursor-pointer"
+                  />
+                  {photoFiles.length > 0 && (
+                    <div className="mt-4 flex flex-col items-center gap-2">
+                      <button
+                        onClick={handleScan}
+                        disabled={scanning}
+                        className="px-6 py-3 bg-gradient-to-r from-sky-500 to-cyan-500 hover:from-sky-400 hover:to-cyan-400 text-zinc-950 font-bold rounded-xl text-xs transition cursor-pointer disabled:opacity-50 inline-flex items-center gap-2 shadow-lg shadow-sky-500/20"
+                      >
+                        {scanning ? (
+                          <>
+                            <Loader2 className="w-4 h-4 animate-spin" /> Detecting Faces with dlib 128-d ResNet...
+                          </>
+                        ) : (
+                          <>
+                            <Camera className="w-4 h-4" /> Scan {photoFiles.length} Photo(s) Now
+                          </>
+                        )}
+                      </button>
+                      {!selectedSubId && (
+                        <p className="text-[11px] text-amber-400">Please select an active Class above first.</p>
+                      )}
+                    </div>
+                  )}
                 </div>
-              </div>
-              <div className="space-y-1.5 max-h-80 overflow-y-auto mb-4">
-                {manualList.map((st) => (
-                  <div
-                    key={st.student_id}
-                    onClick={() => setManualList((l) => l.map((s) => s.student_id === st.student_id ? { ...s, is_present: !s.is_present } : s))}
-                    className={`p-2.5 rounded border text-xs flex justify-between items-center cursor-pointer ${
-                      st.is_present ? 'bg-zinc-900 border-zinc-700 text-zinc-100' : 'bg-zinc-950 border-zinc-900 text-zinc-500'
-                    }`}
-                  >
-                    <span>{st.name} <span className="font-mono text-[10px] text-zinc-500">({st.roll_number})</span></span>
-                    <span className={`text-[11px] font-semibold ${st.is_present ? 'text-emerald-400' : 'text-zinc-600'}`}>
-                      {st.is_present ? 'PRESENT' : 'ABSENT'}
-                    </span>
-                  </div>
-                ))}
-              </div>
-              <button
-                onClick={handleSave}
-                disabled={saving || !manualList.length}
-                className="w-full py-2 bg-zinc-100 text-zinc-950 font-semibold rounded text-xs hover:bg-white transition cursor-pointer disabled:opacity-50"
-              >
-                {saving ? 'Saving...' : 'Save Manual Attendance'}
-              </button>
-            </div>
-          )}
+              )}
 
-          {/* AI Multi-Factor Trust Score Review Drawer */}
-          {review && (
-            <div className="mt-6 pt-6 border-t border-zinc-800">
-              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
+              {mode === 'video' && (
+                <div className="border border-dashed border-zinc-800 p-8 rounded-xl text-center">
+                  <Video className="w-8 h-8 text-zinc-500 mx-auto mb-2" />
+                  <p className="text-xs text-zinc-400 mb-3">Upload classroom panning video (mp4). OpenCV extracts keyframes every 1s for moving student recognition.</p>
+                  <input
+                    type="file"
+                    accept="video/*"
+                    onChange={(e) => setVideoFile(e.target.files[0])}
+                    className="text-xs text-zinc-400 file:mr-3 file:py-1.5 file:px-3 file:rounded file:border-0 file:bg-zinc-800 file:text-zinc-200 cursor-pointer"
+                  />
+                  {videoFile && (
+                    <button
+                      onClick={handleScan}
+                      disabled={scanning}
+                      className="mt-4 px-4 py-2 bg-zinc-100 text-zinc-950 font-semibold rounded text-xs hover:bg-white transition cursor-pointer disabled:opacity-50"
+                    >
+                      {scanning ? 'Extracting Keyframes...' : 'Analyze Video Keyframes'}
+                    </button>
+                  )}
+                </div>
+              )}
+
+              {mode === 'voice' && (
+                <div className="border border-dashed border-zinc-800 p-8 rounded-xl text-center">
+                  <Mic className="w-8 h-8 text-zinc-500 mx-auto mb-2" />
+                  <p className="text-xs text-zinc-400 mb-3">Upload audio roll call recording. Resemblyzer speaker verification checks candidate vectors.</p>
+                  <input
+                    type="file"
+                    accept="audio/*"
+                    onChange={(e) => setVoiceFile(e.target.files[0])}
+                    className="text-xs text-zinc-400 file:mr-3 file:py-1.5 file:px-3 file:rounded file:border-0 file:bg-zinc-800 file:text-zinc-200 cursor-pointer"
+                  />
+                  {voiceFile && (
+                    <button
+                      onClick={handleScan}
+                      disabled={scanning}
+                      className="mt-4 px-4 py-2 bg-zinc-100 text-zinc-950 font-semibold rounded text-xs hover:bg-white transition cursor-pointer disabled:opacity-50"
+                    >
+                      {scanning ? 'Matching Voice Utterances...' : 'Verify Voice Biomarkers'}
+                    </button>
+                  )}
+                </div>
+              )}
+
+              {mode === 'manual' && (
                 <div>
-                  <h3 className="text-xs font-semibold text-zinc-100 flex items-center gap-1.5">
-                    <ShieldCheck className="w-4 h-4 text-emerald-400" />
-                    Multi-Factor Trust Verification Review
-                  </h3>
-                  <p className="text-[11px] text-zinc-400 mt-0.5">
-                    {review.filter((r) => r.is_present).length} / {review.length} students detected & evaluated
-                  </p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setSortByLowestTrust(!sortByLowestTrust)}
-                    className="px-2.5 py-1 bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 rounded text-xs transition cursor-pointer flex items-center gap-1"
-                  >
-                    <ArrowUpDown className="w-3 h-3 text-zinc-400" />
-                    {sortByLowestTrust ? 'Sort: Lowest Trust First' : 'Sort: Default'}
-                  </button>
-                  <button onClick={() => setReview(null)} className="text-xs text-zinc-500 hover:text-zinc-300 cursor-pointer">
-                    Discard
-                  </button>
+                  <div className="flex justify-between items-center mb-3">
+                    <span className="text-xs text-zinc-400">Enrolled Students ({manualList.length})</span>
+                    <div className="flex gap-2">
+                      <button onClick={() => setManualList((l) => l.map((s) => ({ ...s, is_present: true })))} className="text-[11px] text-zinc-400 hover:text-zinc-200 cursor-pointer">
+                        All Present
+                      </button>
+                      <button onClick={() => setManualList((l) => l.map((s) => ({ ...s, is_present: false })))} className="text-[11px] text-zinc-400 hover:text-zinc-200 cursor-pointer">
+                        All Absent
+                      </button>
+                    </div>
+                  </div>
+                  <div className="space-y-1.5 max-h-80 overflow-y-auto mb-4">
+                    {manualList.map((st) => (
+                      <div
+                        key={st.student_id}
+                        onClick={() => setManualList((l) => l.map((s) => s.student_id === st.student_id ? { ...s, is_present: !s.is_present } : s))}
+                        className={`p-2.5 rounded border text-xs flex justify-between items-center cursor-pointer ${st.is_present ? 'bg-zinc-900 border-zinc-700 text-zinc-100' : 'bg-zinc-950 border-zinc-900 text-zinc-500'
+                          }`}
+                      >
+                        <span>{st.name} <span className="font-mono text-[10px] text-zinc-500">({st.roll_number})</span></span>
+                        <span className={`text-[11px] font-semibold ${st.is_present ? 'text-emerald-400' : 'text-zinc-600'}`}>
+                          {st.is_present ? 'PRESENT' : 'ABSENT'}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
                   <button
                     onClick={handleSave}
-                    disabled={saving}
-                    className="px-3 py-1 bg-zinc-100 text-zinc-950 font-semibold rounded text-xs hover:bg-white transition cursor-pointer disabled:opacity-50"
+                    disabled={saving || !manualList.length}
+                    className="w-full py-2 bg-zinc-100 text-zinc-950 font-semibold rounded text-xs hover:bg-white transition cursor-pointer disabled:opacity-50"
                   >
-                    {saving ? 'Saving...' : 'Confirm & Save'}
+                    {saving ? 'Saving...' : 'Save Manual Attendance'}
                   </button>
                 </div>
-              </div>
+              )}
 
-              {/* Trust Score Summary Cards */}
-              <div className="grid grid-cols-3 gap-2 mb-3 text-center">
-                <div className="p-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
-                  <div className="text-sm font-semibold">{review.filter((r) => r.is_present && (r.trust_score >= 80 || r.verification_status === 'auto_accepted')).length}</div>
-                  <div className="text-[10px] text-zinc-400 font-medium">Auto-Accepted (≥80)</div>
-                </div>
-                <div className="p-2 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-300">
-                  <div className="text-sm font-semibold">{review.filter((r) => r.is_present && ((r.trust_score >= 50 && r.trust_score < 80) || r.verification_status === 'needs_review')).length}</div>
-                  <div className="text-[10px] text-zinc-400 font-medium">Needs Review (50-79)</div>
-                </div>
-                <div className="p-2 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-400">
-                  <div className="text-sm font-semibold">{review.filter((r) => r.is_present && (r.trust_score < 50 || r.verification_status === 'flagged')).length}</div>
-                  <div className="text-[10px] text-zinc-400 font-medium">Flagged (&lt;50)</div>
-                </div>
-              </div>
-
-              <div className="space-y-1.5 max-h-96 overflow-y-auto">
-                {[...review]
-                  .sort((a, b) => {
-                    if (sortByLowestTrust) {
-                      const scoreA = a.is_present ? (a.trust_score ?? 100) : 999;
-                      const scoreB = b.is_present ? (b.trust_score ?? 100) : 999;
-                      return scoreA - scoreB;
-                    }
-                    return a.name.localeCompare(b.name);
-                  })
-                  .map((r) => {
-                    const isExpanded = expandedId === r.student_id;
-                    const isHigh = r.trust_score >= 80 || r.verification_status === 'auto_accepted';
-                    const isMed = (r.trust_score >= 50 && r.trust_score < 80) || r.verification_status === 'needs_review';
-                    const isLow = r.trust_score < 50 || r.verification_status === 'flagged';
-
-                    return (
-                      <div
-                        key={r.student_id}
-                        className={`rounded-lg border text-xs transition ${
-                          r.is_present
-                            ? isLow
-                              ? 'bg-rose-950/20 border-rose-900/40 text-zinc-100'
-                              : isMed
-                              ? 'bg-amber-950/20 border-amber-900/40 text-zinc-100'
-                              : 'bg-zinc-900/80 border-zinc-800 text-zinc-100'
-                            : 'bg-zinc-950 border-zinc-900 text-zinc-500'
-                        }`}
+              {/* AI Multi-Factor Trust Score Review Drawer */}
+              {review && (
+                <div className="mt-6 pt-6 border-t border-zinc-800">
+                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
+                    <div>
+                      <h3 className="text-xs font-semibold text-zinc-100 flex items-center gap-1.5">
+                        <ShieldCheck className="w-4 h-4 text-emerald-400" />
+                        Multi-Factor Trust Verification Review
+                      </h3>
+                      <p className="text-[11px] text-zinc-400 mt-0.5">
+                        {review.filter((r) => r.is_present).length} / {review.length} students detected & evaluated
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setSortByLowestTrust(!sortByLowestTrust)}
+                        className="px-2.5 py-1 bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 rounded text-xs transition cursor-pointer flex items-center gap-1"
                       >
-                        <div className="p-2.5 flex justify-between items-center">
-                          <div className="flex items-center gap-2.5">
-                            <button
-                              type="button"
-                              onClick={() => setExpandedId(isExpanded ? null : r.student_id)}
-                              className="text-zinc-500 hover:text-zinc-300 cursor-pointer p-0.5"
-                              title="View trust score breakdown"
-                            >
-                              <Info className="w-3.5 h-3.5" />
-                            </button>
-                            <div>
-                              <div className="flex items-center gap-2">
-                                <span className="font-medium text-zinc-200">{r.name}</span>
-                                <span className="font-mono text-[10px] text-zinc-500">({r.roll_number})</span>
-                                {r.is_present && r.trust_score !== undefined && (
-                                  <span
-                                    className={`px-1.5 py-0.5 rounded font-mono text-[10px] font-semibold border ${
-                                      isHigh
-                                        ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400'
-                                        : isMed
-                                        ? 'bg-amber-500/15 border-amber-500/30 text-amber-300'
-                                        : 'bg-rose-500/15 border-rose-500/30 text-rose-400'
-                                    }`}
-                                  >
-                                    Trust {r.trust_score}%
-                                  </span>
-                                )}
-                              </div>
-                              {r.confidence > 0 && (
-                                <div className="text-[10px] text-zinc-400 mt-0.5 flex gap-2">
-                                  <span>Match: {r.confidence}%</span>
-                                  {r.sources && r.sources.length > 0 && <span>via {r.sources.join(', ')}</span>}
-                                </div>
-                              )}
-                            </div>
-                          </div>
+                        <ArrowUpDown className="w-3 h-3 text-zinc-400" />
+                        {sortByLowestTrust ? 'Sort: Lowest Trust First' : 'Sort: Default'}
+                      </button>
+                      <button onClick={() => setReview(null)} className="text-xs text-zinc-500 hover:text-zinc-300 cursor-pointer">
+                        Discard
+                      </button>
+                      <button
+                        onClick={handleSave}
+                        disabled={saving}
+                        className="px-3 py-1 bg-zinc-100 text-zinc-950 font-semibold rounded text-xs hover:bg-white transition cursor-pointer disabled:opacity-50"
+                      >
+                        {saving ? 'Saving...' : 'Confirm & Save'}
+                      </button>
+                    </div>
+                  </div>
 
-                          <div className="flex items-center gap-3">
-                            <button
-                              type="button"
-                              onClick={() => setReview((l) => l.map((item) => item.student_id === r.student_id ? { ...item, is_present: !item.is_present } : item))}
-                              className={`text-[11px] font-semibold px-2.5 py-1 rounded cursor-pointer transition ${
-                                r.is_present
-                                  ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20'
-                                  : 'bg-zinc-800 text-zinc-400 border border-zinc-700 hover:bg-zinc-700'
+                  {/* Trust Score Summary Cards */}
+                  <div className="grid grid-cols-3 gap-2 mb-3 text-center">
+                    <div className="p-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
+                      <div className="text-sm font-semibold">{review.filter((r) => r.is_present && (r.trust_score >= 80 || r.verification_status === 'auto_accepted')).length}</div>
+                      <div className="text-[10px] text-zinc-400 font-medium">Auto-Accepted (≥80)</div>
+                    </div>
+                    <div className="p-2 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-300">
+                      <div className="text-sm font-semibold">{review.filter((r) => r.is_present && ((r.trust_score >= 50 && r.trust_score < 80) || r.verification_status === 'needs_review')).length}</div>
+                      <div className="text-[10px] text-zinc-400 font-medium">Needs Review (50-79)</div>
+                    </div>
+                    <div className="p-2 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-400">
+                      <div className="text-sm font-semibold">{review.filter((r) => r.is_present && (r.trust_score < 50 || r.verification_status === 'flagged')).length}</div>
+                      <div className="text-[10px] text-zinc-400 font-medium">Flagged (&lt;50)</div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5 max-h-96 overflow-y-auto">
+                    {[...review]
+                      .sort((a, b) => {
+                        if (sortByLowestTrust) {
+                          const scoreA = a.is_present ? (a.trust_score ?? 100) : 999;
+                          const scoreB = b.is_present ? (b.trust_score ?? 100) : 999;
+                          return scoreA - scoreB;
+                        }
+                        return a.name.localeCompare(b.name);
+                      })
+                      .map((r) => {
+                        const isExpanded = expandedId === r.student_id;
+                        const isHigh = r.trust_score >= 80 || r.verification_status === 'auto_accepted';
+                        const isMed = (r.trust_score >= 50 && r.trust_score < 80) || r.verification_status === 'needs_review';
+                        const isLow = r.trust_score < 50 || r.verification_status === 'flagged';
+
+                        return (
+                          <div
+                            key={r.student_id}
+                            className={`rounded-lg border text-xs transition ${r.is_present
+                                ? isLow
+                                  ? 'bg-rose-950/20 border-rose-900/40 text-zinc-100'
+                                  : isMed
+                                    ? 'bg-amber-950/20 border-amber-900/40 text-zinc-100'
+                                    : 'bg-zinc-900/80 border-zinc-800 text-zinc-100'
+                                : 'bg-zinc-950 border-zinc-900 text-zinc-500'
                               }`}
-                            >
-                              {r.is_present ? 'PRESENT' : 'ABSENT'}
-                            </button>
-                          </div>
-                        </div>
+                          >
+                            <div className="p-2.5 flex justify-between items-center">
+                              <div className="flex items-center gap-2.5">
+                                <button
+                                  type="button"
+                                  onClick={() => setExpandedId(isExpanded ? null : r.student_id)}
+                                  className="text-zinc-500 hover:text-zinc-300 cursor-pointer p-0.5"
+                                  title="View trust score breakdown"
+                                >
+                                  <Info className="w-3.5 h-3.5" />
+                                </button>
+                                <div>
+                                  <div className="flex items-center gap-2">
+                                    <span className="font-medium text-zinc-200">{r.name}</span>
+                                    <span className="font-mono text-[10px] text-zinc-500">({r.roll_number})</span>
+                                    {r.is_present && r.trust_score !== undefined && (
+                                      <span
+                                        className={`px-1.5 py-0.5 rounded font-mono text-[10px] font-semibold border ${isHigh
+                                            ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400'
+                                            : isMed
+                                              ? 'bg-amber-500/15 border-amber-500/30 text-amber-300'
+                                              : 'bg-rose-500/15 border-rose-500/30 text-rose-400'
+                                          }`}
+                                      >
+                                        Trust {r.trust_score}%
+                                      </span>
+                                    )}
+                                  </div>
+                                  {r.confidence > 0 && (
+                                    <div className="text-[10px] text-zinc-400 mt-0.5 flex gap-2">
+                                      <span>Match: {r.confidence}%</span>
+                                      {r.sources && r.sources.length > 0 && <span>via {r.sources.join(', ')}</span>}
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
 
-                        {/* Factor Breakdown Chips */}
-                        {isExpanded && (
-                          <div className="px-3 pb-3 pt-1 border-t border-zinc-800/60 bg-zinc-950/40 text-[11px]">
-                            <p className="text-zinc-300 mb-2 font-mono text-[10.5px]">
-                              {r.explanation || 'Manual attendance selection'}
-                            </p>
-                            {r.trust_breakdown && Object.keys(r.trust_breakdown).length > 0 && (
-                              <div className="flex flex-wrap gap-1.5">
-                                {r.trust_breakdown.face_score !== undefined && (
-                                  <span className="px-2 py-0.5 rounded bg-zinc-900 border border-zinc-800 text-zinc-300 text-[10px]">
-                                    Face: <span className="font-mono text-zinc-100">{r.trust_breakdown.face_score}/{r.trust_breakdown.face_max}</span>
-                                  </span>
-                                )}
-                                {r.trust_breakdown.liveness_score !== undefined && (
-                                  <span className="px-2 py-0.5 rounded bg-zinc-900 border border-zinc-800 text-zinc-300 text-[10px]">
-                                    Liveness: <span className="font-mono text-zinc-100">{r.trust_breakdown.liveness_score}/{r.trust_breakdown.liveness_max}</span>
-                                  </span>
-                                )}
-                                {r.trust_breakdown.session_score !== undefined && (
-                                  <span className="px-2 py-0.5 rounded bg-zinc-900 border border-zinc-800 text-zinc-300 text-[10px]">
-                                    Session: <span className="font-mono text-zinc-100">{r.trust_breakdown.session_score}</span>
-                                  </span>
-                                )}
-                                {r.trust_breakdown.ip_score !== undefined && (
-                                  <span className="px-2 py-0.5 rounded bg-zinc-900 border border-zinc-800 text-zinc-300 text-[10px]">
-                                    Network/IP: <span className="font-mono text-zinc-100">{r.trust_breakdown.ip_score}</span>
-                                  </span>
-                                )}
-                                {r.trust_breakdown.device_score !== undefined && (
-                                  <span className="px-2 py-0.5 rounded bg-zinc-900 border border-zinc-800 text-zinc-300 text-[10px]">
-                                    Device: <span className="font-mono text-zinc-100">{r.trust_breakdown.device_score}</span>
-                                  </span>
+                              <div className="flex items-center gap-3">
+                                <button
+                                  type="button"
+                                  onClick={() => setReview((l) => l.map((item) => item.student_id === r.student_id ? { ...item, is_present: !item.is_present } : item))}
+                                  className={`text-[11px] font-semibold px-2.5 py-1 rounded cursor-pointer transition ${r.is_present
+                                      ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20'
+                                      : 'bg-zinc-800 text-zinc-400 border border-zinc-700 hover:bg-zinc-700'
+                                    }`}
+                                >
+                                  {r.is_present ? 'PRESENT' : 'ABSENT'}
+                                </button>
+                              </div>
+                            </div>
+
+                            {/* Factor Breakdown Chips */}
+                            {isExpanded && (
+                              <div className="px-3 pb-3 pt-1 border-t border-zinc-800/60 bg-zinc-950/40 text-[11px]">
+                                <p className="text-zinc-300 mb-2 font-mono text-[10.5px]">
+                                  {r.explanation || 'Manual attendance selection'}
+                                </p>
+                                {r.trust_breakdown && Object.keys(r.trust_breakdown).length > 0 && (
+                                  <div className="flex flex-wrap gap-1.5">
+                                    {r.trust_breakdown.face_score !== undefined && (
+                                      <span className="px-2 py-0.5 rounded bg-zinc-900 border border-zinc-800 text-zinc-300 text-[10px]">
+                                        Face: <span className="font-mono text-zinc-100">{r.trust_breakdown.face_score}/{r.trust_breakdown.face_max}</span>
+                                      </span>
+                                    )}
+                                    {r.trust_breakdown.liveness_score !== undefined && (
+                                      <span className="px-2 py-0.5 rounded bg-zinc-900 border border-zinc-800 text-zinc-300 text-[10px]">
+                                        Liveness: <span className="font-mono text-zinc-100">{r.trust_breakdown.liveness_score}/{r.trust_breakdown.liveness_max}</span>
+                                      </span>
+                                    )}
+                                    {r.trust_breakdown.session_score !== undefined && (
+                                      <span className="px-2 py-0.5 rounded bg-zinc-900 border border-zinc-800 text-zinc-300 text-[10px]">
+                                        Session: <span className="font-mono text-zinc-100">{r.trust_breakdown.session_score}</span>
+                                      </span>
+                                    )}
+                                    {r.trust_breakdown.ip_score !== undefined && (
+                                      <span className="px-2 py-0.5 rounded bg-zinc-900 border border-zinc-800 text-zinc-300 text-[10px]">
+                                        Network/IP: <span className="font-mono text-zinc-100">{r.trust_breakdown.ip_score}</span>
+                                      </span>
+                                    )}
+                                    {r.trust_breakdown.device_score !== undefined && (
+                                      <span className="px-2 py-0.5 rounded bg-zinc-900 border border-zinc-800 text-zinc-300 text-[10px]">
+                                        Device: <span className="font-mono text-zinc-100">{r.trust_breakdown.device_score}</span>
+                                      </span>
+                                    )}
+                                  </div>
                                 )}
                               </div>
                             )}
                           </div>
-                        )}
-                      </div>
-                    );
-                  })}
-              </div>
-            </div>
-          )}
+                        );
+                      })}
+                  </div>
+                </div>
+              )}
             </>
           )}
         </div>
@@ -2312,23 +2289,21 @@ export default function FacultyDashboard({ teacher }) {
                 return (
                   <div
                     key={seat.seat_id}
-                    className={`p-3 rounded-xl border text-left transition relative flex flex-col justify-between min-h-[92px] ${
-                      isVacant
+                    className={`p-3 rounded-xl border text-left transition relative flex flex-col justify-between min-h-[92px] ${isVacant
                         ? 'bg-zinc-950/60 border-dashed border-zinc-800/80 text-zinc-600'
                         : isPresent
-                        ? 'bg-emerald-950/20 border-emerald-500/40 text-zinc-200 shadow-sm'
-                        : 'bg-rose-950/20 border-rose-500/30 text-zinc-300'
-                    }`}
+                          ? 'bg-emerald-950/20 border-emerald-500/40 text-zinc-200 shadow-sm'
+                          : 'bg-rose-950/20 border-rose-500/30 text-zinc-300'
+                      }`}
                   >
                     <div className="flex justify-between items-start text-[10px] text-zinc-400">
                       <span className="font-mono font-semibold">{seat.seat_id}</span>
-                      <span className={`px-1.5 py-0.2 rounded font-bold uppercase tracking-wider ${
-                        isVacant
+                      <span className={`px-1.5 py-0.2 rounded font-bold uppercase tracking-wider ${isVacant
                           ? 'text-zinc-600'
                           : isPresent
-                          ? 'bg-emerald-500/20 text-emerald-400'
-                          : 'bg-rose-500/20 text-rose-400'
-                      }`}>
+                            ? 'bg-emerald-500/20 text-emerald-400'
+                            : 'bg-rose-500/20 text-rose-400'
+                        }`}>
                         {isVacant ? 'VACANT' : isPresent ? 'PRESENT' : 'ABSENT'}
                       </span>
                     </div>
@@ -2540,11 +2515,10 @@ export default function FacultyDashboard({ teacher }) {
                           <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-zinc-800 text-zinc-300 uppercase">
                             {leave.leave_type}
                           </span>
-                          <span className={`text-[10px] font-mono px-2 py-0.5 rounded uppercase font-semibold ${
-                            leave.status === 'approved' ? 'bg-emerald-500/10 text-emerald-400' :
-                            leave.status === 'rejected' ? 'bg-rose-500/10 text-rose-400' :
-                            'bg-amber-500/10 text-amber-400'
-                          }`}>
+                          <span className={`text-[10px] font-mono px-2 py-0.5 rounded uppercase font-semibold ${leave.status === 'approved' ? 'bg-emerald-500/10 text-emerald-400' :
+                              leave.status === 'rejected' ? 'bg-rose-500/10 text-rose-400' :
+                                'bg-amber-500/10 text-amber-400'
+                            }`}>
                             {leave.status}
                           </span>
                         </div>
@@ -2721,13 +2695,12 @@ export default function FacultyDashboard({ teacher }) {
                   <button
                     key={p.id}
                     onClick={() => setSelectedPeriod(p.id)}
-                    className={`p-2 rounded-xl border text-left transition cursor-pointer flex flex-col justify-between ${
-                      p.isBreak
+                    className={`p-2 rounded-xl border text-left transition cursor-pointer flex flex-col justify-between ${p.isBreak
                         ? 'bg-zinc-950/40 border-dashed border-zinc-800 text-zinc-500 hover:border-zinc-700'
                         : isActive
-                        ? 'bg-cyan-500/10 border-cyan-500/60 shadow-[0_0_15px_rgba(6,182,212,0.15)] ring-1 ring-cyan-500/30'
-                        : 'bg-zinc-900/60 border-zinc-800/80 hover:border-zinc-700 text-zinc-400'
-                    }`}
+                          ? 'bg-cyan-500/10 border-cyan-500/60 shadow-[0_0_15px_rgba(6,182,212,0.15)] ring-1 ring-cyan-500/30'
+                          : 'bg-zinc-900/60 border-zinc-800/80 hover:border-zinc-700 text-zinc-400'
+                      }`}
                   >
                     <div className="flex items-center justify-between">
                       <span className={`text-[11px] font-bold ${p.isBreak ? 'text-zinc-500' : isActive ? 'text-cyan-300' : 'text-zinc-200'}`}>
@@ -2974,11 +2947,10 @@ export default function FacultyDashboard({ teacher }) {
                           {/* Trust Score */}
                           <td className="py-3 px-4">
                             {tScore !== null && tScore !== undefined ? (
-                              <span className={`text-[10px] font-mono px-2 py-0.5 rounded font-bold border ${
-                                tScore >= 80 ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400' :
-                                tScore >= 50 ? 'bg-amber-500/15 border-amber-500/30 text-amber-300' :
-                                'bg-rose-500/15 border-rose-500/30 text-rose-400'
-                              }`}>
+                              <span className={`text-[10px] font-mono px-2 py-0.5 rounded font-bold border ${tScore >= 80 ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400' :
+                                  tScore >= 50 ? 'bg-amber-500/15 border-amber-500/30 text-amber-300' :
+                                    'bg-rose-500/15 border-rose-500/30 text-rose-400'
+                                }`}>
                                 {tScore}%
                               </span>
                             ) : (
@@ -3000,11 +2972,10 @@ export default function FacultyDashboard({ teacher }) {
 
                               <button
                                 onClick={() => toggleOverride(r.id, r.is_present)}
-                                className={`px-2.5 py-1 rounded-md text-[11px] font-medium transition cursor-pointer border ${
-                                  r.is_present
+                                className={`px-2.5 py-1 rounded-md text-[11px] font-medium transition cursor-pointer border ${r.is_present
                                     ? 'bg-rose-500/10 border-rose-500/30 text-rose-300 hover:bg-rose-500/20'
                                     : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300 hover:bg-emerald-500/20'
-                                }`}
+                                  }`}
                                 title={r.is_present ? 'Mark Absent' : 'Mark Present'}
                               >
                                 {r.is_present ? 'Mark Absent' : 'Mark Present'}
@@ -3012,11 +2983,10 @@ export default function FacultyDashboard({ teacher }) {
 
                               <button
                                 onClick={() => toggleOverride(r.id, r.is_present, isProxy ? null : 'proxy')}
-                                className={`p-1 rounded-md transition cursor-pointer border ${
-                                  isProxy
+                                className={`p-1 rounded-md transition cursor-pointer border ${isProxy
                                     ? 'bg-purple-500 text-white border-purple-400 shadow-md shadow-purple-500/20'
                                     : 'bg-zinc-800/80 hover:bg-purple-500/20 border-zinc-700 text-zinc-400 hover:text-purple-300'
-                                }`}
+                                  }`}
                                 title={isProxy ? 'Clear Proxy Flag' : 'Flag as Proxy Suspect'}
                               >
                                 <Flag className="w-3 h-3" />
@@ -3248,11 +3218,10 @@ export default function FacultyDashboard({ teacher }) {
                 <button
                   key={day}
                   onClick={() => setSelectedTimetableDay(day)}
-                  className={`px-4 py-2.5 rounded-xl font-bold text-xs transition cursor-pointer flex items-center gap-2 ${
-                    isSelected
+                  className={`px-4 py-2.5 rounded-xl font-bold text-xs transition cursor-pointer flex items-center gap-2 ${isSelected
                       ? 'bg-cyan-500/15 border border-cyan-500/50 text-cyan-300 shadow-md ring-1 ring-cyan-500/20'
                       : 'bg-zinc-950 border border-zinc-800 text-zinc-400 hover:text-zinc-200 hover:border-zinc-700'
-                  }`}
+                    }`}
                 >
                   <span>{dayFull}</span>
                   {isToday && (
@@ -3293,11 +3262,10 @@ export default function FacultyDashboard({ teacher }) {
               return (
                 <div
                   key={slotItem.periodId}
-                  className={`p-4 rounded-xl border transition flex flex-col justify-between ${
-                    isCurrent
+                  className={`p-4 rounded-xl border transition flex flex-col justify-between ${isCurrent
                       ? 'bg-gradient-to-br from-cyan-950/30 to-zinc-900/90 border-cyan-500/60 shadow-[0_0_20px_rgba(6,182,212,0.15)] ring-1 ring-cyan-500/30'
                       : 'bg-zinc-950/80 border-zinc-800/80 hover:border-zinc-700'
-                  }`}
+                    }`}
                 >
                   <div>
                     <div className="flex items-center justify-between text-xs mb-2">
@@ -3649,11 +3617,10 @@ export default function FacultyDashboard({ teacher }) {
                         key={num}
                         type="button"
                         onClick={() => setPulseSampleSize(num)}
-                        className={`px-3 py-1.5 rounded-lg border text-xs font-semibold cursor-pointer transition ${
-                          pulseSampleSize === num
+                        className={`px-3 py-1.5 rounded-lg border text-xs font-semibold cursor-pointer transition ${pulseSampleSize === num
                             ? 'bg-amber-500/20 border-amber-500 text-amber-300'
                             : 'bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-zinc-200'
-                        }`}
+                          }`}
                       >
                         {num} Students
                       </button>
@@ -3707,14 +3674,12 @@ export default function FacultyDashboard({ teacher }) {
                           <div className="font-semibold text-zinc-200">{target.name}</div>
                           <div className="font-mono text-[10px] text-zinc-500">{target.roll_number}</div>
                         </div>
-                        <span className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold ${
-                          target.status === 'VERIFIED'
+                        <span className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold ${target.status === 'VERIFIED'
                             ? 'bg-emerald-500/20 text-emerald-400'
                             : target.status === 'FAILED'
-                            ? 'bg-rose-500/20 text-rose-400'
-                            : 'bg-amber-500/20 text-amber-400 animate-pulse'
-                        }`}>
-                          {target.status}
+                              ? 'bg-rose-500/20 text-rose-400'
+                              : 'bg-amber-500/20 text-amber-400 animate-pulse'
+                          }`}>                          {target.status}
                         </span>
                       </div>
                     ))}
