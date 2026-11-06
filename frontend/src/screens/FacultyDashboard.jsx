@@ -131,6 +131,28 @@ export default function FacultyDashboard({ teacher }) {
   const [dynamicCode, setDynamicCode] = useState('');
   const [dynamicSecs, setDynamicSecs] = useState(0);
 
+  // Mobile Phone Connect QR Modal State
+  const [showPhoneQrModal, setShowPhoneQrModal] = useState(false);
+  const [mobileUrl, setMobileUrl] = useState('');
+  const [mobileQrDataUrl, setMobileQrDataUrl] = useState('');
+
+  const handleOpenPhoneQr = async () => {
+    try {
+      const net = await api.getNetworkIp();
+      const url = net?.mobile_url || `http://${window.location.hostname}:5173`;
+      setMobileUrl(url);
+      const qr = await QRCode.toDataURL(url, { width: 260, margin: 2 });
+      setMobileQrDataUrl(qr);
+      setShowPhoneQrModal(true);
+    } catch {
+      const fallbackUrl = `http://${window.location.hostname}:5173`;
+      setMobileUrl(fallbackUrl);
+      const qr = await QRCode.toDataURL(fallbackUrl, { width: 260, margin: 2 });
+      setMobileQrDataUrl(qr);
+      setShowPhoneQrModal(true);
+    }
+  };
+
   // Official AKGEC Timetable Periods (Period 1 to Period 9)
   const COLLEGE_PERIODS = AKGEC_PERIODS;
 
@@ -778,6 +800,14 @@ export default function FacultyDashboard({ teacher }) {
                 >
                   <Zap className="w-4 h-4 text-amber-400" />
                   <span>Surprise Pulse Check</span>
+                </button>
+                <button
+                  onClick={handleOpenPhoneQr}
+                  className="flex-1 lg:flex-none flex items-center justify-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-cyan-500/15 hover:bg-cyan-500/25 border border-cyan-500/40 text-cyan-300 font-bold text-xs transition shadow-lg shadow-cyan-500/10 cursor-pointer active:scale-98"
+                  title="Open application on phone to take live mobile attendance"
+                >
+                  <Smartphone className="w-4 h-4 text-cyan-400" />
+                  <span>Connect Phone (QR)</span>
                 </button>
                 <button
                   onClick={() => {
@@ -3041,6 +3071,54 @@ export default function FacultyDashboard({ teacher }) {
               <span className="text-zinc-400 text-[11px] block">15-Minute Dynamic Passcode</span>
               <span className="font-mono text-2xl font-bold text-zinc-100 tracking-wider my-1 block">{dynamicCode}</span>
               <span className="text-zinc-500 text-[11px]">Expires in {Math.floor(dynamicSecs / 60)}:{(dynamicSecs % 60).toString().padStart(2, '0')}</span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Mobile Connect QR Modal */}
+      {showPhoneQrModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-150">
+          <div className="panel max-w-sm w-full rounded-2xl p-6 relative text-center border border-cyan-500/40 shadow-2xl shadow-cyan-500/10">
+            <button
+              onClick={() => setShowPhoneQrModal(false)}
+              className="absolute top-4 right-4 text-zinc-400 hover:text-white cursor-pointer"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="w-12 h-12 rounded-2xl bg-cyan-500/15 border border-cyan-500/30 flex items-center justify-center text-cyan-400 mx-auto mb-3 shadow-inner">
+              <Smartphone className="w-6 h-6 animate-pulse" />
+            </div>
+
+            <h3 className="text-base font-bold text-white mb-1">Open Pramaan on Mobile Phone</h3>
+            <p className="text-xs text-zinc-400 mb-4">
+              Scan this QR code with your phone camera to take attendance directly from your phone in the classroom.
+            </p>
+
+            {mobileQrDataUrl && (
+              <div className="p-3 bg-white rounded-2xl mx-auto inline-block mb-4 shadow-xl">
+                <img src={mobileQrDataUrl} alt="Mobile QR Code" className="w-48 h-48 block mx-auto" />
+              </div>
+            )}
+
+            <div className="p-3 rounded-xl bg-zinc-950/80 border border-zinc-800 text-left mb-4">
+              <div className="text-[10px] text-zinc-500 uppercase tracking-wider font-mono mb-1">Direct Network Link:</div>
+              <a
+                href={mobileUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="text-xs font-mono text-cyan-400 hover:underline break-all block"
+              >
+                {mobileUrl}
+              </a>
+            </div>
+
+            <div className="text-left text-[11px] text-zinc-400 space-y-1.5 p-3 rounded-xl bg-cyan-950/20 border border-cyan-500/20">
+              <div className="font-semibold text-cyan-300">Quick 3-Step Setup:</div>
+              <div>1. Connect your phone and laptop to the <strong>same Wi-Fi or Phone Hotspot</strong>.</div>
+              <div>2. Point your phone camera at the QR code above and open link.</div>
+              <div>3. Log in as faculty & tap <strong>"Phone Cam & Snap"</strong> to take live class attendance anytime!</div>
             </div>
           </div>
         </div>

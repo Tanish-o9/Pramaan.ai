@@ -1451,6 +1451,23 @@ async def api_take_group_photo_attendance(
 
 # ================= HEALTH & OBSERVABILITY =================
 
+@app.get("/api/network-ip")
+def api_network_ip():
+    import socket
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    try:
+        s.connect(('8.8.8.8', 80))
+        ip = s.getsockname()[0]
+    except Exception:
+        ip = '127.0.0.1'
+    finally:
+        s.close()
+    return {
+        "ip": ip,
+        "mobile_url": f"http://{ip}:5173",
+        "qr_supported": True
+    }
+
 @app.get("/health")
 def api_health():
     return {

@@ -403,6 +403,9 @@ export const api = {
   getHodDefaultersNoticeUrl: () =>
     `${BASE_URL}/api/hod/defaulters-notice`,
 
+  getNetworkIp: () =>
+    request('/api/network-ip'),
+
   // Group / Class Photo Attendance
   takeGroupPhotoAttendance: (subject_id, fileBlob) => {
     const fd = new FormData();
