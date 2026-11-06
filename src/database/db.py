@@ -53,6 +53,42 @@ def create_student(new_name, roll_number, face_embedding=None, voice_embedding=N
         response = supabase.table('students').insert(data).execute()
         return response.data
 
+def is_default_pin(stored_pin):
+    if not stored_pin:
+        return True
+    try:
+        return bcrypt.checkpw("1234".encode(), stored_pin.encode())
+    except Exception:
+        return str(stored_pin) == "1234"
+
+def update_student_pin(student_id, old_pin, new_pin):
+    res = supabase.table("students").select("*").eq("student_id", student_id).execute()
+    if not res.data:
+        raise ValueError("Student record not found")
+    student = res.data[0]
+    stored_pin = student.get("pin")
+    if stored_pin:
+        if not check_pass(old_pin, stored_pin) and old_pin != "1234":
+            raise ValueError("Incorrect current PIN")
+    else:
+        if old_pin != "1234":
+            raise ValueError("Incorrect current PIN")
+
+    if len(str(new_pin).strip()) < 4:
+        raise ValueError("New PIN must be at least 4 digits")
+
+    hashed = hash_pass(str(new_pin).strip())
+    up = supabase.table("students").update({"pin": hashed}).eq("student_id", student_id).execute()
+    return up.data
+
+def get_student_by_id(student_id: int):
+    res = supabase.table("students").select("*").eq("student_id", student_id).execute()
+    return res.data[0] if res.data else None
+
+def get_teacher_by_id(teacher_id: int):
+    res = supabase.table("teachers").select("*").eq("teachers_id", teacher_id).execute()
+    return res.data[0] if res.data else None
+
 def student_pin_login(roll_number, pin):
     roll = roll_number.strip().upper()
     res = supabase.table("students").select("*").eq("roll_number", roll).execute()
@@ -117,6 +153,11 @@ def get_teacher_subjects(teacher_id):
 
     return subjects
 
+def get_enrolled(subject_id: int):
+    """Fetch all students enrolled in a specific subject."""
+    res = supabase.table('subject_students').select('student_id, students(*)').eq('subject_id', subject_id).execute()
+    return [r['students'] for r in (res.data or []) if r.get('students')]
+
 def enroll_student_to_subject(student_id, subject_id):
     data = {'student_id': student_id, "subject_id": subject_id}
     response = supabase.table('subject_students').insert(data).execute()
@@ -147,21 +188,36 @@ def get_attendance_for_teacher(teacher_id):
     return response.data
 
 def get_subject_attendance(subject_id):
-    """Ek subject ke saare attendance rows, students ki details ke saath."""
+    """Ek subject ke saare attendance rows, students ki details aur trust score ke saath."""
     rows, start, size = [], 0, 1000
     while True:
-        res = (
-            supabase.table("attendance_logs")
-            .select("id, timestamp, is_present, student_id, students(name, roll_number)")
-            .eq("subject_id", subject_id)
-            .order("id")
-            .range(start, start + size - 1)
-            .execute()
-        )
-        rows.extend(res.data or [])
-        if len(res.data or []) < size:
-            break
-        start += size
+        try:
+            res = (
+                supabase.table("attendance_logs")
+                .select("id, timestamp, is_present, student_id, trust_score, trust_breakdown, verification_status, students(name, roll_number)")
+                .eq("subject_id", subject_id)
+                .order("id")
+                .range(start, start + size - 1)
+                .execute()
+            )
+            rows.extend(res.data or [])
+            if len(res.data or []) < size:
+                break
+            start += size
+        except Exception:
+            # Fallback if trust_score columns are not yet migrated
+            res = (
+                supabase.table("attendance_logs")
+                .select("id, timestamp, is_present, student_id, students(name, roll_number)")
+                .eq("subject_id", subject_id)
+                .order("id")
+                .range(start, start + size - 1)
+                .execute()
+            )
+            rows.extend(res.data or [])
+            if len(res.data or []) < size:
+                break
+            start += size
     return rows
 
 def update_single_attendance(log_id, is_present):
@@ -169,5 +225,22 @@ def update_single_attendance(log_id, is_present):
     return supabase.table("attendance_logs").update({"is_present": is_present}).eq("id", log_id).execute()
 
 def create_attendance(logs):
-    response = supabase.table('attendance_logs').insert(logs).execute()
-    return response.data
+    try:
+        response = supabase.table('attendance_logs').insert(logs).execute()
+        return response.data
+    except Exception as e:
+        err_msg = str(e)
+        if "trust_score" in err_msg or "trust_breakdown" in err_msg or "verification_status" in err_msg:
+            # Graceful fallback if SQL migration hasn't been run yet on Supabase
+            fallback_logs = [
+                {
+                    "subject_id": l["subject_id"],
+                    "student_id": l["student_id"],
+                    "is_present": l["is_present"],
+                    "timestamp": l["timestamp"]
+                }
+                for l in logs
+            ]
+            response = supabase.table('attendance_logs').insert(fallback_logs).execute()
+            return response.data
+        raise e
