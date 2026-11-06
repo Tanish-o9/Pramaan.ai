@@ -121,3 +121,4 @@ export function getCurrentLectureSlot() {
     isClassHours: minutes >= 8 * 60 + 30 && minutes <= 16 * 60,
   };
 }
+

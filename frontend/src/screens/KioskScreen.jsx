@@ -747,13 +747,21 @@ export default function KioskScreen({ subject: initialSubject, onExit }) {
                 </span>
                 {verifiedList.length > 0 && (
                   <button
-                    onClick={() => {
-                      setVerifiedList([]);
-                      setStats((s) => ({ ...s, markedCount: 0 }));
-                      cooldownCache.current.clear();
+                    onClick={async () => {
+                      if (!activeSubject?.subject_id) return;
+                      if (!window.confirm("Reset today's live attendance for this class to 0?")) return;
+                      try {
+                        await api.resetKioskToday(activeSubject.subject_id);
+                        setVerifiedList([]);
+                        setStats((s) => ({ ...s, markedCount: 0 }));
+                        cooldownCache.current.clear();
+                        setStatusMessage('Live attendance reset • 0 / ' + stats.totalEnrolled + ' Present');
+                      } catch (err) {
+                        console.error('Reset failed:', err);
+                      }
                     }}
                     className="p-1 rounded hover:bg-zinc-800 text-zinc-500 hover:text-zinc-300 transition-colors cursor-pointer"
-                    title="Clear live session list"
+                    title="Reset today's attendance session to 0"
                   >
                     <RefreshCw className="w-3 h-3" />
                   </button>

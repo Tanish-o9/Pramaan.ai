@@ -888,6 +888,27 @@ def api_kiosk_roster(subject_id: int):
         "records": unique_records
     }
 
+@app.post("/api/kiosk/reset-today/{subject_id}")
+def api_kiosk_reset_today(subject_id: int):
+    """Permanently purges today's attendance logs for this subject to wipe fake or test data."""
+    today_prefix = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    all_today = (
+        supabase.table("attendance_logs")
+        .select("id")
+        .eq("subject_id", subject_id)
+        .gte("timestamp", f"{today_prefix}T00:00:00")
+        .execute()
+    )
+    ids = [r["id"] for r in (all_today.data or [])]
+    if ids:
+        supabase.table("attendance_logs").delete().in_("id", ids).execute()
+
+    cache_key = (subject_id, today_prefix)
+    if cache_key in _marked_today_cache:
+        _marked_today_cache[cache_key].clear()
+
+    return {"status": "success", "cleared_count": len(ids)}
+
 @app.post("/api/kiosk/quick-enroll")
 async def api_kiosk_quick_enroll(
     student_id: int = Form(...),
