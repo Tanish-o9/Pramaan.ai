@@ -27,3 +27,7 @@ openpyxl
 
 # Testing & Quality
 pytest
+pytest-cov
+pytest-asyncio
+httpx
+ruff
