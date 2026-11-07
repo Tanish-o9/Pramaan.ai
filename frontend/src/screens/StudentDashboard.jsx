@@ -351,48 +351,44 @@ export default function StudentDashboard({ student, onUpdateStudent }) {
         </div>
       )}
 
-      {/* Executive Student Hero Banner */}
-      <div className="panel-card rounded-2xl p-6 mb-6 relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-80 h-80 bg-gradient-to-bl from-cyan-500/10 via-emerald-500/5 to-transparent rounded-full blur-3xl pointer-events-none" />
-        
-        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 relative z-10">
+      {/* Student Academic Profile Header */}
+      <div className="rounded-2xl p-6 mb-6 bg-[#111624] border border-[#1e2a3f] shadow-lg">
+        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
           <div className="flex items-center gap-4">
             <div className="relative">
-              <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-cyan-500 to-emerald-400 p-[2px] shadow-lg shadow-cyan-500/15">
-                <div className="w-full h-full rounded-[14px] bg-zinc-950 flex items-center justify-center text-lg font-bold text-white uppercase">
-                  {student.name ? student.name.slice(0, 2) : 'ST'}
-                </div>
+              <div className="w-13 h-13 rounded-xl bg-blue-600/10 border border-blue-500/20 flex items-center justify-center text-lg font-bold text-blue-400 uppercase tracking-tight">
+                {student.name ? student.name.slice(0, 2) : 'ST'}
               </div>
-              <span className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-emerald-500 border-2 border-zinc-950 flex items-center justify-center" title="Account Active">
-                <span className="w-1.5 h-1.5 rounded-full bg-white"></span>
-              </span>
+              <span className="absolute -bottom-1 -right-1 w-3.5 h-3.5 rounded-full bg-emerald-500 border-2 border-[#111624]" title="Active Student" />
             </div>
 
             <div>
               <div className="flex flex-wrap items-center gap-2">
-                <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-white">{student.name}</h1>
-                <span className="px-2 py-0.5 rounded-md text-[11px] font-mono font-semibold bg-zinc-800 text-zinc-300 border border-zinc-700">
+                <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-100">{student.name}</h1>
+                <span className="px-2 py-0.5 rounded-md text-xs font-mono font-semibold bg-[#182338] text-slate-300 border border-[#22334f]">
                   {student.roll_number}
                 </span>
-                <span className={`px-2 py-0.5 rounded-md text-[11px] font-semibold border flex items-center gap-1 ${
+                <span className={`px-2.5 py-0.5 rounded-md text-xs font-medium border flex items-center gap-1.5 ${
                   overallPct >= 75 
                     ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' 
                     : 'bg-rose-500/10 text-rose-400 border-rose-500/20'
                 }`}>
                   <ShieldCheck className="w-3.5 h-3.5" />
-                  {overallPct >= 75 ? 'Good Academic Standing' : 'Attendance Shortage'}
+                  {overallPct >= 75 ? 'Good Academic Standing (≥75%)' : 'Attendance Shortage (<75%)'}
                 </span>
               </div>
-              <div className="flex flex-wrap items-center gap-3 mt-1.5 text-xs text-zinc-400">
-                <span className="flex items-center gap-1 text-emerald-400">
-                  <UserCheck className="w-3.5 h-3.5" /> Face ResNet Verified
+              <div className="flex flex-wrap items-center gap-3 mt-1.5 text-xs text-slate-400">
+                <span className="text-slate-300 font-medium">B.Tech CSE (AIML & DS)</span>
+                <span className="text-slate-600">•</span>
+                <span>Section CSE(AIML-2)</span>
+                <span className="text-slate-600">•</span>
+                <span className="flex items-center gap-1 text-slate-300">
+                  <UserCheck className="w-3.5 h-3.5 text-blue-400" /> Face Biometrics Enrolled
                 </span>
-                <span className="text-zinc-600">•</span>
-                <span className="flex items-center gap-1 text-cyan-400">
-                  <Mic className="w-3.5 h-3.5" /> {hasVoice ? 'Voice GE2E Registered' : 'Voice Optional'}
+                <span className="text-slate-600">•</span>
+                <span className="flex items-center gap-1 text-slate-300">
+                  <Mic className="w-3.5 h-3.5 text-slate-400" /> {hasVoice ? 'Voice Enrolled' : 'Voice Optional'}
                 </span>
-                <span className="text-zinc-600">•</span>
-                <span className="text-zinc-400 font-mono text-[11px]">Dynamic ID Active</span>
               </div>
             </div>
           </div>
@@ -400,110 +396,110 @@ export default function StudentDashboard({ student, onUpdateStudent }) {
           <div className="flex items-center gap-2.5 w-full lg:w-auto">
             <button
               onClick={() => setShowEnroll(true)}
-              className="flex-1 lg:flex-none flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-emerald-500 hover:from-cyan-400 hover:to-emerald-400 text-zinc-950 text-xs font-bold transition shadow-lg shadow-cyan-500/15 cursor-pointer active:scale-98"
+              className="flex-1 lg:flex-none flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold transition cursor-pointer shadow-sm active:scale-98"
             >
               <Plus className="w-4 h-4" />
               <span>Enroll in Class</span>
             </button>
             <button
               onClick={() => setActiveTab('digital-id')}
-              className="flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-zinc-900/90 hover:bg-zinc-800 border border-zinc-700 text-zinc-200 text-xs font-semibold transition cursor-pointer active:scale-98"
+              className="flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-lg bg-[#182338] hover:bg-[#1e2d47] border border-[#22334f] text-slate-200 text-xs font-semibold transition cursor-pointer active:scale-98"
             >
-              <QrCode className="w-4 h-4 text-emerald-400" />
-              <span className="hidden sm:inline">Show</span> ID Card
+              <QrCode className="w-4 h-4 text-blue-400" />
+              <span>Digital ID Card</span>
             </button>
           </div>
         </div>
 
         {/* 4 Top Metric Stat Cards */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-6 pt-6 border-t border-white/5">
-          <div className="p-3.5 rounded-xl bg-zinc-950/60 border border-zinc-800/80">
-            <div className="text-[11px] text-zinc-400 flex items-center justify-between">
-              <span>Overall Campus Rate</span>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-6 pt-6 border-t border-[#1e2a3f]">
+          <div className="p-3.5 rounded-xl bg-[#0d131f] border border-[#1b2538]">
+            <div className="text-[11px] text-slate-400 flex items-center justify-between">
+              <span>Overall Attendance</span>
               <span className={`w-2 h-2 rounded-full ${overallPct >= 75 ? 'bg-emerald-400' : 'bg-rose-400'}`} />
             </div>
-            <div className="text-2xl font-black mt-1 tracking-tight text-white flex items-baseline gap-1">
+            <div className="text-2xl font-bold mt-1 tracking-tight text-slate-100 flex items-baseline gap-1">
               {overallPct}%
-              <span className="text-[11px] font-normal text-zinc-400">avg</span>
+              <span className="text-[11px] font-normal text-slate-400">avg</span>
             </div>
-            <div className="text-[10px] text-zinc-400 mt-1">
-              {overallPct >= 75 ? 'Above 75% requirement' : 'Requires immediate recovery'}
+            <div className="text-[10px] text-slate-400 mt-1">
+              {overallPct >= 75 ? 'Above 75% university requirement' : 'Requires immediate recovery'}
             </div>
           </div>
 
-          <div className="p-3.5 rounded-xl bg-zinc-950/60 border border-zinc-800/80">
-            <div className="text-[11px] text-zinc-400 flex items-center justify-between">
-              <span>Safe Bunks Bank</span>
+          <div className="p-3.5 rounded-xl bg-[#0d131f] border border-[#1b2538]">
+            <div className="text-[11px] text-slate-400 flex items-center justify-between">
+              <span>Safe Bunks Remaining</span>
               <Sparkles className="w-3.5 h-3.5 text-amber-400" />
             </div>
-            <div className="text-2xl font-black mt-1 tracking-tight text-emerald-400 flex items-baseline gap-1">
+            <div className="text-2xl font-bold mt-1 tracking-tight text-emerald-400 flex items-baseline gap-1">
               {subjects.reduce((acc, s) => acc + (s.bunks_available || 0), 0)}
-              <span className="text-[11px] font-normal text-zinc-400">classes</span>
+              <span className="text-[11px] font-normal text-slate-400">classes</span>
             </div>
-            <div className="text-[10px] text-zinc-400 mt-1">
-              Across all enrolled courses
+            <div className="text-[10px] text-slate-400 mt-1">
+              Without falling below 75%
             </div>
           </div>
 
-          <div className="p-3.5 rounded-xl bg-zinc-950/60 border border-zinc-800/80">
-            <div className="text-[11px] text-zinc-400 flex items-center justify-between">
-              <span>Enrolled Courses</span>
-              <FileText className="w-3.5 h-3.5 text-cyan-400" />
+          <div className="p-3.5 rounded-xl bg-[#0d131f] border border-[#1b2538]">
+            <div className="text-[11px] text-slate-400 flex items-center justify-between">
+              <span>Registered Courses</span>
+              <FileText className="w-3.5 h-3.5 text-blue-400" />
             </div>
-            <div className="text-2xl font-black mt-1 tracking-tight text-white flex items-baseline gap-1">
+            <div className="text-2xl font-bold mt-1 tracking-tight text-slate-100 flex items-baseline gap-1">
               {subjects.length}
-              <span className="text-[11px] font-normal text-zinc-400">subjects</span>
+              <span className="text-[11px] font-normal text-slate-400">subjects</span>
             </div>
-            <div className="text-[10px] text-zinc-400 mt-1">
-              {subjects.filter(s => s.attendance_percentage < 75).length === 0 ? 'All subjects safe' : `${subjects.filter(s => s.attendance_percentage < 75).length} subject(s) in deficit`}
+            <div className="text-[10px] text-slate-400 mt-1">
+              {subjects.filter(s => s.attendance_percentage < 75).length === 0 ? 'All courses compliant' : `${subjects.filter(s => s.attendance_percentage < 75).length} subject(s) in deficit`}
             </div>
           </div>
 
-          <div className="p-3.5 rounded-xl bg-zinc-950/60 border border-zinc-800/80">
-            <div className="text-[11px] text-zinc-400 flex items-center justify-between">
+          <div className="p-3.5 rounded-xl bg-[#0d131f] border border-[#1b2538]">
+            <div className="text-[11px] text-slate-400 flex items-center justify-between">
               <span>Excused Leaves & OD</span>
               <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
             </div>
-            <div className="text-2xl font-black mt-1 tracking-tight text-white flex items-baseline gap-1">
+            <div className="text-2xl font-bold mt-1 tracking-tight text-slate-100 flex items-baseline gap-1">
               {leaves.filter(l => l.status === 'approved').length}
-              <span className="text-[11px] font-normal text-zinc-400">approved</span>
+              <span className="text-[11px] font-normal text-slate-400">approved</span>
             </div>
-            <div className="text-[10px] text-zinc-400 mt-1">
-              {leaves.filter(l => l.status === 'pending').length} pending approval
+            <div className="text-[10px] text-slate-400 mt-1">
+              {leaves.filter(l => l.status === 'pending').length} pending review
             </div>
           </div>
         </div>
       </div>
 
-      {/* Floating Modern Pill Navigation */}
-      <div className="flex items-center justify-between mb-6 pb-2 border-b border-white/5">
-        <div className="flex items-center gap-1.5 p-1 rounded-xl bg-zinc-950/90 border border-zinc-800/90 shadow-inner">
+      {/* Segmented Tab Navigation */}
+      <div className="flex items-center justify-between mb-6 pb-2 border-b border-[#1e2a3f]">
+        <div className="flex items-center gap-1.5 p-1 rounded-xl bg-[#0d131f] border border-[#1b2538]">
           <button
             onClick={() => setActiveTab('classes')}
-            className={`px-4 py-2 rounded-lg font-semibold text-xs transition cursor-pointer flex items-center gap-2 ${
+            className={`px-3.5 py-1.5 rounded-lg font-medium text-xs transition cursor-pointer flex items-center gap-2 ${
               activeTab === 'classes' 
-                ? 'bg-zinc-800 text-white shadow-sm ring-1 ring-white/10' 
-                : 'text-zinc-400 hover:text-zinc-200'
+                ? 'bg-[#182338] text-white shadow-sm border border-blue-500/20' 
+                : 'text-slate-400 hover:text-slate-200'
             }`}
           >
             <span>My Classes</span>
-            <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-zinc-700/60 text-zinc-300 font-mono">
+            <span className="px-1.5 py-0.2 rounded text-[10px] bg-[#111624] text-slate-300 font-mono">
               {subjects.length}
             </span>
           </button>
 
           <button
             onClick={() => setActiveTab('leaves')}
-            className={`px-4 py-2 rounded-lg font-semibold text-xs transition cursor-pointer flex items-center gap-2 ${
+            className={`px-3.5 py-1.5 rounded-lg font-medium text-xs transition cursor-pointer flex items-center gap-2 ${
               activeTab === 'leaves' 
-                ? 'bg-zinc-800 text-white shadow-sm ring-1 ring-white/10' 
-                : 'text-zinc-400 hover:text-zinc-200'
+                ? 'bg-[#182338] text-white shadow-sm border border-blue-500/20' 
+                : 'text-slate-400 hover:text-slate-200'
             }`}
           >
-            <FileText className="w-3.5 h-3.5 text-cyan-400" />
+            <FileText className="w-3.5 h-3.5 text-blue-400" />
             <span>Leave & OD</span>
             {leaves.length > 0 && (
-              <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-zinc-700/60 text-zinc-300 font-mono">
+              <span className="px-1.5 py-0.2 rounded text-[10px] bg-[#111624] text-slate-300 font-mono">
                 {leaves.length}
               </span>
             )}
@@ -511,22 +507,22 @@ export default function StudentDashboard({ student, onUpdateStudent }) {
 
           <button
             onClick={() => setActiveTab('profile')}
-            className={`px-4 py-2 rounded-lg font-semibold text-xs transition cursor-pointer flex items-center gap-2 ${
+            className={`px-3.5 py-1.5 rounded-lg font-medium text-xs transition cursor-pointer flex items-center gap-2 ${
               activeTab === 'profile' 
-                ? 'bg-zinc-800 text-white shadow-sm ring-1 ring-white/10' 
-                : 'text-zinc-400 hover:text-zinc-200'
+                ? 'bg-[#182338] text-white shadow-sm border border-blue-500/20' 
+                : 'text-slate-400 hover:text-slate-200'
             }`}
           >
-            <Mic className="w-3.5 h-3.5 text-violet-400" />
+            <Mic className="w-3.5 h-3.5 text-indigo-400" />
             <span>Biometrics</span>
           </button>
 
           <button
             onClick={() => setActiveTab('digital-id')}
-            className={`px-4 py-2 rounded-lg font-semibold text-xs transition cursor-pointer flex items-center gap-2 ${
+            className={`px-3.5 py-1.5 rounded-lg font-medium text-xs transition cursor-pointer flex items-center gap-2 ${
               activeTab === 'digital-id' 
-                ? 'bg-zinc-800 text-white shadow-sm ring-1 ring-white/10' 
-                : 'text-zinc-400 hover:text-zinc-200'
+                ? 'bg-[#182338] text-white shadow-sm border border-blue-500/20' 
+                : 'text-slate-400 hover:text-slate-200'
             }`}
           >
             <QrCode className="w-3.5 h-3.5 text-emerald-400" />
@@ -536,10 +532,10 @@ export default function StudentDashboard({ student, onUpdateStudent }) {
 
         <button 
           onClick={loadData} 
-          className="text-zinc-400 hover:text-zinc-200 text-xs flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-zinc-900 border border-zinc-800 transition cursor-pointer hover:border-zinc-700"
+          className="text-slate-400 hover:text-slate-200 text-xs flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#111624] border border-[#1e2a3f] hover:border-slate-700 transition cursor-pointer"
         >
           <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
-          <span className="hidden sm:inline">Refresh Data</span>
+          <span className="hidden sm:inline">Refresh Register</span>
         </button>
       </div>
 

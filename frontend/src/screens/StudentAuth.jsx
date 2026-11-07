@@ -259,18 +259,17 @@ export default function StudentAuth({ onAuthSuccess }) {
   );
 
   return (
-    <div className="max-w-md mx-auto px-4 py-8 sm:py-12 w-full">
-      <div className="panel rounded-2xl p-6 sm:p-7 shadow-2xl border border-white/10 relative overflow-hidden">
-        {/* Top ambient glow */}
-        <div className="absolute -top-16 -right-16 w-36 h-36 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute -bottom-16 -left-16 w-36 h-36 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
-
+    <div className="max-w-md mx-auto px-4 py-8 sm:py-14 w-full">
+      <div className="rounded-2xl p-6 sm:p-7 bg-[#111624] border border-[#1e2a3f] shadow-lg">
         <div className="text-center mb-6">
-          <h2 className="text-xl font-bold tracking-tight text-zinc-100">Student Portal</h2>
-          <p className="text-xs text-zinc-400 mt-1">Sign in with Face ID or Roll Number</p>
+          <div className="w-11 h-11 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center mx-auto mb-3 text-emerald-400">
+            <KeyRound className="w-5 h-5" />
+          </div>
+          <h2 className="text-xl font-bold tracking-tight text-slate-100">Student Portal Sign In</h2>
+          <p className="text-xs text-slate-400 mt-1">Sign in with Face ID or Roll Number & PIN</p>
         </div>
 
-        <div className="grid grid-cols-3 p-1 rounded-xl bg-zinc-950/90 border border-zinc-800 text-xs mb-6 shadow-inner">
+        <div className="grid grid-cols-3 p-1 rounded-lg bg-[#0c101a] border border-[#1b2538] text-xs mb-6">
           <button
             onClick={() => { setTab('face'); setError(''); }}
             className={`py-2 rounded-lg font-semibold transition-all cursor-pointer ${

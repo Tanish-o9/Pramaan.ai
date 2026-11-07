@@ -1024,39 +1024,39 @@ export default function FacultyDashboard({ teacher }) {
         </div>
       </div>
 
-      {/* Floating Modern Pill Navigation */}
-      <div className="flex items-center justify-between mb-6 pb-2 border-b border-white/5 overflow-x-auto">
-        <div className="flex items-center gap-1.5 p-1 rounded-xl bg-zinc-950/90 border border-zinc-800/90 shadow-inner">
+      {/* Navigation Tabs (Linear / Enterprise Clean Tab Strip) */}
+      <div className="flex items-center justify-between mb-6 pb-2 border-b border-[#1a2538] overflow-x-auto">
+        <div className="flex items-center gap-1.5 p-1 rounded-xl bg-[#0c101a] border border-[#1b2538]">
           <button
             onClick={() => setTab('attendance')}
-            className={`px-3.5 py-2 rounded-lg font-semibold text-xs transition cursor-pointer flex items-center gap-1.5 ${tab === 'attendance' ? 'bg-zinc-800 text-white shadow-sm ring-1 ring-white/10' : 'text-zinc-400 hover:text-zinc-200'
+            className={`px-3.5 py-2 rounded-lg font-semibold text-xs transition cursor-pointer flex items-center gap-1.5 ${tab === 'attendance' ? 'bg-[#182338] text-white shadow-sm border border-blue-500/30' : 'text-slate-400 hover:text-slate-200 hover:bg-[#121926]'
               }`}
           >
-            <Camera className="w-3.5 h-3.5 text-sky-400" />
+            <Camera className="w-3.5 h-3.5 text-blue-400" />
             <span>Take Attendance</span>
           </button>
 
           <button
             onClick={() => setTab('seatmap')}
-            className={`px-3.5 py-2 rounded-lg font-semibold text-xs transition cursor-pointer flex items-center gap-1.5 ${tab === 'seatmap' ? 'bg-zinc-800 text-white shadow-sm ring-1 ring-white/10' : 'text-zinc-400 hover:text-zinc-200'
+            className={`px-3.5 py-2 rounded-lg font-semibold text-xs transition cursor-pointer flex items-center gap-1.5 ${tab === 'seatmap' ? 'bg-[#182338] text-white shadow-sm border border-blue-500/30' : 'text-slate-400 hover:text-slate-200 hover:bg-[#121926]'
               }`}
           >
-            <LayoutGrid className="w-3.5 h-3.5 text-cyan-400" />
+            <LayoutGrid className="w-3.5 h-3.5 text-blue-400" />
             <span>Seat Map</span>
           </button>
 
           <button
             onClick={() => setTab('analytics')}
-            className={`px-3.5 py-2 rounded-lg font-semibold text-xs transition cursor-pointer flex items-center gap-1.5 ${tab === 'analytics' ? 'bg-zinc-800 text-white shadow-sm ring-1 ring-white/10' : 'text-zinc-400 hover:text-zinc-200'
+            className={`px-3.5 py-2 rounded-lg font-semibold text-xs transition cursor-pointer flex items-center gap-1.5 ${tab === 'analytics' ? 'bg-[#182338] text-white shadow-sm border border-blue-500/30' : 'text-slate-400 hover:text-slate-200 hover:bg-[#121926]'
               }`}
           >
             <Flame className="w-3.5 h-3.5 text-amber-400" />
-            <span>AI Risk Radar</span>
+            <span>Risk Radar</span>
           </button>
 
           <button
             onClick={() => setTab('leaves')}
-            className={`px-3.5 py-2 rounded-lg font-semibold text-xs transition cursor-pointer flex items-center gap-1.5 ${tab === 'leaves' ? 'bg-zinc-800 text-white shadow-sm ring-1 ring-white/10' : 'text-zinc-400 hover:text-zinc-200'
+            className={`px-3.5 py-2 rounded-lg font-semibold text-xs transition cursor-pointer flex items-center gap-1.5 ${tab === 'leaves' ? 'bg-[#182338] text-white shadow-sm border border-blue-500/30' : 'text-slate-400 hover:text-slate-200 hover:bg-[#121926]'
               }`}
           >
             <FileText className="w-3.5 h-3.5 text-blue-400" />
@@ -1070,7 +1070,7 @@ export default function FacultyDashboard({ teacher }) {
 
           <button
             onClick={() => setTab('subjects')}
-            className={`px-3.5 py-2 rounded-lg font-semibold text-xs transition cursor-pointer flex items-center gap-1.5 ${tab === 'subjects' ? 'bg-zinc-800 text-white shadow-sm ring-1 ring-white/10' : 'text-zinc-400 hover:text-zinc-200'
+            className={`px-3.5 py-2 rounded-lg font-semibold text-xs transition cursor-pointer flex items-center gap-1.5 ${tab === 'subjects' ? 'bg-[#182338] text-white shadow-sm border border-blue-500/30' : 'text-slate-400 hover:text-slate-200 hover:bg-[#121926]'
               }`}
           >
             <Users className="w-3.5 h-3.5 text-emerald-400" />
@@ -1079,28 +1079,28 @@ export default function FacultyDashboard({ teacher }) {
 
           <button
             onClick={() => setTab('logs')}
-            className={`px-3.5 py-2 rounded-lg font-semibold text-xs transition cursor-pointer flex items-center gap-1.5 ${tab === 'logs' ? 'bg-zinc-800 text-white shadow-sm ring-1 ring-white/10' : 'text-zinc-400 hover:text-zinc-200'
+            className={`px-3.5 py-2 rounded-lg font-semibold text-xs transition cursor-pointer flex items-center gap-1.5 ${tab === 'logs' ? 'bg-[#182338] text-white shadow-sm border border-blue-500/30' : 'text-slate-400 hover:text-slate-200 hover:bg-[#121926]'
               }`}
           >
-            <Download className="w-3.5 h-3.5 text-violet-400" />
+            <Download className="w-3.5 h-3.5 text-slate-300" />
             <span>Logbook & Export</span>
           </button>
 
           <button
             onClick={() => setTab('timetable')}
-            className={`px-3.5 py-2 rounded-lg font-semibold text-xs transition cursor-pointer flex items-center gap-1.5 ${tab === 'timetable' ? 'bg-zinc-800 text-white shadow-sm ring-1 ring-white/10' : 'text-zinc-400 hover:text-zinc-200'
+            className={`px-3.5 py-2 rounded-lg font-semibold text-xs transition cursor-pointer flex items-center gap-1.5 ${tab === 'timetable' ? 'bg-[#182338] text-white shadow-sm border border-blue-500/30' : 'text-slate-400 hover:text-slate-200 hover:bg-[#121926]'
               }`}
           >
-            <Clock className="w-3.5 h-3.5 text-cyan-400" />
-            <span>CSE(AIML-2) Timetable</span>
+            <Clock className="w-3.5 h-3.5 text-blue-400" />
+            <span>Timetable (CL-11)</span>
           </button>
 
           <button
             onClick={() => setTab('settings')}
-            className={`px-3.5 py-2 rounded-lg font-semibold text-xs transition cursor-pointer flex items-center gap-1.5 ${tab === 'settings' ? 'bg-zinc-800 text-white shadow-sm ring-1 ring-white/10' : 'text-zinc-400 hover:text-zinc-200'
+            className={`px-3.5 py-2 rounded-lg font-semibold text-xs transition cursor-pointer flex items-center gap-1.5 ${tab === 'settings' ? 'bg-[#182338] text-white shadow-sm border border-blue-500/30' : 'text-slate-400 hover:text-slate-200 hover:bg-[#121926]'
               }`}
           >
-            <Sliders className="w-3.5 h-3.5 text-zinc-400" />
+            <Sliders className="w-3.5 h-3.5 text-slate-400" />
             <span>Settings</span>
           </button>
         </div>
@@ -1108,47 +1108,47 @@ export default function FacultyDashboard({ teacher }) {
 
       {/* 1. ATTENDANCE TAB */}
       {tab === 'attendance' && (
-        <div className="panel-card rounded-2xl p-6 border border-zinc-800/80 shadow-2xl">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4 pb-4 border-b border-white/5">
+        <div className="rounded-2xl p-5 sm:p-6 bg-[#111624] border border-[#1e2a3f] shadow-md">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4 pb-4 border-b border-[#1b2538]">
             <div>
-              <h2 className="text-base font-bold text-zinc-100 flex items-center gap-2">
-                <Camera className="w-4 h-4 text-sky-400" /> Take Class Attendance
+              <h2 className="text-base font-bold text-slate-100 flex items-center gap-2">
+                <Camera className="w-4 h-4 text-blue-400" /> Class Lecture Attendance
               </h2>
-              <p className="text-xs text-zinc-400 mt-0.5">Select active subject lecture and preferred capture studio</p>
+              <p className="text-xs text-slate-400 mt-0.5">Select section, choose active subject, and record student attendance</p>
             </div>
           </div>
 
           {/* Section Selection First -> Then Subject Slider Studio */}
-          <div className="p-4 sm:p-6 rounded-2xl bg-gradient-to-r from-cyan-950/40 via-sky-950/20 to-zinc-950 border-2 border-cyan-500/40 flex flex-col gap-5 mb-6 shadow-xl shadow-cyan-500/5">
+          <div className="p-4 sm:p-5 rounded-xl bg-[#0f1422] border border-[#1e2a3f] flex flex-col gap-4 mb-6 shadow-sm">
             {/* Header */}
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-3 border-b border-white/5">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-3 border-b border-[#1b2538]">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-cyan-500/20 to-sky-500/10 border border-cyan-500/40 flex items-center justify-center text-cyan-400 shrink-0 shadow-md">
-                  <GraduationCap className="w-5 h-5 animate-pulse" />
+                <div className="w-9 h-9 rounded-lg bg-blue-600/10 border border-blue-500/20 flex items-center justify-center text-blue-400 shrink-0">
+                  <GraduationCap className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="text-sm sm:text-base font-bold text-white tracking-tight flex items-center gap-2">
-                    Class Attendance Setup Studio
+                  <h3 className="text-sm font-bold text-slate-100 tracking-tight flex items-center gap-2">
+                    Class Attendance Setup
                   </h3>
-                  <p className="text-xs text-zinc-400 mt-0.5">
-                    Faculty: <strong className="text-white">{teacher?.name || 'Faculty'}</strong> • Pehle Section select karein, fir Slider se Subject lecture choose karein
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    Faculty: <strong className="text-slate-200">{teacher?.name || 'Faculty'}</strong> • Select section, then choose subject lecture from slider
                   </p>
                 </div>
               </div>
 
               {/* Quick Summary Pill */}
-              <div className="px-3.5 py-1.5 rounded-xl bg-zinc-950 border border-cyan-500/40 text-xs font-mono text-zinc-300 shadow-sm flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                <span>Sec: <strong className="text-cyan-400">{selectedSection}</strong></span>
+              <div className="px-3 py-1.5 rounded-lg bg-[#0c101a] border border-[#1b2538] text-xs font-mono text-slate-300 flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
+                <span>Sec: <strong className="text-blue-400">{selectedSection}</strong></span>
                 <span>•</span>
                 <span>Sub: <strong className="text-emerald-400">{visibleSubjects.find((s) => String(s.subject_id) === String(selectedSubId))?.subject_code || 'Select'}</strong></span>
               </div>
             </div>
 
-            {/* ================= 1. PEHLE: SECTION SELECT KARNE KA SLIDER (EXACT MATCH TO DESIGN) ================= */}
-            <div className="p-3.5 sm:p-4 rounded-2xl bg-zinc-950/90 border border-zinc-800/80 shadow-md">
-              <div className="flex items-center gap-2.5 overflow-x-auto no-scrollbar py-1">
-                <span className="text-xs font-semibold text-zinc-400 shrink-0 whitespace-nowrap pl-1 pr-1">
+            {/* ================= 1. SECTION SELECT SLIDER ================= */}
+            <div className="p-3 sm:p-3.5 rounded-xl bg-[#0b0f19] border border-[#1a2335]">
+              <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-0.5">
+                <span className="text-xs font-medium text-slate-400 shrink-0 whitespace-nowrap pl-1 pr-1.5">
                   Select Section:
                 </span>
 
@@ -1156,10 +1156,10 @@ export default function FacultyDashboard({ teacher }) {
                 <button
                   type="button"
                   onClick={() => setSelectedSection('ALL')}
-                  className={`px-4 py-2 rounded-full text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 shrink-0 select-none ${
+                  className={`px-3.5 py-1.5 rounded-full text-xs font-medium transition cursor-pointer flex items-center gap-1.5 shrink-0 ${
                     selectedSection === 'ALL'
-                      ? 'bg-cyan-400 text-zinc-950 shadow-md shadow-cyan-400/30 font-extrabold'
-                      : 'bg-zinc-900/90 text-zinc-300 hover:text-white hover:bg-zinc-800 border border-zinc-800/80'
+                      ? 'bg-blue-600 text-white font-semibold shadow-sm'
+                      : 'bg-[#121927] text-slate-300 hover:text-white hover:bg-[#1a2336] border border-[#1c273a]'
                   }`}
                 >
                   <Globe className="w-3.5 h-3.5" />
@@ -1177,17 +1177,17 @@ export default function FacultyDashboard({ teacher }) {
                       key={sec}
                       type="button"
                       onClick={() => setSelectedSection(sec)}
-                      className={`px-4 py-2 rounded-full text-xs font-bold transition-all cursor-pointer flex items-center gap-2 shrink-0 select-none ${
+                      className={`px-3.5 py-1.5 rounded-full text-xs font-medium transition cursor-pointer flex items-center gap-2 shrink-0 ${
                         isSelected
-                          ? 'bg-cyan-400 text-zinc-950 shadow-md shadow-cyan-400/30 font-extrabold'
-                          : 'bg-zinc-900/90 text-zinc-300 hover:text-white hover:bg-zinc-800 border border-zinc-800/80'
+                          ? 'bg-blue-600 text-white font-semibold shadow-sm'
+                          : 'bg-[#121927] text-slate-300 hover:text-white hover:bg-[#1a2336] border border-[#1c273a]'
                       }`}
                     >
                       <span>{label}</span>
                       {isAssigned && (
                         <span
                           title="Your assigned teaching section"
-                          className={`w-1.5 h-1.5 rounded-full ${isSelected ? 'bg-zinc-950' : 'bg-emerald-400 animate-pulse'}`}
+                          className={`w-1.5 h-1.5 rounded-full ${isSelected ? 'bg-white' : 'bg-emerald-400'}`}
                         />
                       )}
                     </button>
@@ -1196,44 +1196,44 @@ export default function FacultyDashboard({ teacher }) {
               </div>
             </div>
 
-            {/* ================= 2. TAN: SUBJECT SELECT KARNE KA SLIDER ================= */}
-            <div className="p-4 rounded-xl bg-zinc-950/90 border border-zinc-800/80 flex flex-col gap-3">
-              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-1 border-b border-white/5">
+            {/* ================= 2. SUBJECT SELECT KARNE KA SLIDER ================= */}
+            <div className="p-4 rounded-xl bg-[#0b0f19] border border-[#1a2335] flex flex-col gap-3">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-1 border-b border-[#162030]">
                 <div className="flex items-center gap-3">
-                  <div className="w-7 h-7 rounded-lg bg-emerald-500 text-zinc-950 font-black text-xs flex items-center justify-center shadow-md shadow-emerald-500/20 shrink-0">
+                  <div className="w-7 h-7 rounded-lg bg-blue-600/20 text-blue-400 border border-blue-500/30 font-bold text-xs flex items-center justify-center shrink-0">
                     2
                   </div>
                   <div>
-                    <h4 className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-2">
-                      Subject Select Slider
-                      <span className="text-cyan-400 font-mono normal-case">({selectedSection})</span>
+                    <h4 className="text-xs font-bold text-slate-100 uppercase tracking-wider flex items-center gap-2">
+                      Subject Lecture
+                      <span className="text-blue-400 font-mono normal-case">({selectedSection})</span>
                     </h4>
-                    <p className="text-[11px] text-zinc-400">Slider se active subject lecture card par click karein</p>
+                    <p className="text-[11px] text-slate-400">Select lecture card from slider to load attendance register</p>
                   </div>
                 </div>
 
                 {/* Scope Filter + Arrow Scroll Controls */}
                 <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-end">
-                  <div className="flex items-center gap-1.5 p-1 rounded-xl bg-zinc-900 border border-zinc-800 text-xs">
+                  <div className="flex items-center gap-1 p-1 rounded-lg bg-[#0f1422] border border-[#1c273a] text-xs">
                     <button
                       type="button"
                       onClick={() => setScopeFilter('my')}
-                      className={`px-2.5 py-1 rounded-lg font-semibold transition cursor-pointer text-[11px] ${scopeFilter === 'my'
-                          ? 'bg-cyan-500 text-zinc-950 shadow-md'
-                          : 'text-zinc-400 hover:text-zinc-200'
+                      className={`px-2.5 py-1 rounded-md font-medium transition cursor-pointer text-[11px] ${scopeFilter === 'my'
+                          ? 'bg-blue-600 text-white shadow-sm'
+                          : 'text-slate-400 hover:text-slate-200'
                         }`}
                     >
-                      📌 My Classes ({subjects.filter((s) => s.section === selectedSection && s.is_my_assigned).length})
+                      My Classes ({subjects.filter((s) => s.section === selectedSection && s.is_my_assigned).length})
                     </button>
                     <button
                       type="button"
                       onClick={() => setScopeFilter('all')}
-                      className={`px-2.5 py-1 rounded-lg font-semibold transition cursor-pointer text-[11px] ${scopeFilter === 'all'
-                          ? 'bg-cyan-500 text-zinc-950 shadow-md'
-                          : 'text-zinc-400 hover:text-zinc-200'
+                      className={`px-2.5 py-1 rounded-md font-medium transition cursor-pointer text-[11px] ${scopeFilter === 'all'
+                          ? 'bg-blue-600 text-white shadow-sm'
+                          : 'text-slate-400 hover:text-slate-200'
                         }`}
                     >
-                      📚 All ({subjects.filter((s) => s.section === selectedSection).length})
+                      All ({subjects.filter((s) => s.section === selectedSection).length})
                     </button>
                   </div>
 
@@ -1241,18 +1241,18 @@ export default function FacultyDashboard({ teacher }) {
                     <button
                       type="button"
                       onClick={() => scrollSubjectSlider('left')}
-                      className="w-8 h-8 rounded-lg bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 flex items-center justify-center text-zinc-300 hover:text-white transition cursor-pointer active:scale-95 shadow-sm"
-                      title="Slide Subjects Left"
+                      className="w-7 h-7 rounded-md bg-[#121927] hover:bg-[#1a2336] border border-[#1c273a] flex items-center justify-center text-slate-300 hover:text-white transition cursor-pointer shadow-sm"
+                      title="Slide Left"
                     >
-                      <ChevronLeft className="w-4 h-4" />
+                      <ChevronLeft className="w-3.5 h-3.5" />
                     </button>
                     <button
                       type="button"
                       onClick={() => scrollSubjectSlider('right')}
-                      className="w-8 h-8 rounded-lg bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 flex items-center justify-center text-zinc-300 hover:text-white transition cursor-pointer active:scale-95 shadow-sm"
-                      title="Slide Subjects Right"
+                      className="w-7 h-7 rounded-md bg-[#121927] hover:bg-[#1a2336] border border-[#1c273a] flex items-center justify-center text-slate-300 hover:text-white transition cursor-pointer shadow-sm"
+                      title="Slide Right"
                     >
-                      <ChevronRight className="w-4 h-4" />
+                      <ChevronRight className="w-3.5 h-3.5" />
                     </button>
                   </div>
                 </div>
@@ -1262,18 +1262,18 @@ export default function FacultyDashboard({ teacher }) {
               {selectedSection === 'CSE(AIML-2)' && (() => {
                 const currentSlot = getCurrentLectureSlot();
                 return (
-                  <div className="p-3 rounded-xl bg-zinc-900/80 border border-emerald-500/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 text-xs">
+                  <div className="p-3 rounded-lg bg-[#0e1524] border border-blue-500/20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 text-xs">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 flex items-center gap-1">
-                        <Clock className="w-3 h-3" /> LIVE TIMETABLE (CSE AIML-2 • Room CL-11)
+                      <span className="px-2 py-0.5 rounded text-[10px] font-mono font-medium bg-blue-500/10 text-blue-300 border border-blue-500/20 flex items-center gap-1">
+                        <Clock className="w-3 h-3 text-blue-400" /> TIMETABLE (CSE AIML-2 • Room CL-11)
                       </span>
-                      <span className="text-zinc-300 font-medium">
+                      <span className="text-slate-300 font-medium">
                         {currentSlot.day} • {currentSlot.period?.name} ({currentSlot.period?.slot}):
                       </span>
                       <strong className="text-white">
                         {currentSlot.lecture?.code || 'Free'} • {currentSlot.lecture?.subject || 'Break/Prep'}
                       </strong>
-                      <span className="text-zinc-400 font-mono text-[11px]">
+                      <span className="text-slate-400 font-mono text-[11px]">
                         ({currentSlot.lecture?.faculty || 'No Faculty'} • {currentSlot.lecture?.venue || 'CL-11'})
                       </span>
                     </div>
@@ -1335,49 +1335,49 @@ export default function FacultyDashboard({ teacher }) {
                         key={s.subject_id}
                         type="button"
                         onClick={() => setSelectedSubId(String(s.subject_id))}
-                        className={`p-3.5 rounded-xl border flex flex-col items-start gap-2 shrink-0 transition-all cursor-pointer text-left ${isSelected
+                        className={`p-3.5 rounded-xl border flex flex-col items-start gap-2 shrink-0 transition cursor-pointer text-left ${isSelected
                             ? isAssigned
-                              ? 'bg-gradient-to-tr from-emerald-950/90 via-teal-950/60 to-zinc-900 border-2 border-emerald-400 shadow-xl shadow-emerald-500/20 ring-2 ring-emerald-400/40 scale-[1.02]'
-                              : 'bg-gradient-to-tr from-rose-950/70 via-zinc-950 to-zinc-900 border-2 border-rose-500/60 shadow-xl shadow-rose-500/10 ring-2 ring-rose-500/30 scale-[1.01]'
+                              ? 'bg-[#152338] border-blue-500 shadow-sm ring-1 ring-blue-500/30'
+                              : 'bg-[#22151b] border-rose-500/60 shadow-sm ring-1 ring-rose-500/30'
                             : isAssigned
-                              ? 'bg-zinc-900/80 hover:bg-zinc-900 border-emerald-500/30 hover:border-emerald-500/60'
-                              : 'bg-zinc-900/40 hover:bg-zinc-900/60 border-zinc-800 text-zinc-400 opacity-80'
+                              ? 'bg-[#111726] hover:bg-[#151e30] border-[#1e2a3f] hover:border-blue-500/40'
+                              : 'bg-[#0f1420]/60 hover:bg-[#131a28] border-[#182133] text-slate-400'
                           }`}
                         style={{ minWidth: '220px', maxWidth: '240px' }}
                       >
                         <div className="flex items-center justify-between w-full">
-                          <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-zinc-800 text-zinc-300 border border-zinc-700">
+                          <span className="px-2 py-0.5 rounded text-[10px] font-mono font-semibold bg-[#1a2336] text-slate-200 border border-[#23314a]">
                             {s.subject_code}
                           </span>
                           {isAssigned ? (
-                            <span className="text-[10px] font-bold text-emerald-400 flex items-center gap-0.5" title="Your Assigned Class">
-                              ⭐ Your Class
+                            <span className="text-[10px] font-semibold text-emerald-400 flex items-center gap-1" title="Your Assigned Class">
+                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span> Your Class
                             </span>
                           ) : (
-                            <span className="text-[10px] font-medium text-zinc-400 flex items-center gap-0.5" title="Assigned to another faculty">
-                              <Lock className="w-2.5 h-2.5 text-zinc-400" /> View Only
+                            <span className="text-[10px] font-normal text-slate-400 flex items-center gap-1" title="Assigned to another faculty">
+                              <Lock className="w-2.5 h-2.5 text-slate-400" /> View Only
                             </span>
                           )}
                         </div>
 
                         <div className="w-full">
-                          <h5 className={`text-xs font-bold line-clamp-1 ${isSelected ? (isAssigned ? 'text-emerald-300' : 'text-rose-300') : 'text-zinc-100'}`}>
+                          <h5 className={`text-xs font-semibold line-clamp-1 ${isSelected ? (isAssigned ? 'text-blue-200' : 'text-rose-200') : 'text-slate-100'}`}>
                             {s.name}
                           </h5>
-                          <p className="text-[11px] text-zinc-400 truncate mt-0.5">
-                            Faculty: <strong className="text-zinc-300 font-medium">{s.faculty_name || 'Faculty'}</strong>
+                          <p className="text-[11px] text-slate-400 truncate mt-0.5">
+                            Faculty: <strong className="text-slate-300 font-normal">{s.faculty_name || 'Faculty'}</strong>
                           </p>
                         </div>
 
-                        <div className="flex items-center justify-between w-full text-[10px] text-zinc-400 pt-1 border-t border-white/5 font-mono">
+                        <div className="flex items-center justify-between w-full text-[10px] text-slate-400 pt-1 border-t border-[#1a2538] font-mono">
                           <span>Venue: {s.venue || 'CL-11'}</span>
-                          <span className={isAssigned ? "text-emerald-400" : "text-zinc-400"}>{s.total_students || 12} Enrolled</span>
+                          <span className={isAssigned ? "text-emerald-400 font-semibold" : "text-slate-400"}>{s.total_students || 12} Students</span>
                         </div>
 
                         {isSelected && (
-                          <div className={`w-full text-center py-1 rounded-md text-[10px] font-bold font-mono ${isAssigned
-                              ? 'bg-emerald-500/20 text-emerald-300'
-                              : 'bg-rose-500/20 text-rose-300'
+                          <div className={`w-full text-center py-1 rounded text-[10px] font-semibold font-mono ${isAssigned
+                              ? 'bg-blue-600/20 text-blue-300 border border-blue-500/30'
+                              : 'bg-rose-500/20 text-rose-300 border border-rose-500/30'
                             }`}>
                             {isAssigned ? '✓ Authorized Lecture' : '🔒 Attendance Restricted'}
                           </div>
@@ -1473,93 +1473,67 @@ export default function FacultyDashboard({ teacher }) {
             </div>
           ) : (
             <>
-              {/* Mode Selector */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2.5 mb-6 text-xs">
+              {/* Mode Selector (Real-World Product Toolbar) */}
+              <div className="flex items-center gap-1.5 p-1.5 rounded-xl bg-[#0c101a] border border-[#1b2538] overflow-x-auto no-scrollbar mb-6 text-xs">
                 <button
                   onClick={() => { setMode('live_camera'); setReview(null); }}
-                  className={`p-3.5 rounded-xl border flex flex-col items-center gap-2 transition cursor-pointer active:scale-98 ${mode === 'live_camera'
-                      ? 'bg-zinc-800/90 border-emerald-500/50 text-white font-bold shadow-lg shadow-emerald-500/10 ring-1 ring-emerald-500/30'
-                      : 'bg-zinc-900/60 hover:bg-zinc-800/50 border-zinc-800 text-zinc-400'
+                  className={`px-3.5 py-2 rounded-lg font-medium transition cursor-pointer flex items-center gap-2 shrink-0 ${mode === 'live_camera'
+                      ? 'bg-blue-600 text-white font-semibold shadow-sm'
+                      : 'text-slate-400 hover:text-slate-200 hover:bg-[#131b2c]'
                     }`}
                 >
-                  <div className="w-8 h-8 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 relative">
-                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping absolute top-1 right-1 opacity-75"></span>
-                    <Camera className="w-4 h-4" />
-                  </div>
-                  <span className="font-medium text-emerald-300">Live Camera</span>
+                  <Camera className="w-3.5 h-3.5" />
+                  <span>Live Camera</span>
                 </button>
                 <button
                   onClick={() => { setMode('photos'); setReview(null); }}
-                  className={`p-3.5 rounded-xl border flex flex-col items-center gap-2 transition cursor-pointer active:scale-98 ${mode === 'photos'
-                      ? 'bg-zinc-800/90 border-sky-500/50 text-white font-bold shadow-lg shadow-sky-500/10 ring-1 ring-sky-500/30'
-                      : 'bg-zinc-900/60 hover:bg-zinc-800/50 border-zinc-800 text-zinc-400'
+                  className={`px-3.5 py-2 rounded-lg font-medium transition cursor-pointer flex items-center gap-2 shrink-0 ${mode === 'photos'
+                      ? 'bg-blue-600 text-white font-semibold shadow-sm'
+                      : 'text-slate-400 hover:text-slate-200 hover:bg-[#131b2c]'
                     }`}
                 >
-                  <div className="w-8 h-8 rounded-lg bg-sky-500/10 border border-sky-500/20 flex items-center justify-center text-sky-400">
-                    <Camera className="w-4 h-4" />
-                  </div>
-                  <span className="font-medium">Multi-Photo</span>
+                  <Camera className="w-3.5 h-3.5" />
+                  <span>Multi-Photo</span>
                 </button>
                 <button
                   onClick={() => { setMode('group_photo'); setReview(null); startMobileCamera(); }}
-                  className={`p-3.5 rounded-xl border flex flex-col items-center gap-2 transition cursor-pointer active:scale-98 ${mode === 'group_photo'
-                      ? 'bg-zinc-800/90 border-cyan-500/50 text-white font-bold shadow-lg shadow-cyan-500/10 ring-1 ring-cyan-500/30'
-                      : 'bg-zinc-900/60 hover:bg-zinc-800/50 border-zinc-800 text-zinc-400'
+                  className={`px-3.5 py-2 rounded-lg font-medium transition cursor-pointer flex items-center gap-2 shrink-0 ${mode === 'group_photo'
+                      ? 'bg-blue-600 text-white font-semibold shadow-sm'
+                      : 'text-slate-400 hover:text-slate-200 hover:bg-[#131b2c]'
                     }`}
                 >
-                  <div className="w-8 h-8 rounded-lg bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400 relative">
-                    <span className="w-2 h-2 rounded-full bg-cyan-400 animate-ping absolute top-1 right-1 opacity-75"></span>
-                    <Smartphone className="w-4 h-4" />
-                  </div>
-                  <span className="font-medium text-cyan-300">Phone Cam & Snap</span>
+                  <Smartphone className="w-3.5 h-3.5" />
+                  <span>Phone Cam / Panoramic</span>
                 </button>
                 <button
                   onClick={() => { setMode('voice_command'); setReview(null); }}
-                  className={`p-3.5 rounded-xl border flex flex-col items-center gap-2 transition cursor-pointer active:scale-98 ${mode === 'voice_command'
-                      ? 'bg-zinc-800/90 border-emerald-500/50 text-white font-bold shadow-lg shadow-emerald-500/10 ring-1 ring-emerald-500/30'
-                      : 'bg-zinc-900/60 hover:bg-zinc-800/50 border-zinc-800 text-zinc-400'
+                  className={`px-3.5 py-2 rounded-lg font-medium transition cursor-pointer flex items-center gap-2 shrink-0 ${mode === 'voice_command'
+                      ? 'bg-blue-600 text-white font-semibold shadow-sm'
+                      : 'text-slate-400 hover:text-slate-200 hover:bg-[#131b2c]'
                     }`}
                 >
-                  <div className="w-8 h-8 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
-                    <Mic className="w-4 h-4" />
-                  </div>
-                  <span className="font-medium">Voice AI</span>
+                  <Mic className="w-3.5 h-3.5" />
+                  <span>Voice Roll-Call</span>
                 </button>
                 <button
                   onClick={() => { setMode('video'); setReview(null); }}
-                  className={`p-3.5 rounded-xl border flex flex-col items-center gap-2 transition cursor-pointer active:scale-98 ${mode === 'video'
-                      ? 'bg-zinc-800/90 border-violet-500/50 text-white font-bold shadow-lg shadow-violet-500/10 ring-1 ring-violet-500/30'
-                      : 'bg-zinc-900/60 hover:bg-zinc-800/50 border-zinc-800 text-zinc-400'
+                  className={`px-3.5 py-2 rounded-lg font-medium transition cursor-pointer flex items-center gap-2 shrink-0 ${mode === 'video'
+                      ? 'bg-blue-600 text-white font-semibold shadow-sm'
+                      : 'text-slate-400 hover:text-slate-200 hover:bg-[#131b2c]'
                     }`}
                 >
-                  <div className="w-8 h-8 rounded-lg bg-violet-500/10 border border-violet-500/20 flex items-center justify-center text-violet-400">
-                    <Video className="w-4 h-4" />
-                  </div>
-                  <span className="font-medium">Video Pan</span>
-                </button>
-                <button
-                  onClick={() => { setMode('voice'); setReview(null); }}
-                  className={`p-3.5 rounded-xl border flex flex-col items-center gap-2 transition cursor-pointer active:scale-98 ${mode === 'voice'
-                      ? 'bg-zinc-800/90 border-amber-500/50 text-white font-bold shadow-lg shadow-amber-500/10 ring-1 ring-amber-500/30'
-                      : 'bg-zinc-900/60 hover:bg-zinc-800/50 border-zinc-800 text-zinc-400'
-                    }`}
-                >
-                  <div className="w-8 h-8 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400">
-                    <Volume2 className="w-4 h-4" />
-                  </div>
-                  <span className="font-medium">Single Voice</span>
+                  <Video className="w-3.5 h-3.5" />
+                  <span>Video Pan</span>
                 </button>
                 <button
                   onClick={() => { setMode('manual'); setReview(null); loadManualList(); }}
-                  className={`p-3.5 rounded-xl border flex flex-col items-center gap-2 transition cursor-pointer active:scale-98 ${mode === 'manual'
-                      ? 'bg-zinc-800/90 border-rose-500/50 text-white font-bold shadow-lg shadow-rose-500/10 ring-1 ring-rose-500/30'
-                      : 'bg-zinc-900/60 hover:bg-zinc-800/50 border-zinc-800 text-zinc-400'
+                  className={`px-3.5 py-2 rounded-lg font-medium transition cursor-pointer flex items-center gap-2 shrink-0 ${mode === 'manual'
+                      ? 'bg-blue-600 text-white font-semibold shadow-sm'
+                      : 'text-slate-400 hover:text-slate-200 hover:bg-[#131b2c]'
                     }`}
                 >
-                  <div className="w-8 h-8 rounded-lg bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-rose-400">
-                    <CheckSquare className="w-4 h-4" />
-                  </div>
-                  <span className="font-medium">Manual</span>
+                  <CheckSquare className="w-3.5 h-3.5" />
+                  <span>Manual Roster</span>
                 </button>
               </div>
 
