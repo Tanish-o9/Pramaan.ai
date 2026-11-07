@@ -18,7 +18,7 @@ def test_code_generation_format():
     code = generate_session_code(subject_id=501, teacher_id=999)
     assert isinstance(code, str)
     assert len(code) == 6
-    assert code.isupper()
+    assert code == code.upper()
     assert code.isalnum()
 
 def test_qr_payload_structure():

@@ -707,16 +707,30 @@ async def api_analyze_voice(
 @app.post("/api/attendance/log")
 def api_save_log(data: dict, current_user: dict = Depends(require_teacher)):
     teacher_id = current_user.get("user_id")
+    top_sub_id = data.get("subject_id")
+    if top_sub_id and not check_teacher_subject_authorized(teacher_id, top_sub_id):
+        raise HTTPException(
+            status_code=403,
+            detail=f"Access Denied: You are not authorized to mark attendance for subject ID {top_sub_id}. You can only mark attendance for your assigned lectures."
+        )
     ts = datetime.now(timezone.utc).isoformat()
     logs = []
-    for r in data.get("logs", []):
-        sub_id = r.get("subject_id")
+    all_students = get_all_student() or []
+    roll_map = {s.get("roll_number"): s.get("student_id") for s in all_students}
+    items = data.get("logs") if "logs" in data else data.get("records", [])
+    for r in items:
+        sub_id = r.get("subject_id") or top_sub_id
         if sub_id and not check_teacher_subject_authorized(teacher_id, sub_id):
             raise HTTPException(
                 status_code=403,
                 detail=f"Access Denied: You are not authorized to mark attendance for subject ID {sub_id}. You can only mark attendance for your assigned lectures."
             )
-        is_pres = bool(r.get("is_present", False))
+        sid = r.get("student_id") or roll_map.get(r.get("roll_number"))
+
+        if not sid or not sub_id:
+            continue
+
+        is_pres = bool(r.get("is_present", False) or r.get("status") == "present")
         trust_sc = r.get("trust_score")
         if trust_sc is None:
             trust_sc = 100 if is_pres else 0
@@ -725,8 +739,8 @@ def api_save_log(data: dict, current_user: dict = Depends(require_teacher)):
             v_status = "auto_accepted" if is_pres else "absent"
 
         logs.append({
-            "subject_id": r["subject_id"],
-            "student_id": r["student_id"],
+            "subject_id": sub_id,
+            "student_id": sid,
             "is_present": is_pres,
             "timestamp": ts,
             "trust_score": int(trust_sc),
@@ -886,9 +900,12 @@ def api_kiosk_subjects():
     """Fetch public list of active subjects for kiosk / live camera terminals."""
     res = supabase.table("subjects").select("subject_id, subject_code, name, section, teachers_id, teachers(name)").execute()
     subs = res.data or []
+    enrollments_res = supabase.table("subject_students").select("subject_id").execute()
+    enrollment_counts = defaultdict(int)
+    for e in (enrollments_res.data or []):
+        enrollment_counts[e.get("subject_id")] += 1
     for s in subs:
-        enrolled_res = supabase.table("subject_students").select("student_id").eq("subject_id", s["subject_id"]).execute()
-        s["total_enrolled"] = len(enrolled_res.data or [])
+        s["total_enrolled"] = enrollment_counts[s["subject_id"]]
         teacher_info = s.get("teachers")
         s["teacher_name"] = teacher_info.get("name") if isinstance(teacher_info, dict) else "Faculty"
     return {"status": "success", "subjects": subs}
